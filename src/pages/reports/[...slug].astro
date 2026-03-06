@@ -26,7 +26,7 @@ const { Content } = await render(entry);
     article :global(pre) { background: #1a1a2e; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
   </style>
 
-  <a class="back" href={import.meta.env.BASE_URL}>&larr; Back</a>
+  <a class="back" href={`${import.meta.env.BASE_URL}/`}>&larr; Back</a>
   <article>
     <h1>{entry.data.title}</h1>
     <div class="meta">
