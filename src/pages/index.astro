@@ -251,9 +251,36 @@ const PAGE_SIZE = 20;
 
       if (!allCards.length) return;
 
-      var activeTags = new Set();
+      // --- URL query string sync ---
+      function getParams() {
+        return new URLSearchParams(window.location.search);
+      }
+      function syncURL() {
+        var params = new URLSearchParams();
+        var q = searchInput ? searchInput.value.trim() : '';
+        if (q) params.set('q', q);
+        if (activeTags.size > 0) params.set('tags', Array.from(activeTags).join(','));
+        var d = dateInput ? dateInput.value : '';
+        if (d) params.set('date', d);
+        var qs = params.toString();
+        var url = window.location.pathname + (qs ? '?' + qs : '');
+        history.replaceState(null, '', url);
+      }
+
+      // Read initial state from URL
+      var initParams = getParams();
+      var activeTags = new Set(initParams.get('tags') ? initParams.get('tags').split(',').filter(Boolean) : []);
       var visibleCount = PAGE_SIZE;
       var searchMatchIds = null; // null = no search active, Set = matched IDs
+
+      // Restore date input
+      if (dateInput && initParams.get('date')) {
+        dateInput.value = initParams.get('date');
+      }
+      // Restore search input
+      if (searchInput && initParams.get('q')) {
+        searchInput.value = initParams.get('q');
+      }
 
       // --- Full-text search (MiniSearch + Intl.Segmenter) ---
       var STOP_WORDS = new Set([
@@ -302,6 +329,13 @@ const PAGE_SIZE = 20;
                 tokenize: tokenize,
                 searchOptions: { tokenize: tokenize, prefix: true },
               });
+              // Run search if query was restored from URL
+              var initQ = searchInput ? searchInput.value.trim() : '';
+              if (initQ) {
+                var results = miniSearch.search(initQ, { prefix: true });
+                searchMatchIds = new Set(results.map(function(r) { return r.id; }));
+                render();
+              }
             });
         };
         document.head.appendChild(script);
@@ -390,6 +424,11 @@ const PAGE_SIZE = 20;
           updateDropdown();
           applyFilters();
         });
+
+        // Restore tag UI from URL
+        if (activeTags.size > 0) {
+          renderSelectedTags();
+        }
       }
 
       // --- Date filter ---
@@ -426,6 +465,7 @@ const PAGE_SIZE = 20;
 
       function applyFilters() {
         visibleCount = PAGE_SIZE;
+        syncURL();
         render();
       }
 
