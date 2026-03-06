@@ -26,7 +26,7 @@ src/
 
 ### 1. ワークフローファイルを作成
 
-`.github/workflows/<agent-name>.yml` を作成する。`agent.yml` をテンプレートとして使う:
+`.github/workflows/<agent-name>.yml` を作成する。既存のワークフロー（例: `hackernews.yml`）をテンプレートとして使う:
 
 ```yaml
 name: <Agent Display Name>
