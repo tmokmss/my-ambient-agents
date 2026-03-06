@@ -61,10 +61,10 @@ jobs:
           claude_args: "--dangerously-skip-permissions"
 ```
 
-### 2. (任意) スキルファイルを追加
+### 2. エージェント固有のプロンプト
 
-エージェント固有の出力指示が必要なら `.claude/skills/<skill-name>.md` を作成する。
-Claude Code が自動認識するため、prompt でパスを指定する必要はない。
+エージェント固有の処理指示は、スキルファイル (`.claude/skills/`) ではなく、ワークフロー YAML の `prompt` フィールドに直接記述する。
+スキルファイルはレポート出力形式など全エージェント共通の指示にのみ使用する。
 
 共通のレポート出力形式は `.claude/skills/output-report.md` に定義済み。
 
