@@ -14,221 +14,53 @@ const PAGE_SIZE = 20;
 ---
 
 <Layout title="Reports" showSubtitle>
-  <style is:global>
-    /* Search box */
-    .search-box { flex: 1; min-width: 200px; }
-    .search-box input {
-      width: 100%;
-      height: 2.25rem;
-      padding: 0 0.75rem;
-      font-size: 0.8rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--fg);
-      outline: none;
-      transition: border-color 0.15s;
-      box-sizing: border-box;
-    }
-    .search-box input:focus { border-color: var(--accent); }
-    .search-box input::placeholder { color: var(--muted); }
-
-    /* Filters */
-    .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; align-items: flex-start; }
-
-    /* Tag combobox */
-    .tag-combo { position: relative; min-width: 200px; flex: 1; max-width: 320px; }
-    .tag-input-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .tag-input {
-      width: 100%;
-      height: 2.25rem;
-      padding: 0 2rem 0 0.75rem;
-      font-size: 0.8rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--fg);
-      outline: none;
-      box-sizing: border-box;
-    }
-    .tag-input::placeholder { color: var(--muted); }
-    .tag-input:focus { border-color: var(--accent); }
-    .tag-clear {
-      position: absolute;
-      right: 0.4rem;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 1.25rem;
-      height: 1.25rem;
-      border: none;
-      border-radius: 9999px;
-      background: var(--muted);
-      color: var(--bg);
-      font-size: 0.7rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0;
-    }
-    .tag-clear:hover { background: var(--fg); }
-    .tag-clear.visible { display: flex; }
-    .tag-dropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      max-height: 200px;
-      overflow-y: auto;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-top: none;
-      border-radius: 0 0 0.5rem 0.5rem;
-      z-index: 10;
-      list-style: none;
-    }
-    .tag-dropdown.open { display: block; }
-    .tag-option {
-      padding: 0.35rem 0.75rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      color: var(--fg);
-    }
-    .tag-option:hover { background: var(--code-bg); }
-    .tag-option.selected { color: var(--accent); font-weight: 600; }
-    .selected-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; min-height: 1.5rem; margin-top: 0.4rem; }
-    .selected-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.7rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 9999px;
-      background: var(--accent);
-      color: var(--bg);
-      cursor: pointer;
-      border: none;
-    }
-    .selected-tag:hover { opacity: 0.8; }
-
-    /* Date filter */
-    .date-filter { display: flex; align-items: center; gap: 0.5rem; }
-    .date-filter label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
-    .date-input {
-      height: 2.25rem;
-      padding: 0 0.75rem;
-      font-size: 0.8rem;
-      font-family: inherit;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--fg);
-      outline: none;
-      box-sizing: border-box;
-    }
-    .date-input:focus { border-color: var(--accent); }
-
-    /* Report list */
-    .report-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
-    .report-card {
-      padding: 1rem 1.25rem;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-    .category-icon { flex-shrink: 0; color: var(--muted); margin-top: 0.15rem; }
-    .category-icon :global(svg) { width: 18px; height: 18px; }
-    .report-body { min-width: 0; }
-    .report-body h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .meta { font-size: 0.8rem; color: var(--muted); }
-    .summary { font-size: 0.875rem; margin-top: 0.5rem; }
-    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
-    .tag {
-      font-size: 0.7rem;
-      padding: 0.1rem 0.5rem;
-      border-radius: 9999px;
-      background: var(--code-bg);
-      color: var(--muted);
-    }
-    .empty { color: var(--muted); }
-
-    /* Load more */
-    .load-more-wrap { text-align: center; margin-top: 1.5rem; }
-    .load-more {
-      padding: 0.5rem 1.5rem;
-      font-size: 0.85rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--fg);
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .load-more:hover { border-color: var(--accent); color: var(--accent); }
-    .result-count { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
-
-    @media (max-width: 640px) {
-      .filters { flex-direction: row; }
-      .tag-combo { min-width: 0; max-width: none; flex: 1; }
-      .date-filter label { display: none; }
-      .date-input { width: 100%; }
-    }
-  </style>
-
-  <div class="filters">
-    <div class="search-box">
-      <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" />
+  <div class="flex flex-wrap gap-3 mb-6 items-start">
+    <div class="flex-1 min-w-[200px]">
+      <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" class="w-full h-9 px-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)] placeholder:text-[var(--muted)]" />
     </div>
     {allTags.length > 0 && (
-      <div class="tag-combo" id="tag-combo">
-        <div class="tag-input-wrap">
-          <input class="tag-input" id="tag-input" type="text" placeholder="タグで絞り込み..." autocomplete="off" />
-          <button class="tag-clear" id="tag-clear" aria-label="タグをクリア">&times;</button>
+      <div class="relative min-w-[200px] flex-1 max-w-xs max-sm:min-w-0 max-sm:max-w-none" id="tag-combo">
+        <div class="relative flex items-center">
+          <input class="w-full h-9 pr-8 pl-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none focus:border-[var(--accent)] placeholder:text-[var(--muted)]" id="tag-input" type="text" placeholder="タグで絞り込み..." autocomplete="off" />
+          <button class="tag-clear absolute right-1.5 items-center justify-center w-5 h-5 border-none rounded-full bg-[var(--muted)] text-[var(--bg)] text-[0.7rem] leading-none cursor-pointer p-0 hover:bg-[var(--fg)]" id="tag-clear" aria-label="タグをクリア">&times;</button>
         </div>
-        <ul class="tag-dropdown" id="tag-dropdown">
+        <ul class="tag-dropdown absolute top-full left-0 right-0 max-h-[200px] overflow-y-auto bg-[var(--card-bg)] border border-[var(--border)] border-t-0 rounded-b-lg z-10 list-none" id="tag-dropdown">
           {allTags.map((tag) => (
-            <li class="tag-option" data-tag={tag}>{tag}</li>
+            <li class="tag-option px-3 py-1.5 text-[0.8rem] cursor-pointer text-[var(--fg)] hover:bg-[var(--code-bg)]" data-tag={tag}>{tag}</li>
           ))}
         </ul>
-        <div class="selected-tags" id="selected-tags"></div>
+        <div class="flex flex-wrap gap-1 min-h-6 mt-1.5" id="selected-tags"></div>
       </div>
     )}
-    <div class="date-filter">
-      <label for="date-until">表示期間:</label>
-      <input class="date-input" id="date-until" type="date" />
+    <div class="flex items-center gap-2 max-sm:[&_label]:hidden max-sm:[&_.date-input]:w-full">
+      <label for="date-until" class="text-[0.8rem] text-[var(--muted)] whitespace-nowrap">表示期間:</label>
+      <input class="date-input h-9 px-3 text-[0.8rem] font-[inherit] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none focus:border-[var(--accent)]" id="date-until" type="date" />
     </div>
   </div>
 
   {reports.length === 0 ? (
-    <p class="empty">No reports yet. The agent will generate the first report on its next scheduled run.</p>
+    <p class="text-[var(--muted)]">No reports yet. The agent will generate the first report on its next scheduled run.</p>
   ) : (
     <>
-      <p class="result-count" id="result-count"></p>
-      <ul class="report-list" id="report-list">
+      <p class="text-[0.8rem] text-[var(--muted)] mb-4" id="result-count"></p>
+      <ul class="list-none flex flex-col gap-4" id="report-list">
         {reports.map((report) => (
-          <li class="report-card" data-id={report.id} data-tags={JSON.stringify([`category:${report.data.category}`, ...(report.data.tags ?? [])])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
+          <li class="report-card px-5 py-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg flex gap-4 items-start" data-id={report.id} data-tags={JSON.stringify([`category:${report.data.category}`, ...(report.data.tags ?? [])])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
             {() => {
               const Icon = categoryIcons[report.data.category];
-              return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
+              return Icon ? <span class="shrink-0 text-[var(--muted)] mt-0.5 [&_svg]:w-[18px] [&_svg]:h-[18px]"><Icon size={18} /></span> : null;
             }}
-            <div class="report-body">
-              <h2><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
-              <div class="meta">
+            <div class="min-w-0">
+              <h2 class="text-base font-semibold mb-1"><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
+              <div class="text-[0.8rem] text-[var(--muted)]">
                 <time class="local-time" datetime={new Date(report.data.date).toISOString()}>{new Date(report.data.date).toISOString().slice(0, 16).replace('T', ' ')}</time> &middot;
                 <span>{report.data.category}</span>
               </div>
-              <p class="summary">{report.data.summary}</p>
+              <p class="text-sm mt-2">{report.data.summary}</p>
               {(report.data.tags ?? []).length > 0 && (
-                <div class="tags">
+                <div class="flex flex-wrap gap-1 mt-2">
                   {(report.data.tags ?? []).map((tag) => (
-                    <span class="tag">{tag}</span>
+                    <span class="text-[0.7rem] px-2 py-0.5 rounded-full bg-[var(--code-bg)] text-[var(--muted)]">{tag}</span>
                   ))}
                 </div>
               )}
@@ -236,8 +68,8 @@ const PAGE_SIZE = 20;
           </li>
         ))}
       </ul>
-      <div class="load-more-wrap" id="load-more-wrap">
-        <button class="load-more" id="load-more">もっと表示</button>
+      <div class="text-center mt-6" id="load-more-wrap">
+        <button class="px-6 py-2 text-[0.85rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)]" id="load-more">もっと表示</button>
       </div>
     </>
   )}
@@ -410,7 +242,7 @@ const PAGE_SIZE = 20;
           selectedTagsEl.innerHTML = '';
           activeTags.forEach(function(tag) {
             var btn = document.createElement('button');
-            btn.className = 'selected-tag';
+            btn.className = 'inline-flex items-center gap-1 text-[0.7rem] py-0.5 px-2 rounded-full bg-[var(--accent)] text-[var(--bg)] cursor-pointer border-none hover:opacity-80';
             btn.textContent = tag + ' \u00d7';
             btn.addEventListener('click', function() {
               activeTags.delete(tag);

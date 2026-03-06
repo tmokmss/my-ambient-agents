@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* Light theme */
+:root[data-theme="light"] {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --accent: #0d9668;
+  --muted: #666;
+  --card-bg: #ffffff;
+  --border: #e0e0e0;
+  --code-bg: #f0f0f0;
+}
+/* Dark theme */
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --fg: #e0e0e0;
+  --accent: #6ee7b7;
+  --muted: #888;
+  --card-bg: #141414;
+  --border: #222;
+  --code-bg: #1a1a2e;
+}
+/* System default (no data-theme): use prefers-color-scheme */
+:root:not([data-theme]) {
+  --bg: #0a0a0a;
+  --fg: #e0e0e0;
+  --accent: #6ee7b7;
+  --muted: #888;
+  --card-bg: #141414;
+  --border: #222;
+  --code-bg: #1a1a2e;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #fafafa;
+    --fg: #1a1a1a;
+    --accent: #0d9668;
+    --muted: #666;
+    --card-bg: #ffffff;
+    --border: #e0e0e0;
+    --code-bg: #f0f0f0;
+  }
+}
+
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.7;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 3.5rem 4rem;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    body { padding: 2rem 1.5rem; }
+  }
+
+  /* Article content styles (rendered by <Content />, can't add classes) */
+  article h2 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+  article p { margin-bottom: 1rem; }
+  article ul, article ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+  article code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  article pre { background: var(--code-bg); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+}
+
+/* JS-toggled classes */
+.theme-icon { display: none; }
+.theme-icon.active { display: flex; align-items: center; }
+
+.tag-dropdown { display: none; }
+.tag-dropdown.open { display: block; }
+
+.tag-clear { display: none; }
+.tag-clear.visible { display: flex; }
+
+.tag-option.selected { color: var(--accent); font-weight: 600; }
+
+.copy-md .icon-check { display: none; color: var(--accent); }
+.copy-md.copied .icon-copy { display: none; }
+.copy-md.copied .icon-check { display: flex; }

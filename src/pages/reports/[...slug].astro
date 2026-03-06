@@ -16,86 +16,28 @@ const { Content } = await render(entry);
 ---
 
 <Layout title={entry.data.title}>
-  <style>
-    article h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; }
-    article :global(h2) { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-    article :global(p) { margin-bottom: 1rem; }
-    article :global(ul), article :global(ol) { margin-bottom: 1rem; padding-left: 1.5rem; }
-    article :global(code) { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
-    article :global(pre) { background: var(--code-bg); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
-    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; margin-bottom: 1rem; }
-    .tag {
-      font-size: 0.7rem;
-      padding: 0.1rem 0.5rem;
-      border-radius: 9999px;
-      background: var(--code-bg);
-      color: var(--muted);
-    }
-    .actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
-    .copy-md {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.75rem;
-      height: 2.75rem;
-      background: var(--card-bg);
-      color: var(--fg);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .copy-md:hover { border-color: var(--accent); }
-    .copy-md svg { width: 18px; height: 18px; }
-    .copy-md .icon-check { display: none; color: var(--accent); }
-    .copy-md.copied .icon-copy { display: none; }
-    .copy-md.copied .icon-check { display: flex; }
-    #ask-claude-popup {
-      display: none;
-      position: fixed;
-      z-index: 100;
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.4rem 0.75rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      transition: opacity 0.15s;
-      align-items: center;
-      gap: 0.35rem;
-    }
-    #ask-claude-popup:hover:not(:disabled) { opacity: 0.85; }
-    #ask-claude-popup:disabled { background: var(--muted); cursor: default; }
-    #ask-claude-popup svg { width: 14px; height: 14px; }
-  </style>
-
   <article id="report-article">
-    <h1>{entry.data.title}</h1>
-    <div class="meta">
+    <h1 class="text-2xl mb-1">{entry.data.title}</h1>
+    <div class="text-[0.8rem] text-[var(--muted)] mb-6">
       <time class="local-time" datetime={entry.data.date.toISOString()}>{entry.data.date.toISOString().slice(0, 16).replace('T', ' ')}</time> &middot; {entry.data.category}
     </div>
     {(entry.data.tags ?? []).length > 0 && (
-      <div class="tags">
+      <div class="flex flex-wrap gap-1 mt-2 mb-4">
         {(entry.data.tags ?? []).map((tag: string) => (
-          <span class="tag">{tag}</span>
+          <span class="text-[0.7rem] px-2 py-0.5 rounded-full bg-[var(--code-bg)] text-[var(--muted)]">{tag}</span>
         ))}
       </div>
     )}
     <Content />
-    <div class="actions">
-      <button class="copy-md" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
+    <div class="flex items-center gap-3 mt-8 flex-wrap">
+      <button class="copy-md inline-flex items-center justify-center w-11 h-11 bg-[var(--card-bg)] text-[var(--fg)] border border-[var(--border)] rounded-lg cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] [&_svg]:w-[18px] [&_svg]:h-[18px]" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
         <span class="icon-copy"><Copy size={18} /></span>
         <span class="icon-check"><Check size={18} /></span>
       </button>
     </div>
   </article>
 
-  <button id="ask-claude-popup"><MessageCircle size={14} /> Ask Claude</button>
+  <button id="ask-claude-popup" class="hidden fixed z-[100] bg-[var(--accent)] text-[var(--bg)] border-none rounded-lg px-3 py-1.5 text-[0.8rem] font-semibold cursor-pointer whitespace-nowrap shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-opacity duration-150 items-center gap-1.5 hover:not-disabled:opacity-85 disabled:bg-[var(--muted)] disabled:cursor-default [&_svg]:w-3.5 [&_svg]:h-3.5"><MessageCircle size={14} /> Ask Claude</button>
 
   <script is:inline define:vars={{ markdown: entry.body, reportTitle: entry.data.title }}>
     (function() {
