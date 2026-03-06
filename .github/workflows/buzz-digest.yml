@@ -31,7 +31,7 @@ jobs:
           prompt: |
             ${{ inputs.prompt || '
             現在の日本時間: ${{ steps.time.outputs.jst_time }}
-0
+
             世界のバズ・トレンドを収集し、暇つぶしに読めるダイジェストレポートを日本語で生成せよ。
 
             ## データソースと取得方法
