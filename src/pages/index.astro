@@ -74,54 +74,57 @@ const PAGE_SIZE = 20;
     </>
   )}
 
-  <script is:inline define:vars={{ PAGE_SIZE, BASE_URL: import.meta.env.BASE_URL }}>
-    (function() {
-      var allCards = Array.from(document.querySelectorAll('#report-list .report-card'));
-      var loadMoreBtn = document.getElementById('load-more');
-      var loadMoreWrap = document.getElementById('load-more-wrap');
-      var resultCount = document.getElementById('result-count');
-      var dateInput = document.getElementById('date-until');
-      var tagInput = document.getElementById('tag-input');
-      var tagClearBtn = document.getElementById('tag-clear');
-      var dropdown = document.getElementById('tag-dropdown');
-      var selectedTagsEl = document.getElementById('selected-tags');
-      var searchInput = document.getElementById('search-input');
+  <script>
+    import type MiniSearchType from 'minisearch';
 
-      if (!allCards.length) return;
+    const PAGE_SIZE = 20;
+    const BASE_URL = import.meta.env.BASE_URL;
 
+    const allCards = Array.from(document.querySelectorAll<HTMLElement>('#report-list .report-card'));
+    const loadMoreBtn = document.getElementById('load-more');
+    const loadMoreWrap = document.getElementById('load-more-wrap');
+    const resultCount = document.getElementById('result-count');
+    const dateInput = document.getElementById('date-until') as HTMLInputElement | null;
+    const tagInput = document.getElementById('tag-input') as HTMLInputElement | null;
+    const tagClearBtn = document.getElementById('tag-clear');
+    const dropdown = document.getElementById('tag-dropdown');
+    const selectedTagsEl = document.getElementById('selected-tags');
+    const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+
+    if (allCards.length) {
       // --- URL query string sync ---
-      function getParams() {
-        return new URLSearchParams(window.location.search);
-      }
-      function syncURL() {
-        var params = new URLSearchParams();
-        var q = searchInput ? searchInput.value.trim() : '';
+      const getParams = () => new URLSearchParams(window.location.search);
+
+      const syncURL = () => {
+        const params = new URLSearchParams();
+        const q = searchInput?.value.trim() ?? '';
         if (q) params.set('q', q);
         if (activeTags.size > 0) params.set('tags', Array.from(activeTags).join(','));
-        var d = dateInput ? dateInput.value : '';
+        const d = dateInput?.value ?? '';
         if (d) params.set('date', d);
-        var qs = params.toString();
-        var url = window.location.pathname + (qs ? '?' + qs : '');
-        history.replaceState(null, '', url);
-      }
+        const qs = params.toString();
+        history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''));
+      };
 
       // Read initial state from URL
-      var initParams = getParams();
-      var activeTags = new Set(initParams.get('tags') ? initParams.get('tags').split(',').filter(Boolean) : []);
-      var visibleCount = PAGE_SIZE;
-      var searchMatchIds = null; // null = no search active, Set = matched IDs
+      const initParams = getParams();
+      const activeTags = new Set<string>(
+        initParams.get('tags')?.split(',').filter(Boolean) ?? []
+      );
+      let visibleCount = PAGE_SIZE;
+      let searchMatchIds: Set<string> | null = null;
 
       // Restore date input
       if (dateInput && initParams.get('date')) {
-        dateInput.value = initParams.get('date');
+        dateInput.value = initParams.get('date')!;
       }
       // Restore search input
       if (searchInput && initParams.get('q')) {
-        searchInput.value = initParams.get('q');
+        searchInput.value = initParams.get('q')!;
       }
 
-      // --- Full-text search (MiniSearch + Intl.Segmenter) ---
-      var STOP_WORDS = new Set([
+      // --- Full-text search (MiniSearch + Intl.Segmenter, lazy-loaded) ---
+      const STOP_WORDS = new Set([
         'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し',
         'れ', 'さ', 'ある', 'いる', 'も', 'する', 'から', 'な', 'こと',
         'として', 'い', 'や', 'など', 'なっ', 'ない', 'この', 'ため',
@@ -132,87 +135,133 @@ const PAGE_SIZE = 20;
         'せ', 'だっ', 'そう', 'それ', 'ところ', 'よ', 'ね',
       ]);
 
-      var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter
+      const segmenter = typeof Intl !== 'undefined' && Intl.Segmenter
         ? new Intl.Segmenter('ja', { granularity: 'word' })
         : null;
 
-      function tokenize(text) {
+      const tokenize = (text: string): string[] => {
         if (!text) return [];
         if (segmenter) {
-          var tokens = [];
-          var segments = segmenter.segment(text);
-          for (var seg of segments) {
+          const tokens: string[] = [];
+          for (const seg of segmenter.segment(text)) {
             if (seg.isWordLike && !STOP_WORDS.has(seg.segment)) {
               tokens.push(seg.segment.toLowerCase());
             }
           }
           return tokens;
         }
-        // Fallback: split on whitespace
-        return text.toLowerCase().split(/\s+/).filter(function(w) { return w && !STOP_WORDS.has(w); });
-      }
+        return text.toLowerCase().split(/\s+/).filter(w => w && !STOP_WORDS.has(w));
+      };
 
-      var miniSearch = null;
+      let miniSearch: MiniSearchType | null = null;
+      let searchLoadPromise: Promise<void> | null = null;
 
-      (function initSearch() {
-        var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/minisearch@7/dist/umd/index.min.js';
-        script.onload = function() {
-          fetch(BASE_URL + '/search-index.json')
-            .then(function(r) { return r.json(); })
-            .then(function(index) {
-              miniSearch = MiniSearch.loadJSON(JSON.stringify(index), {
-                fields: ['title', 'summary', 'body'],
-                storeFields: ['id'],
-                tokenize: tokenize,
-                searchOptions: { tokenize: tokenize, prefix: true },
-              });
-              // Run search if query was restored from URL
-              var initQ = searchInput ? searchInput.value.trim() : '';
-              if (initQ) {
-                var results = miniSearch.search(initQ, { prefix: true });
-                searchMatchIds = new Set(results.map(function(r) { return r.id; }));
-                render();
-              }
-            });
-        };
-        document.head.appendChild(script);
-      })();
+      const ensureSearchLoaded = (): Promise<void> => {
+        if (miniSearch) return Promise.resolve();
+        if (searchLoadPromise) return searchLoadPromise;
+
+        searchLoadPromise = (async () => {
+          if (searchInput) searchInput.placeholder = '検索インデックスを読み込み中...';
+
+          const [{ default: MiniSearch }, indexRes] = await Promise.all([
+            import('minisearch'),
+            fetch(`${BASE_URL}/search-index.json`),
+          ]);
+          const index = await indexRes.json();
+
+          miniSearch = MiniSearch.loadJSON(JSON.stringify(index), {
+            fields: ['title', 'summary', 'body'],
+            storeFields: ['id'],
+            tokenize,
+            searchOptions: { tokenize, prefix: true },
+          });
+
+          if (searchInput) searchInput.placeholder = '全文検索...';
+        })();
+
+        return searchLoadPromise;
+      };
 
       if (searchInput) {
-        var searchTimer = null;
-        searchInput.addEventListener('input', function() {
-          clearTimeout(searchTimer);
-          searchTimer = setTimeout(function() {
-            var query = searchInput.value.trim();
-            if (!query || !miniSearch) {
+        // Lazy-load on focus
+        searchInput.addEventListener('focus', () => { ensureSearchLoaded(); }, { once: true });
+
+        let searchTimer: ReturnType<typeof setTimeout> | null = null;
+        searchInput.addEventListener('input', () => {
+          if (searchTimer) clearTimeout(searchTimer);
+          searchTimer = setTimeout(async () => {
+            const query = searchInput.value.trim();
+            if (!query) {
               searchMatchIds = null;
             } else {
-              var results = miniSearch.search(query, { prefix: true });
-              searchMatchIds = new Set(results.map(function(r) { return r.id; }));
+              await ensureSearchLoaded();
+              const results = miniSearch!.search(query, { prefix: true });
+              searchMatchIds = new Set(results.map(r => r.id));
             }
             applyFilters();
           }, 200);
         });
+
+        // If query was restored from URL, load immediately
+        if (initParams.get('q')) {
+          ensureSearchLoaded().then(() => {
+            const q = searchInput.value.trim();
+            if (q && miniSearch) {
+              const results = miniSearch.search(q, { prefix: true });
+              searchMatchIds = new Set(results.map(r => r.id));
+              render();
+            }
+          });
+        }
       }
 
       // --- Tag combobox ---
       if (tagInput && dropdown) {
-        var options = Array.from(dropdown.querySelectorAll('.tag-option'));
+        const options = Array.from(dropdown.querySelectorAll<HTMLElement>('.tag-option'));
 
-        tagInput.addEventListener('focus', function() { updateDropdown(); });
-        tagInput.addEventListener('input', function() { updateDropdown(); });
+        const updateDropdown = () => {
+          const query = tagInput.value.toLowerCase();
+          let anyVisible = false;
+          for (const opt of options) {
+            const tag = opt.getAttribute('data-tag')!;
+            const match = !query || tag.toLowerCase().includes(query);
+            opt.style.display = match ? '' : 'none';
+            opt.classList.toggle('selected', activeTags.has(tag));
+            if (match) anyVisible = true;
+          }
+          dropdown.classList.toggle('open', anyVisible);
+        };
 
-        document.addEventListener('click', function(e) {
-          if (!document.getElementById('tag-combo').contains(e.target)) {
+        const renderSelectedTags = () => {
+          selectedTagsEl!.innerHTML = '';
+          for (const tag of activeTags) {
+            const btn = document.createElement('button');
+            btn.className = 'inline-flex items-center gap-1 text-[0.7rem] py-0.5 px-2 rounded-full bg-[var(--accent)] text-[var(--bg)] cursor-pointer border-none hover:opacity-80';
+            btn.textContent = `${tag} \u00d7`;
+            btn.addEventListener('click', () => {
+              activeTags.delete(tag);
+              renderSelectedTags();
+              updateDropdown();
+              applyFilters();
+            });
+            selectedTagsEl!.appendChild(btn);
+          }
+          tagClearBtn!.classList.toggle('visible', activeTags.size > 0);
+        };
+
+        tagInput.addEventListener('focus', () => updateDropdown());
+        tagInput.addEventListener('input', () => updateDropdown());
+
+        document.addEventListener('click', (e) => {
+          if (!document.getElementById('tag-combo')?.contains(e.target as Node)) {
             dropdown.classList.remove('open');
           }
         });
 
-        options.forEach(function(opt) {
-          opt.addEventListener('click', function(e) {
+        for (const opt of options) {
+          opt.addEventListener('click', (e) => {
             e.stopPropagation();
-            var tag = opt.getAttribute('data-tag');
+            const tag = opt.getAttribute('data-tag')!;
             if (activeTags.has(tag)) {
               activeTags.delete(tag);
             } else {
@@ -223,39 +272,9 @@ const PAGE_SIZE = 20;
             renderSelectedTags();
             applyFilters();
           });
-        });
-
-        function updateDropdown() {
-          var query = tagInput.value.toLowerCase();
-          var anyVisible = false;
-          options.forEach(function(opt) {
-            var tag = opt.getAttribute('data-tag');
-            var match = !query || tag.toLowerCase().indexOf(query) !== -1;
-            opt.style.display = match ? '' : 'none';
-            opt.classList.toggle('selected', activeTags.has(tag));
-            if (match) anyVisible = true;
-          });
-          dropdown.classList.toggle('open', anyVisible);
         }
 
-        function renderSelectedTags() {
-          selectedTagsEl.innerHTML = '';
-          activeTags.forEach(function(tag) {
-            var btn = document.createElement('button');
-            btn.className = 'inline-flex items-center gap-1 text-[0.7rem] py-0.5 px-2 rounded-full bg-[var(--accent)] text-[var(--bg)] cursor-pointer border-none hover:opacity-80';
-            btn.textContent = tag + ' \u00d7';
-            btn.addEventListener('click', function() {
-              activeTags.delete(tag);
-              renderSelectedTags();
-              updateDropdown();
-              applyFilters();
-            });
-            selectedTagsEl.appendChild(btn);
-          });
-          tagClearBtn.classList.toggle('visible', activeTags.size > 0);
-        }
-
-        tagClearBtn.addEventListener('click', function() {
+        tagClearBtn!.addEventListener('click', () => {
           activeTags.clear();
           tagInput.value = '';
           renderSelectedTags();
@@ -263,7 +282,6 @@ const PAGE_SIZE = 20;
           applyFilters();
         });
 
-        // Restore tag UI from URL
         if (activeTags.size > 0) {
           renderSelectedTags();
         }
@@ -271,61 +289,52 @@ const PAGE_SIZE = 20;
 
       // --- Date filter ---
       if (dateInput) {
-        dateInput.addEventListener('change', function() { applyFilters(); });
+        dateInput.addEventListener('change', () => applyFilters());
       }
 
       // --- Filtering & pagination ---
-      function getFilteredCards() {
-        var dateVal = dateInput ? dateInput.value : '';
-        return allCards.filter(function(card) {
-          // Search filter
+      const getFilteredCards = () => {
+        const dateVal = dateInput?.value ?? '';
+        return allCards.filter(card => {
           if (searchMatchIds) {
-            var cardId = card.getAttribute('data-id');
-            if (!searchMatchIds.has(cardId)) return false;
+            if (!searchMatchIds.has(card.getAttribute('data-id')!)) return false;
           }
-          // Tag filter
           if (activeTags.size > 0) {
-            var cardTags = JSON.parse(card.getAttribute('data-tags') || '[]');
-            var tagMatch = false;
-            activeTags.forEach(function(t) {
-              if (cardTags.indexOf(t) !== -1) tagMatch = true;
-            });
-            if (!tagMatch) return false;
+            const cardTags: string[] = JSON.parse(card.getAttribute('data-tags') || '[]');
+            if (![...activeTags].some(t => cardTags.includes(t))) return false;
           }
-          // Date filter
           if (dateVal) {
-            var cardDate = card.getAttribute('data-date');
-            if (cardDate > dateVal) return false;
+            if (card.getAttribute('data-date')! > dateVal) return false;
           }
           return true;
         });
-      }
+      };
 
-      function applyFilters() {
+      const applyFilters = () => {
         visibleCount = PAGE_SIZE;
         syncURL();
         render();
-      }
+      };
 
-      function render() {
-        var filtered = getFilteredCards();
-        allCards.forEach(function(c) { c.style.display = 'none'; });
-        for (var i = 0; i < filtered.length && i < visibleCount; i++) {
+      const render = () => {
+        const filtered = getFilteredCards();
+        for (const c of allCards) c.style.display = 'none';
+        for (let i = 0; i < filtered.length && i < visibleCount; i++) {
           filtered[i].style.display = '';
         }
         if (resultCount) {
-          var total = filtered.length;
-          var shown = Math.min(visibleCount, total);
-          resultCount.textContent = total + '件中 ' + shown + '件表示';
+          const total = filtered.length;
+          const shown = Math.min(visibleCount, total);
+          resultCount.textContent = `${total}件中 ${shown}件表示`;
         }
         if (loadMoreWrap) {
           loadMoreWrap.style.display = visibleCount < filtered.length ? '' : 'none';
         }
-      }
+      };
 
       // --- Load more ---
       if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', function() {
+        loadMoreBtn.addEventListener('click', () => {
           visibleCount += PAGE_SIZE;
           render();
         });
@@ -333,6 +342,6 @@ const PAGE_SIZE = 20;
 
       // Initial render
       render();
-    })();
+    }
   </script>
 </Layout>
