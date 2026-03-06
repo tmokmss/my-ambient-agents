@@ -14,7 +14,6 @@ title: "Report title here"
 date: "YYYY-MM-DD"
 category: "one of: summary | analysis | alert | maintenance"
 summary: "A one-line summary (max 120 chars) shown on the index page"
-agent: "claude"
 ---
 ```
 

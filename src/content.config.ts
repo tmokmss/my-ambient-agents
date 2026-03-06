@@ -8,7 +8,6 @@ const reports = defineCollection({
     date: z.string(),
     category: z.string(),
     summary: z.string(),
-    agent: z.string().default("claude"),
   }),
 });
 

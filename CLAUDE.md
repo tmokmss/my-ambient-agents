@@ -85,7 +85,6 @@ title: "Report title"
 date: "YYYY-MM-DD"
 category: "summary | analysis | alert | maintenance"
 summary: "One-line summary (max 120 chars)"
-agent: "claude"
 ---
 ```
 
