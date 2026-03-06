@@ -98,6 +98,7 @@ tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 
 - main ブランチに直接 push してよい（PR 不要）
 - push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
+- `git reset --hard` や `git checkout .` など、ローカルの変更を破棄する操作は絶対に行わないこと（ユーザーが明示的に指示した場合を除く）
 
 ## Dev Server
 
