@@ -33,7 +33,7 @@ jobs:
             以下の4ソースからデータを取得する:
 
             ### 1. Reddit (海外バズ)
-            以下のURLに GET リクエスト（JSONレスポンス）:
+            以下のURLに GET リクエスト（JSONレスポンス）。User-Agent ヘッダが必須（例: "ambient-agents/1.0"）:
             - https://www.reddit.com/r/all/hot.json?limit=20
             各投稿の title, url, score, num_comments, subreddit を取得。
 
@@ -61,7 +61,7 @@ jobs:
             ## レポート形式
 
             output-report skill に従い src/content/reports/ にファイルを作成する。
-            - category: "summary"
+            - category: "buzz"
             - slug: buzz-digest (例: 2026-03-06T14-buzz-digest.md)
             - tags: ソースに応じて ["reddit", "bilibili", "hatena", "togetter"] から該当するものを含める
 
@@ -86,3 +86,4 @@ jobs:
             ' }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
+          show_full_output: true

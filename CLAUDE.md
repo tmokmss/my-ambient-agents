@@ -59,6 +59,7 @@ jobs:
             ${{ inputs.prompt || '<default prompt for this agent>' }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
+          show_full_output: true
 ```
 
 ### 2. エージェント固有のプロンプト
@@ -71,7 +72,7 @@ jobs:
 ### 3. レポートのカテゴリ追加
 
 新しいカテゴリが必要なら `output-report.md` の frontmatter schema に追加する:
-- 現在の category: `summary | analysis | alert`
+- 現在の category: `summary | analysis | alert | buzz`
 
 ### 4. デプロイ
 
@@ -83,7 +84,7 @@ jobs:
 ---
 title: "Report title"
 date: "YYYY-MM-DDTHH:mm"
-category: "summary | analysis | alert"
+category: "summary | analysis | alert | buzz"
 summary: "One-line summary (max 120 chars)"
 tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 ---
