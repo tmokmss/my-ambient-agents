@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
-import { Copy, Check } from "@lucide/astro";
+import { Copy, Check, MessageCircle } from "@lucide/astro";
 
 export async function getStaticPaths() {
   const reports = await getCollection("reports");
@@ -31,7 +31,8 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.5rem 1rem;
+      height: 2.75rem;
+      padding: 0 1rem;
       background: var(--accent);
       color: var(--bg);
       border-radius: 0.5rem;
@@ -40,6 +41,7 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
       text-decoration: none;
       transition: opacity 0.15s;
     }
+    .chat-link svg { width: 16px; height: 16px; }
     .chat-link:hover { opacity: 0.85; text-decoration: none; }
     .actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
     .copy-md {
@@ -69,7 +71,7 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
     </div>
     <Content />
     <div class="actions">
-      <a class="chat-link" href={chatUrl} target="_blank" rel="noopener">Talk with Claude about this report</a>
+      <a class="chat-link" href={chatUrl} target="_blank" rel="noopener"><MessageCircle size={16} /> Ask Claude</a>
       <button class="copy-md" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
         <span class="icon-copy"><Copy size={18} /></span>
         <span class="icon-check"><Check size={18} /></span>
