@@ -49,7 +49,7 @@ jobs:
 
             ## 1. [Story Title](url)
 
-            **Score:** {score} | **Comments:** {descendants}
+            **Score:** {score} | **Comments:** {descendants} | [Post](https://news.ycombinator.com/item?id={id})
 
             {ストーリーの内容を2-3文で要約}
 
