@@ -19,7 +19,8 @@ const PAGE_SIZE = 20;
     .search-box { flex: 1; min-width: 200px; }
     .search-box input {
       width: 100%;
-      padding: 0.5rem 0.75rem;
+      height: 2.25rem;
+      padding: 0 0.75rem;
       font-size: 0.8rem;
       border: 1px solid var(--border);
       border-radius: 0.5rem;
@@ -44,13 +45,15 @@ const PAGE_SIZE = 20;
     }
     .tag-input {
       width: 100%;
-      padding: 0.5rem 2rem 0.5rem 0.75rem;
+      height: 2.25rem;
+      padding: 0 2rem 0 0.75rem;
       font-size: 0.8rem;
       border: 1px solid var(--border);
       border-radius: 0.5rem;
       background: var(--card-bg);
       color: var(--fg);
       outline: none;
+      box-sizing: border-box;
     }
     .tag-input::placeholder { color: var(--muted); }
     .tag-input:focus { border-color: var(--accent); }
@@ -116,7 +119,8 @@ const PAGE_SIZE = 20;
     .date-filter { display: flex; align-items: center; gap: 0.5rem; }
     .date-filter label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
     .date-input {
-      padding: 0.5rem 0.75rem;
+      height: 2.25rem;
+      padding: 0 0.75rem;
       font-size: 0.8rem;
       font-family: inherit;
       border: 1px solid var(--border);
@@ -124,6 +128,7 @@ const PAGE_SIZE = 20;
       background: var(--card-bg);
       color: var(--fg);
       outline: none;
+      box-sizing: border-box;
     }
     .date-input:focus { border-color: var(--accent); }
 
