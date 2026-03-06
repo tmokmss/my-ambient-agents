@@ -15,6 +15,23 @@ const PAGE_SIZE = 20;
 
 <Layout title="Reports" showSubtitle>
   <style is:global>
+    /* Search box */
+    .search-box { flex: 1; min-width: 200px; }
+    .search-box input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--card-bg);
+      color: var(--fg);
+      outline: none;
+      transition: border-color 0.15s;
+      box-sizing: border-box;
+    }
+    .search-box input:focus { border-color: var(--accent); }
+    .search-box input::placeholder { color: var(--muted); }
+
     /* Filters */
     .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; align-items: flex-start; }
 
@@ -160,6 +177,9 @@ const PAGE_SIZE = 20;
   </style>
 
   <div class="filters">
+    <div class="search-box">
+      <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" />
+    </div>
     {allTags.length > 0 && (
       <div class="tag-combo" id="tag-combo">
         <div class="tag-input-wrap">
@@ -187,7 +207,7 @@ const PAGE_SIZE = 20;
       <p class="result-count" id="result-count"></p>
       <ul class="report-list" id="report-list">
         {reports.map((report) => (
-          <li class="report-card" data-tags={JSON.stringify(report.data.tags ?? [])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
+          <li class="report-card" data-id={report.id} data-tags={JSON.stringify(report.data.tags ?? [])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
             {() => {
               const Icon = categoryIcons[report.data.category];
               return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
@@ -216,7 +236,7 @@ const PAGE_SIZE = 20;
     </>
   )}
 
-  <script is:inline define:vars={{ PAGE_SIZE }}>
+  <script is:inline define:vars={{ PAGE_SIZE, BASE_URL: import.meta.env.BASE_URL }}>
     (function() {
       var allCards = Array.from(document.querySelectorAll('#report-list .report-card'));
       var loadMoreBtn = document.getElementById('load-more');
@@ -227,11 +247,82 @@ const PAGE_SIZE = 20;
       var tagClearBtn = document.getElementById('tag-clear');
       var dropdown = document.getElementById('tag-dropdown');
       var selectedTagsEl = document.getElementById('selected-tags');
+      var searchInput = document.getElementById('search-input');
 
       if (!allCards.length) return;
 
       var activeTags = new Set();
       var visibleCount = PAGE_SIZE;
+      var searchMatchIds = null; // null = no search active, Set = matched IDs
+
+      // --- Full-text search (MiniSearch + Intl.Segmenter) ---
+      var STOP_WORDS = new Set([
+        'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し',
+        'れ', 'さ', 'ある', 'いる', 'も', 'する', 'から', 'な', 'こと',
+        'として', 'い', 'や', 'など', 'なっ', 'ない', 'この', 'ため',
+        'その', 'あっ', 'よう', 'また', 'もの', 'という', 'あり',
+        'まで', 'られ', 'なる', 'へ', 'か', 'だ', 'これ', 'によって',
+        'により', 'おり', 'より', 'による', 'ず', 'なり', 'られる',
+        'において', 'ば', 'なかっ', 'なく', 'しかし', 'について',
+        'せ', 'だっ', 'そう', 'それ', 'ところ', 'よ', 'ね',
+      ]);
+
+      var segmenter = typeof Intl !== 'undefined' && Intl.Segmenter
+        ? new Intl.Segmenter('ja', { granularity: 'word' })
+        : null;
+
+      function tokenize(text) {
+        if (!text) return [];
+        if (segmenter) {
+          var tokens = [];
+          var segments = segmenter.segment(text);
+          for (var seg of segments) {
+            if (seg.isWordLike && !STOP_WORDS.has(seg.segment)) {
+              tokens.push(seg.segment.toLowerCase());
+            }
+          }
+          return tokens;
+        }
+        // Fallback: split on whitespace
+        return text.toLowerCase().split(/\s+/).filter(function(w) { return w && !STOP_WORDS.has(w); });
+      }
+
+      var miniSearch = null;
+
+      (function initSearch() {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/minisearch@7/dist/umd/index.min.js';
+        script.onload = function() {
+          fetch(BASE_URL + '/search-index.json')
+            .then(function(r) { return r.json(); })
+            .then(function(index) {
+              miniSearch = MiniSearch.loadJSON(JSON.stringify(index), {
+                fields: ['title', 'summary', 'body'],
+                storeFields: ['id'],
+                tokenize: tokenize,
+                searchOptions: { tokenize: tokenize, prefix: true },
+              });
+            });
+        };
+        document.head.appendChild(script);
+      })();
+
+      if (searchInput) {
+        var searchTimer = null;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(function() {
+            var query = searchInput.value.trim();
+            if (!query || !miniSearch) {
+              searchMatchIds = null;
+            } else {
+              var results = miniSearch.search(query, { prefix: true });
+              searchMatchIds = new Set(results.map(function(r) { return r.id; }));
+            }
+            applyFilters();
+          }, 200);
+        });
+      }
 
       // --- Tag combobox ---
       if (tagInput && dropdown) {
@@ -310,6 +401,12 @@ const PAGE_SIZE = 20;
       function getFilteredCards() {
         var dateVal = dateInput ? dateInput.value : '';
         return allCards.filter(function(card) {
+          // Search filter
+          if (searchMatchIds) {
+            var cardId = card.getAttribute('data-id');
+            if (!searchMatchIds.has(cardId)) return false;
+          }
+          // Tag filter
           if (activeTags.size > 0) {
             var cardTags = JSON.parse(card.getAttribute('data-tags') || '[]');
             var tagMatch = false;
@@ -318,6 +415,7 @@ const PAGE_SIZE = 20;
             });
             if (!tagMatch) return false;
           }
+          // Date filter
           if (dateVal) {
             var cardDate = card.getAttribute('data-date');
             if (cardDate > dateVal) return false;
