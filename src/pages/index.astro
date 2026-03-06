@@ -9,7 +9,7 @@ const reports = (await getCollection("reports")).sort(
 
 const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle, buzz: Flame };
 
-const allTags = [...new Set(reports.flatMap((r) => r.data.tags ?? []))].sort();
+const allTags = [...new Set(reports.flatMap((r) => [`category:${r.data.category}`, ...(r.data.tags ?? [])]))].sort();
 const PAGE_SIZE = 20;
 ---
 
@@ -207,7 +207,7 @@ const PAGE_SIZE = 20;
       <p class="result-count" id="result-count"></p>
       <ul class="report-list" id="report-list">
         {reports.map((report) => (
-          <li class="report-card" data-id={report.id} data-tags={JSON.stringify(report.data.tags ?? [])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
+          <li class="report-card" data-id={report.id} data-tags={JSON.stringify([`category:${report.data.category}`, ...(report.data.tags ?? [])])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
             {() => {
               const Icon = categoryIcons[report.data.category];
               return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
