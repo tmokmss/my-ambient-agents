@@ -32,10 +32,10 @@ jobs:
 
             以下の4ソースからデータを取得する:
 
-            ### 1. Reddit (海外バズ)
-            以下のURLに GET リクエスト（JSONレスポンス）。User-Agent ヘッダが必須（例: "ambient-agents/1.0"）:
-            - https://www.reddit.com/r/all/hot.json?limit=20
-            各投稿の title, url, score, num_comments, subreddit を取得。
+            ### 1. The Verge (英語圏テック・カルチャー)
+            RSSを取得してパース:
+            - https://www.theverge.com/rss/index.xml
+            各エントリの title, link, description を取得。
 
             ### 2. Bilibili (中国トレンド)
             - https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all
@@ -55,7 +55,7 @@ jobs:
 
             ## 重複排除
 
-            src/content/reports/ ディレクトリ内の直近3件の buzz-digest レポート（ファイル名に "buzz-digest" を含むもの）を読み込み、
+            src/content/reports/ ディレクトリ内でファイル名に "buzz-digest" を含むものをファイル名の降順でソートし、直近3件を読み込む。
             過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
             同じURL、同じ話題の別記事、同一事件の続報などは重複とみなす。
 
@@ -64,15 +64,15 @@ jobs:
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "buzz"
             - slug: buzz-digest (例: 2026-03-06T14-buzz-digest.md)
-            - tags: ソースに応じて ["reddit", "bilibili", "hatena", "togetter"] から該当するものを含める
+            - tags: ソースに応じて ["theverge", "bilibili", "hatena", "togetter"] から該当するものを含める
 
             本文の構造:
 
             ソース別にセクションを分け、各ソースから面白い・注目すべきトピックを3-5件ピックアップする。
             単なるタイトル列挙ではなく、なぜ面白いのか・何が話題なのかを1-2文で解説する。
 
-            ## Reddit
-            - **[タイトル](url)** (r/{subreddit}, {score}pt) - 日本語で内容の解説
+            ## The Verge
+            - **[タイトル](url)** - 日本語で内容の解説
 
             ## Bilibili
             - **[タイトル](url)** ({再生数}) - 日本語で内容の解説
