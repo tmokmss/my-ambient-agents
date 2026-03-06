@@ -40,7 +40,7 @@ const { Content } = await render(entry);
     </div>
   </article>
 
-  <script is:inline define:vars={{ markdown: entry.body, rawUrl: Astro.site + 'my-ambient-agents/raw/' + entry.id + '.md' }}>
+  <script is:inline define:vars={{ markdown: entry.body, rawUrl: Astro.site + 'my-ambient-agents/raw/' + entry.id + '.md', reportTitle: entry.data.title, reportSummary: entry.data.summary }}>
     (function() {
       // Copy markdown button
       var copyBtn = document.getElementById('copy-md');
@@ -53,7 +53,7 @@ const { Content } = await render(entry);
 
       // Ask Claude button
       var askBtn = document.getElementById('ask-claude');
-      var prompt = '以下のURLのレポートを読んで、内容について質問に答えてください。\n\n' + rawUrl;
+      var prompt = '「' + reportTitle + '」\n' + reportSummary + '\n\n以下のURLのレポートを読んで、内容について質問に答えてください。\n' + rawUrl;
       askBtn.href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
       askBtn.target = '_blank';
       askBtn.rel = 'noopener';
