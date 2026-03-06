@@ -23,9 +23,9 @@ agent: "claude"
 6. Do NOT modify any files outside of `src/content/reports/`.
 7. Do NOT create duplicate filenames. If a file for today's date and slug exists, use a different slug.
 
-## Commit & PR
+## Commit & Push
 
 After writing the report file:
-- Create a new branch: `report/YYYY-MM-DD-<slug>`
-- Commit the new file
-- Open a Pull Request targeting `main`
+- Commit the new file to the `main` branch directly
+- Push to origin with `git push origin main`
+- Do NOT create branches or PRs

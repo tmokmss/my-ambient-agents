@@ -59,6 +59,15 @@ jobs:
 
             Use the skill defined in .github/skills/output-report.md for output format.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            Bash(git *)
+            Bash(ls *)
+            Bash(cat *)
+            Write
+            Edit
+            Read
+            Glob
+            Grep
 ```
 
 ### 2. (任意) スキルファイルを追加
@@ -75,7 +84,7 @@ jobs:
 
 ### 4. デプロイ
 
-エージェントが PR を作成 → レビュー・マージ → `deploy.yml` が自動でビルド・デプロイ。
+エージェントが main に直接 push → `deploy.yml` が自動でビルド・デプロイ。
 
 ## Report Frontmatter Schema
 
@@ -93,5 +102,5 @@ agent: "claude"
 
 - エージェントは `src/content/reports/` 以外のファイルを変更してはならない
 - ファイル名は `YYYY-MM-DD-<slug>.md` 形式
-- エージェントは PR を作成し、直接 main にはコミットしない
+- エージェントは main に直接コミット・プッシュする
 - OAuth トークンは `CLAUDE_CODE_OAUTH_TOKEN` シークレットで管理
