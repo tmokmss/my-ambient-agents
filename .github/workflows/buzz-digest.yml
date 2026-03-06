@@ -22,10 +22,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set JST time context
+        id: time
+        run: |
+          JST_TIME=$(TZ=Asia/Tokyo date '+%Y-%m-%dT%H:%M')
+          JST_HOUR=$(TZ=Asia/Tokyo date '+%H')
+          if [ "$JST_HOUR" -lt 12 ]; then
+            EDITION="朝刊"
+          elif [ "$JST_HOUR" -lt 18 ]; then
+            EDITION="夕刊"
+          else
+            EDITION="夜刊"
+          fi
+          echo "jst_time=$JST_TIME" >> "$GITHUB_OUTPUT"
+          echo "edition=$EDITION" >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@v1
         with:
           prompt: |
             ${{ inputs.prompt || '
+            現在の日本時間: ${{ steps.time.outputs.jst_time }}
+            本号の版: ${{ steps.time.outputs.edition }}
+
             世界のバズ・トレンドを収集し、暇つぶしに読めるダイジェストレポートを日本語で生成せよ。
 
             ## データソースと取得方法
@@ -69,8 +87,10 @@ jobs:
 
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "buzz"
-            - slug: buzz-digest (例: 2026-03-06T14-buzz-digest.md)
+            - title: "世界バズ・ダイジェスト（{日本時間の日付} {版名}）" の形式にする（例: 世界バズ・ダイジェスト（2026年3月6日 朝刊））。版名は上記で指定された値を使うこと。
+            - slug: buzz-digest (例: 2026-03-06-08-00-buzz-digest.md)
             - tags: 記事の内容に応じて自由にタグをつける（例: "ai", "gaming", "politics", "security", "culture" など）。ソース名をタグにする必要はない
+            - ファイル名と date frontmatter には日本時間 (JST) を使うこと。UTCではなく上記で指定された日本時間を基準にする。
 
             本文の構造:
 
