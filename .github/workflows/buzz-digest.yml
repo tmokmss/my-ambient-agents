@@ -70,7 +70,7 @@ jobs:
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "buzz"
             - slug: buzz-digest (例: 2026-03-06T14-buzz-digest.md)
-            - tags: ソースに応じて ["reddit", "theverge", "bilibili", "hatena", "togetter"] から該当するものを含める
+            - tags: 記事の内容に応じて自由にタグをつける（例: "ai", "gaming", "politics", "security", "culture" など）。ソース名をタグにする必要はない
 
             本文の構造:
 
