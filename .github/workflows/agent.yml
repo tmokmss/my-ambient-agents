@@ -29,6 +29,4 @@ jobs:
 
             Use the skill defined in .github/skills/output-report.md for output format.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
-          # For Max subscription (OAuth), use the auto-configured token.
-          # For API key, uncomment below:
-          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
