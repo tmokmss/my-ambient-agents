@@ -25,8 +25,6 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           prompt: |
-            ${{ inputs.prompt || 'Review this repository. Generate a weekly summary report following the output-report skill instructions.' }}
-
-            Use the skill defined in .github/skills/output-report.md for output format.
+            ${{ inputs.prompt || 'Review this repository. Generate a weekly summary report following the output-report skill.' }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
