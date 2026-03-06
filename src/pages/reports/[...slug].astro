@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
-import { Copy, Check, MessageCircle } from "@lucide/astro";
+import { Copy, Check, MessageCircle, ExternalLink } from "@lucide/astro";
 
 export async function getStaticPaths() {
   const reports = await getCollection("reports");
@@ -30,6 +30,9 @@ const { Content } = await render(entry);
     )}
     <Content />
     <div class="flex items-center gap-3 mt-8 flex-wrap">
+      <a id="ask-claude" class="inline-flex items-center gap-1.5 h-11 px-4 bg-[var(--accent)] text-[var(--bg)] border border-transparent rounded-lg cursor-pointer transition-opacity duration-150 hover:opacity-85 text-[0.85rem] font-semibold no-underline [&_svg]:w-[18px] [&_svg]:h-[18px]" aria-label="Ask Claude" title="Ask Claude">
+        <MessageCircle size={18} /> Ask Claude <ExternalLink size={14} />
+      </a>
       <button class="copy-md inline-flex items-center justify-center w-11 h-11 bg-[var(--card-bg)] text-[var(--fg)] border border-[var(--border)] rounded-lg cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] [&_svg]:w-[18px] [&_svg]:h-[18px]" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
         <span class="icon-copy"><Copy size={18} /></span>
         <span class="icon-check"><Check size={18} /></span>
@@ -37,9 +40,7 @@ const { Content } = await render(entry);
     </div>
   </article>
 
-  <button id="ask-claude-popup" class="hidden fixed z-[100] bg-[var(--accent)] text-[var(--bg)] border-none rounded-lg px-3 py-1.5 text-[0.8rem] font-semibold cursor-pointer whitespace-nowrap shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-opacity duration-150 items-center gap-1.5 hover:not-disabled:opacity-85 disabled:bg-[var(--muted)] disabled:cursor-default [&_svg]:w-3.5 [&_svg]:h-3.5"><MessageCircle size={14} /> Ask Claude</button>
-
-  <script is:inline define:vars={{ markdown: entry.body, reportTitle: entry.data.title }}>
+  <script is:inline define:vars={{ markdown: entry.body, rawUrl: Astro.site + 'my-ambient-agents/raw/' + entry.id + '.md' }}>
     (function() {
       // Copy markdown button
       var copyBtn = document.getElementById('copy-md');
@@ -50,99 +51,12 @@ const { Content } = await render(entry);
         });
       });
 
-      // Convert HTML element/fragment to Markdown
-      function htmlToMd(node) {
-        if (node.nodeType === 3) return node.textContent;
-        if (node.nodeType !== 1) return '';
-        var tag = node.tagName;
-        var children = '';
-        for (var i = 0; i < node.childNodes.length; i++) {
-          children += htmlToMd(node.childNodes[i]);
-        }
-        switch (tag) {
-          case 'H1': return '# ' + children.trim() + '\n\n';
-          case 'H2': return '## ' + children.trim() + '\n\n';
-          case 'H3': return '### ' + children.trim() + '\n\n';
-          case 'P': return children.trim() + '\n\n';
-          case 'STRONG': case 'B': return '**' + children + '**';
-          case 'EM': case 'I': return '*' + children + '*';
-          case 'CODE':
-            if (node.parentElement && node.parentElement.tagName === 'PRE') return children;
-            return '`' + children + '`';
-          case 'PRE': return '```\n' + children.trim() + '\n```\n\n';
-          case 'A':
-            var href = node.getAttribute('href') || '';
-            return '[' + children + '](' + href + ')';
-          case 'UL': case 'OL':
-            var items = '';
-            var lis = node.querySelectorAll(':scope > li');
-            for (var j = 0; j < lis.length; j++) {
-              var prefix = tag === 'OL' ? (j + 1) + '. ' : '- ';
-              items += prefix + htmlToMd(lis[j]).trim() + '\n';
-            }
-            return items + '\n';
-          case 'LI': return children;
-          case 'BR': return '\n';
-          default: return children;
-        }
-      }
-
-      // Ask Claude popup on text selection
-      var popup = document.getElementById('ask-claude-popup');
-      var article = document.getElementById('report-article');
-
-      document.addEventListener('mouseup', function(e) {
-        setTimeout(function() {
-          var sel = window.getSelection();
-          var text = sel ? sel.toString().trim() : '';
-          if (!text || !article.contains(sel.anchorNode)) {
-            popup.style.display = 'none';
-            return;
-          }
-          var range = sel.getRangeAt(0);
-          var rect = range.getBoundingClientRect();
-          // Check content length for disable state
-          var fragment = range.cloneContents();
-          var tmp = document.createElement('div');
-          tmp.appendChild(fragment);
-          var md = htmlToMd(tmp).trim();
-          var prompt = '以下は「' + reportTitle + '」からの抜粋です。これについて質問・議論したいです。\n\n---\n' + md + '\n---';
-          var fullUrl = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
-          var tooLong = fullUrl.length > 8000;
-          popup.disabled = tooLong;
-          popup.title = tooLong ? 'Selection too long for URL (max 8000 chars)' : '';
-          popup.style.display = 'inline-flex';
-          var popupH = popup.offsetHeight;
-          var above = rect.top - popupH - 8;
-          popup.style.top = (above >= 0 ? above : rect.bottom + 8) + 'px';
-          var left = rect.left + (rect.width - popup.offsetWidth) / 2;
-          left = Math.max(8, Math.min(left, window.innerWidth - popup.offsetWidth - 8));
-          popup.style.left = left + 'px';
-        }, 10);
-      });
-
-      document.addEventListener('mousedown', function(e) {
-        if (e.target !== popup && !popup.contains(e.target)) {
-          popup.style.display = 'none';
-        }
-      });
-
-      popup.addEventListener('click', function() {
-        if (popup.disabled) return;
-        var sel = window.getSelection();
-        if (!sel || !sel.rangeCount) return;
-        var range = sel.getRangeAt(0);
-        var fragment = range.cloneContents();
-        var tmp = document.createElement('div');
-        tmp.appendChild(fragment);
-        var md = htmlToMd(tmp).trim();
-        if (!md) return;
-        var prompt = '以下は「' + reportTitle + '」からの抜粋です。これについて質問・議論したいです。\n\n---\n' + md + '\n---';
-        var url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
-        if (url.length > 8000) return;
-        window.open(url, '_blank', 'noopener');
-        popup.style.display = 'none';
-      });
+      // Ask Claude button
+      var askBtn = document.getElementById('ask-claude');
+      var prompt = '以下のURLのレポートを読んで、内容について質問に答えてください。\n\n' + rawUrl;
+      askBtn.href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+      askBtn.target = '_blank';
+      askBtn.rel = 'noopener';
     })();
   </script>
 </Layout>
