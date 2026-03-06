@@ -24,7 +24,6 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          model: claude-sonnet-4-6
           prompt: |
             ${{ inputs.prompt || '
             Hacker News のトップストーリーを取得し、上位10件をサマライズしてレポートを生成せよ。
