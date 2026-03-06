@@ -62,6 +62,11 @@ const agentStats = agents.map((agent) => {
                 )}
               </dd>
             </div>
+            <div class="flex items-center gap-1.5">
+              <Clock size={14} class="text-[var(--muted)] shrink-0" />
+              <dt>Next run:</dt>
+              <dd class="next-run" data-cron={agent.cron}></dd>
+            </div>
             <div>
               <dt>Reports:</dt>
               <dd>{total} total (last 7 days: {recent7d})</dd>
@@ -71,4 +76,47 @@ const agentStats = agents.map((agent) => {
       );
     })}
   </div>
+  <script>
+    function getNextRun(cron: string): Date {
+      const parts = cron.split(/\s+/);
+      const minutes = parts[0].split(",").map(Number);
+      const hours = parts[1].split(",").map(Number);
+
+      const now = new Date();
+
+      // Build candidate times for today and tomorrow
+      const candidates: Date[] = [];
+      for (let dayOffset = 0; dayOffset <= 1; dayOffset++) {
+        for (const h of hours) {
+          for (const m of minutes) {
+            const d = new Date(now);
+            d.setUTCDate(d.getUTCDate() + dayOffset);
+            d.setUTCHours(h, m, 0, 0);
+            if (d > now) candidates.push(d);
+          }
+        }
+      }
+      candidates.sort((a, b) => a.getTime() - b.getTime());
+      return candidates[0];
+    }
+
+    function formatDuration(ms: number): string {
+      const totalMin = Math.round(ms / 60000);
+      if (totalMin < 1) return "soon";
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      if (h === 0) return `in ${m}min`;
+      if (m === 0) return `in ${h}h`;
+      return `in ${h}h ${m}min`;
+    }
+
+    document.querySelectorAll<HTMLElement>(".next-run").forEach((el) => {
+      const cron = el.dataset.cron;
+      if (!cron) return;
+      const next = getNextRun(cron);
+      const diff = next.getTime() - Date.now();
+      el.textContent = formatDuration(diff);
+      el.title = next.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+    });
+  </script>
 </Layout>

@@ -31,9 +31,7 @@ export async function loadAgents(): Promise<AgentInfo[]> {
     const name: string = doc.name ?? id;
     const cron: string = doc.on.schedule[0]?.cron ?? "";
 
-    // Extract schedule comment from raw text (yaml parser discards comments)
-    const cronMatch = raw.match(/cron:\s*"[^"]+"\s*#\s*(.+)/);
-    const scheduleLabel = cronMatch?.[1]?.trim() ?? cron;
+    const scheduleLabel = buildScheduleLabel(cron);
 
     // Extract slug and category from prompt text
     const prompt = extractPrompt(doc);
@@ -47,6 +45,20 @@ export async function loadAgents(): Promise<AgentInfo[]> {
   }
 
   return agents.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function buildScheduleLabel(cron: string): string {
+  const parts = cron.split(/\s+/);
+  const minute = parts[0];
+  const hours = parts[1].split(",").map(Number);
+
+  const fmt = (utcH: number) => {
+    const jstH = (utcH + 9) % 24;
+    return `${String(jstH).padStart(2, "0")}:${String(Number(minute)).padStart(2, "0")}`;
+  };
+
+  const times = hours.map(fmt).join(", ");
+  return `Daily at ${times} JST`;
 }
 
 function extractPrompt(doc: Record<string, unknown>): string {
