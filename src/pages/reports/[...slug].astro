@@ -13,9 +13,6 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-
-const chatPrompt = `以下のレポートについて質問や議論をしたいです。\n\n---\n# ${entry.data.title}\nDate: ${entry.data.date}\nCategory: ${entry.data.category}\n\n${entry.body}\n---`;
-const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
 ---
 
 <Layout title={entry.data.title}>
@@ -35,22 +32,6 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
       background: var(--code-bg);
       color: var(--muted);
     }
-    .chat-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      height: 2.75rem;
-      padding: 0 1rem;
-      background: var(--accent);
-      color: var(--bg);
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: opacity 0.15s;
-    }
-    .chat-link svg { width: 16px; height: 16px; }
-    .chat-link:hover { opacity: 0.85; text-decoration: none; }
     .actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
     .copy-md {
       display: inline-flex;
@@ -70,9 +51,29 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
     .copy-md .icon-check { display: none; color: var(--accent); }
     .copy-md.copied .icon-copy { display: none; }
     .copy-md.copied .icon-check { display: flex; }
+    #ask-claude-popup {
+      display: none;
+      position: absolute;
+      z-index: 100;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: opacity 0.15s;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    #ask-claude-popup:hover { opacity: 0.85; }
+    #ask-claude-popup svg { width: 14px; height: 14px; }
   </style>
 
-  <article>
+  <article id="report-article">
     <h1>{entry.data.title}</h1>
     <div class="meta">
       {entry.data.date} &middot; {entry.data.category}
@@ -86,24 +87,62 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
     )}
     <Content />
     <div class="actions">
-      <a class="chat-link" href={chatUrl} target="_blank" rel="noopener"><MessageCircle size={16} /> Ask Claude</a>
       <button class="copy-md" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
         <span class="icon-copy"><Copy size={18} /></span>
         <span class="icon-check"><Check size={18} /></span>
       </button>
     </div>
-    <script is:inline define:vars={{ markdown: entry.body }}>
-      (function() {
-        var btn = document.getElementById('copy-md');
-        btn.addEventListener('click', function() {
-          navigator.clipboard.writeText(markdown).then(function() {
-            btn.classList.add('copied');
-            setTimeout(function() {
-              btn.classList.remove('copied');
-            }, 2000);
-          });
-        });
-      })();
-    </script>
   </article>
+
+  <button id="ask-claude-popup"><MessageCircle size={14} /> Ask Claude</button>
+
+  <script is:inline define:vars={{ markdown: entry.body, reportTitle: entry.data.title }}>
+    (function() {
+      // Copy markdown button
+      var copyBtn = document.getElementById('copy-md');
+      copyBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(markdown).then(function() {
+          copyBtn.classList.add('copied');
+          setTimeout(function() { copyBtn.classList.remove('copied'); }, 2000);
+        });
+      });
+
+      // Ask Claude popup on text selection
+      var popup = document.getElementById('ask-claude-popup');
+      var article = document.getElementById('report-article');
+
+      document.addEventListener('mouseup', function(e) {
+        // Small delay to let selection finalize
+        setTimeout(function() {
+          var sel = window.getSelection();
+          var text = sel ? sel.toString().trim() : '';
+          if (!text || !article.contains(sel.anchorNode)) {
+            popup.style.display = 'none';
+            return;
+          }
+          var range = sel.getRangeAt(0);
+          var rect = range.getBoundingClientRect();
+          popup.style.display = 'inline-flex';
+          popup.style.top = (window.scrollY + rect.top - popup.offsetHeight - 8) + 'px';
+          popup.style.left = (window.scrollX + rect.left + (rect.width - popup.offsetWidth) / 2) + 'px';
+        }, 10);
+      });
+
+      document.addEventListener('mousedown', function(e) {
+        if (e.target !== popup && !popup.contains(e.target)) {
+          popup.style.display = 'none';
+        }
+      });
+
+      popup.addEventListener('click', function() {
+        var sel = window.getSelection();
+        var text = sel ? sel.toString().trim() : '';
+        if (!text) return;
+        var prompt = '以下は「' + reportTitle + '」からの抜粋です。これについて質問・議論したいです。\n\n---\n' + text + '\n---';
+        var url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+        window.open(url, '_blank', 'noopener');
+        popup.style.display = 'none';
+      });
+    })();
+  </script>
 </Layout>
