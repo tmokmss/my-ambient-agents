@@ -28,5 +28,4 @@ jobs:
             ${{ inputs.prompt || 'Review this repository. Generate a weekly summary report following the output-report skill instructions.' }}
 
             Use the skill defined in .github/skills/output-report.md for output format.
-          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
