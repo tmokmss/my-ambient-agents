@@ -12,7 +12,7 @@ You are an ambient agent that generates reports. Your output MUST be a Markdown 
 ---
 title: "Report title here"
 date: "YYYY-MM-DD"
-category: "one of: summary | analysis | alert | maintenance"
+category: "one of: summary | analysis | alert"
 summary: "A one-line summary (max 120 chars) shown on the index page"
 ---
 ```

@@ -1,10 +1,13 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
+import { FileText, Search, AlertTriangle } from "@lucide/astro";
 
 const reports = (await getCollection("reports")).sort(
   (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime(),
 );
+
+const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle };
 ---
 
 <Layout title="Reports" showSubtitle>
@@ -16,7 +19,11 @@ const reports = (await getCollection("reports")).sort(
       border: 1px solid var(--border);
       border-radius: 0.5rem;
     }
-    .report-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .report-card { display: flex; gap: 1rem; align-items: flex-start; }
+    .category-icon { flex-shrink: 0; color: var(--muted); margin-top: 0.15rem; }
+    .category-icon :global(svg) { width: 18px; height: 18px; }
+    .report-body { min-width: 0; }
+    .report-body h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
     .meta { font-size: 0.8rem; color: var(--muted); }
     .summary { font-size: 0.875rem; margin-top: 0.5rem; }
     .empty { color: var(--muted); }
@@ -28,12 +35,18 @@ const reports = (await getCollection("reports")).sort(
     <ul class="report-list">
       {reports.map((report) => (
         <li class="report-card">
-          <h2><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
-          <div class="meta">
-            <span>{report.data.date}</span> &middot;
-            <span>{report.data.category}</span>
+          {() => {
+            const Icon = categoryIcons[report.data.category];
+            return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
+          }}
+          <div class="report-body">
+            <h2><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
+            <div class="meta">
+              <span>{report.data.date}</span> &middot;
+              <span>{report.data.category}</span>
+            </div>
+            <p class="summary">{report.data.summary}</p>
           </div>
-          <p class="summary">{report.data.summary}</p>
         </li>
       ))}
     </ul>
