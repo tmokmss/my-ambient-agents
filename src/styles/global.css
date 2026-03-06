@@ -101,6 +101,7 @@
     top: 0;
     margin-left: 2rem;
     width: 200px;
+    height: 100%;
   }
   .toc-aside nav {
     position: sticky;
