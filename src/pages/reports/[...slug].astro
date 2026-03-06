@@ -77,7 +77,7 @@ const { Content } = await render(entry);
   <article id="report-article">
     <h1>{entry.data.title}</h1>
     <div class="meta">
-      {entry.data.date} &middot; {entry.data.category}
+      {entry.data.date.toISOString().slice(0, 16).replace('T', ' ')} &middot; {entry.data.category}
     </div>
     {(entry.data.tags ?? []).length > 0 && (
       <div class="tags">

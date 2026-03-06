@@ -11,7 +11,7 @@ You are an ambient agent that generates reports. Your output MUST be a Markdown 
 ```yaml
 ---
 title: "Report title here"
-date: "YYYY-MM-DD"
+date: "YYYY-MM-DDTHH:mm"  # ISO 8601 datetime with hour and minute (UTC)
 category: "one of: summary | analysis | alert"
 summary: "A one-line summary (max 120 chars) shown on the index page"
 tags: ["tag1", "tag2"]  # optional, free-form tags for filtering

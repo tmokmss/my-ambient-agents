@@ -82,7 +82,7 @@ jobs:
 ```yaml
 ---
 title: "Report title"
-date: "YYYY-MM-DD"
+date: "YYYY-MM-DDTHH:mm"
 category: "summary | analysis | alert"
 summary: "One-line summary (max 120 chars)"
 tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
@@ -93,6 +93,10 @@ tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 
 - main ブランチに直接 push してよい（PR 不要）
 - push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
+
+## Dev Server
+
+- ポート 4321 が既に使用中の場合、dev server は起動済みなので停止せずそのままアクセスすること
 
 ## Key Points
 
