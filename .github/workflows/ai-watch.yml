@@ -43,8 +43,8 @@ jobs:
             - https://www.anthropic.com/news (HTML をパースして最新記事のタイトル・URL・日付を取得)
             - 直近1週間以内の新着記事をピックアップ
 
-            ### 2. OpenAI ブログ
-            - https://openai.com/news/ (HTML をパースして最新記事のタイトル・URL・日付を取得)
+            ### 2. OpenAI ブログ (RSS)
+            - https://openai.com/blog/rss.xml (RSS をパース。リダイレクトされるので curl -sL でフォローすること)
             - 直近1週間以内の新着記事をピックアップ
 
             ### 3. Google DeepMind ブログ
