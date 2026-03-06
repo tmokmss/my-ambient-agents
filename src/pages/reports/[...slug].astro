@@ -1,0 +1,37 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+  const reports = await getCollection("reports");
+  return reports.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<Layout title={entry.data.title}>
+  <style>
+    .back { font-size: 0.875rem; margin-bottom: 1rem; display: inline-block; }
+    article h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; }
+    article :global(h2) { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    article :global(p) { margin-bottom: 1rem; }
+    article :global(ul), article :global(ol) { margin-bottom: 1rem; padding-left: 1.5rem; }
+    article :global(code) { background: #1a1a2e; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+    article :global(pre) { background: #1a1a2e; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+  </style>
+
+  <a class="back" href={import.meta.env.BASE_URL}>&larr; Back</a>
+  <article>
+    <h1>{entry.data.title}</h1>
+    <div class="meta">
+      {entry.data.date} &middot; {entry.data.category} &middot; agent: {entry.data.agent}
+    </div>
+    <Content />
+  </article>
+</Layout>
