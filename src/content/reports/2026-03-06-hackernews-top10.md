@@ -1,177 +1,152 @@
 ---
-title: "Hacker News Top 10 – 2026-03-06"
-date: "2026-03-06T00:00"
+title: "Hacker News トップ10 サマリー (2026-03-06)"
+date: "2026-03-06T10:00"
 category: "summary"
-summary: "Wikipedia XSS worm, GPT-5.4 launch, Firefox bitflips, AI PR spam, and Anthropic's DoD deal spark HN debate."
-tags: ["hacker-news", "tech", "AI", "security"]
+summary: "GPT-5.4発表、Anthropicの軍事利用方針転換、Firefoxクラッシュの10%がビット反転に起因など注目トピック"
+tags: ["hackernews", "ai", "security", "software", "openai", "anthropic"]
 ---
 
-## 1. [Wikipedia Was in Read-Only Mode Following Mass Admin Account Compromise](https://www.wikimediastatus.net)
+## 1. [GPT-5.4](https://openai.com/index/introducing-gpt-5-4/)
 
-**Score:** 873 | **Comments:** 308
+**Score:** 675 | **Comments:** 582 | [Post](https://news.ycombinator.com/item?id=47265045)
 
-A JavaScript worm spread through Wikipedia by injecting itself into user scripts and, via a highly-privileged staff account that loaded random user scripts, propagated into MediaWiki's global `Common.js`. This caused mass admin account compromise, article defacement via oversized images, and bulk deletions through `Special:Nuke`. Wikipedia was locked to read-only mode while the incident was contained.
+OpenAIが新モデルGPT-5.4を発表した。最大の目玉は1Mトークンのコンテキストウィンドウで、200kを超えるトークンに対しても追加料金が発生しない。価格は入力$2.50/M・出力$15/Mと、Anthropic Claude Opus 4.6（$5/$25）より安価に設定されており、GPT-5.3-Codexの後継として位置づけられている。
 
 ### Key Discussion Points
 
-- **tux3**: A WMF Staff Security Engineer triggered the incident by loading random user scripts—including a dormant malicious script from ruwiki—under a globally-privileged account, causing the worm to inject itself into global JavaScript on every page.
-- **nhubbard**: Described the worm as injecting into `MediaWiki:Common.js` to persist globally, using jQuery to hide its presence while defacing articles and enabling admin-level mass deletions.
-- **wikiperson26**: Shared a theory from Phab linking the attack to a 2024 Russian Wikipedia script (`Ololoshka562`) that sat dormant for 1.5 years before being activated.
-- **varun_ch**: Called it "an old school XSS worm," raising concerns that MediaWiki's per-editor JavaScript capability is a persistent attack surface.
-- **Kiboneu**: Noted that forensic cleanup is tractable if recent snapshots exist, since database diffs can precisely map the scope of changes.
+- **minimaxir**: 1Mコンテキストウィンドウが主要機能。価格面でOpus 4.6より優位だが、コンテキストが満杯に近づくと既存モデルで精度が落ちる傾向があり、実用的な改善があるかは懐疑的と指摘。
+- **__jl__**: OpenAIのモデル命名体系の混乱を批判。GPT 5.1/5.2/5.4が混在し、Codexが5.3という別ラインに存在する。対してAnthropicは3モデルを明確な価格帯で整理できていると評価。
+- **Philip-J-Fry**: 発表ページ下部の「ChatGPTに質問」ボックスにページのURLを貼ると「外部URLにアクセスできません」と返答されるという皮肉なバグを指摘し、OpenAI自身が気づいているか疑問を呈した。
 
 ---
 
-## 2. [GPT-5.4](https://openai.com/index/introducing-gpt-5-4/)
+## 2. [Where things stand with the Department of War](https://www.anthropic.com/news/where-stand-department-war)
 
-**Score:** 631 | **Comments:** 552
+**Score:** 231 | **Comments:** 189 | [Post](https://news.ycombinator.com/item?id=47269263)
 
-OpenAI announced GPT-5.4, featuring a 1M-token context window with no extra cost beyond 200K tokens, superseding GPT-5.3-Codex. The launch was met with both enthusiasm for the context window expansion and criticism of OpenAI's increasingly fragmented model lineup.
+AnthropicがAIの軍事利用に関する公式見解を発表した。これまでの「兵器・監視への利用禁止」というポリシーを転換し、戦闘作戦支援と国家安全保障用途については限定的に許容する方針を示した内容で、コミュニティに大きな議論を巻き起こした。
 
 ### Key Discussion Points
 
-- **minimaxir**: Highlighted the 1M context window as the standout feature with no surcharge past 200K, and noted competitive pricing versus Anthropic's Opus 4.6, while remaining skeptical about real-world gains when models approach context limits.
-- **__jl__**: Criticized OpenAI's pricing fragmentation (GPT-5.1, 5.2, 5.4 now available), contrasting it with Anthropic's cleaner three-tier model lineup.
-- **Alifatisk**: Expressed frustration that OpenAI is reintroducing model proliferation after attempting consolidation, though acknowledged the 1M context is a genuine improvement.
-- **creamyhorror**: Shared positive first impressions of the model's writing and analysis quality for codebase evaluation tasks.
-- **Philip-J-Fry**: Noted the irony that the post's built-in "Ask ChatGPT" summary button fails because ChatGPT cannot access external URLs directly.
+- **hglaser**: 2007年には軍事プロジェクトへの参加を断るテック文化が存在したが、今はその規範が薄れていると指摘。Anthropicの声明が「本当は軍事支援をしたいが、この2つの例外だけが制限」という語り口になっており、批判を想定した表現だと分析。
+- **6thbit**: 「なぜOpenAIから人が流出しているのか、AnthropicのこのスタンスならOpenAIとの差は何か」と問いを投げかけ、2つの例外が倫理的境界として十分かどうかを問う。
+- **agigao**: テック業界では倫理よりも「それは私の問題ではない」というメンタリティが蔓延していると個人的経験を交えて語り、ハーバードのVRイノベーションウィークで開催された倫理パネルに創業者やエンジニアが誰も参加しなかった事例を紹介。
 
 ---
 
-## 3. [Good Software Knows When to Stop](https://ogirardot.writizzy.com/p/good-software-knows-when-to-stop)
+## 3. [Good software knows when to stop](https://ogirardot.writizzy.com/p/good-software-knows-when-to-stop)
 
-**Score:** 335 | **Comments:** 191
+**Score:** 356 | **Comments:** 196 | [Post](https://news.ycombinator.com/item?id=47261561)
 
-The post argues that software should recognize when it has reached a stable, complete state rather than endlessly accumulating features. Knowing when to stop is presented as a design virtue, not a sign of abandonment.
+ソフトウェアの機能追加を止める勇気について論じた記事。永続的なフィーチャークリープではなく「完成」を宣言し、バグ修正とセキュリティアップデートのみに注力する文化の重要性を訴えている。
 
 ### Key Discussion Points
 
-- **john_strinlai**: Drew a parallel to Blizzard's dismissal of WoW Classic requests ("you think you want that, but you don't"), arguing that while ignoring feature requests is a reasonable default, it can also mean missing what users genuinely understand about their own needs.
-- **wenbin**: Advocated for normalizing "finished" software, arguing that Evernote and Dropbox degraded by adding features beyond their core use case; if expansion is desired, create a separate product.
-- **motoboi**: Shared a personal arc of initially viewing stable Java libraries as stagnant, then recognizing them as battle-tested infrastructure relied upon by millions—stability misread as inactivity.
-- **muppetman**: Praised Sublime Text as an exemplar: fast, focused, not trying to become an AI assistant or general-purpose platform.
-- **jdejean**: Pushed back on the framing, distinguishing legitimate user feature requests (tied to real use cases) from features that only serve company financial interests.
+- **wenbin**: 「完成した」ソフトウェアを正常化すべきだと主張。EvernoteやDropboxは2012年時点で完璧だったと例示し、成長追求のための機能追加が既存ユーザー体験を損なうと批判。
+- **john_strinlai**: World of Warcraft Classicの事例を紹介。Blizzardが長年「ユーザーが望むとは思えない」と否定してきた2004年版ゲームを最終的にリリースしたところ圧倒的な反響を得た。ユーザーが自分のニーズを最もよく理解しているケースもあると示唆。
 
 ---
 
-## 4. [CBP Tapped Into the Online Advertising Ecosystem to Track Peoples' Movements](https://www.404media.co/cbp-tapped-into-the-online-advertising-ecosystem-to-track-peoples-movements/)
+## 4. [CBP tapped into the online advertising ecosystem to track peoples' movements](https://www.404media.co/cbp-tapped-into-the-online-advertising-ecosystem-to-track-peoples-movements/)
 
-**Score:** 310 | **Comments:** 135
+**Score:** 385 | **Comments:** 160 | [Post](https://news.ycombinator.com/item?id=47249387)
 
-U.S. Customs and Border Protection used commercial advertising bidstream data to track people's physical movements—purchasing access to a surveillance network built from the ad-tech ecosystem without warrants.
+米国税関・国境警備局（CBP）がオンライン広告エコシステムのデータを活用して、令状なしに人々の移動を追跡していたことが報告された。スマートフォンのアプリが収集する位置情報データをブローカー経由で購入・活用していたとされる。
 
 ### Key Discussion Points
 
-- **Zak**: "I have never regretted my decision to aggressively block ads on every device I use, and to shun devices where I can't."
-- **orthoxerox**: Compared the scenario to Cory Doctorow's 2007 story *Scroogled*, noting life is again imitating speculative fiction.
-- **legitster**: Offered an insider perspective from the advertising data industry, arguing that bidstream location data is "very inaccurate" (IP-based guessing, not GPS), cross-app tracking is nearly impossible without consent, and the IRS once abandoned attempts to locate suspects using commercial location datasets—suggesting the surveillance value is overstated but that data governance reform is still needed.
-- **jmward01**: Expressed visceral frustration at the lack of any real defensive option for individuals: "the only tool you are given is sit there and take it."
+- **legitster**: 広告業界の内情を踏まえ、誤解を指摘。広告ネットワークの位置情報データはIPアドレスベースの粗い推定が多く精度が低い。また個人追跡は技術的に困難で、むしろIPアドレス単位で周辺全員に広告を打つ方が一般的だと解説。IRSがVenntelのデータで個人追跡を試みて失敗した事例も紹介し、現時点で政府が個人を特定・追跡できるレベルにはないと見解を示す。
 
 ---
 
-## 5. [10% of Firefox Crashes Are Caused by Bitflips](https://mas.to/@gabrielesvelto/116171750653898284)
+## 5. [10% of Firefox crashes are caused by bitflips](https://mas.to/@gabrielesvelto/116171750653898304)
 
-**Score:** 267 | **Comments:** 151
+**Score:** 330 | **Comments:** 185 | [Post](https://news.ycombinator.com/item?id=47252971)
 
-A Mozilla engineer's post revealed that analysis of Firefox crash telemetry suggests roughly 10% of crashes are attributable to hardware memory errors (bitflips) rather than software bugs—driven by the near-total absence of ECC RAM in consumer devices.
+Mozillaのクラッシュデータ分析によると、Firefoxクラッシュの約10%がハードウェアレベルのビット反転（RowHammerや熱問題による物理メモリの単一ビット誤り）に起因していることが判明した。
 
 ### Key Discussion Points
 
-- **netcoyote**: Recalled a 2004 Guild Wars diagnostic system by Mike O'Brien that detected hardware integrity failures every frame; ~1 in 1,000 players failed the check due to overclocking, bad PSUs, or poor cooling.
-- **Animats**: "ECC should have become standard around the time memories passed 1GB. It's seriously annoying that ECC memory is hard to get and expensive, but memory with useless LEDs attached is cheap."
-- **adonovan**: Described Go's telemetry finding hundreds of gopls bugs after a year of data; a stubborn residual of unexplained crashes (corrupt stack pointers, nil-check bypasses) now appears attributable to faulty hardware on laptops lacking parity memory.
-- **dbolgheroni**: Noted that remembering bitflips can occur means running tests multiple times to rule out hardware noise—a practical debugging implication.
-- **shevy-java**: Skeptical, claiming not to see comparable crash rates on Chromium-based browsers—prompting replies explaining how crash sampling methodology differs between browsers.
+- **netcoyote**: ArenaNetでの経験として、毎フレーム数学計算を実行してビット破損を検出するシステムを構築したところ、約1000台に1台が失敗したと報告。原因はオーバークロック、電源不足、冷却不足など多岐にわたり、最終的にファンの埃清掃を促すポップアップを実装したと紹介。
+- **Animats**: メモリ容量が1GBを超えた時点でECCメモリが標準化されるべきだったと主張。現実にはECCメモリは高価で入手困難なのに、無駄なLED付きメモリは安価に流通していると嘆く。
 
 ---
 
 ## 6. [The Brand Age](https://paulgraham.com/brandage.html)
 
-**Score:** 216 | **Comments:** 195
+**Score:** 253 | **Comments:** 222 | [Post](https://news.ycombinator.com/item?id=47264756)
 
-Paul Graham's essay argues that we are in a "Brand Age" where consumers increasingly pay for the identity and story associated with products rather than their functional properties—and that this trend is accelerating.
+Paul Grahamがブランドの時代についての考察をエッセイとして公開。現代経済においてブランドが果たす役割と、消費者がブランドに価値を見出す心理的メカニズムを分析している。
 
 ### Key Discussion Points
 
-- **jgrahamc**: Used Patek Philippe's practice of requiring customers to buy multiple entry-level watches before being eligible to purchase a Nautilus as an example of manufactured scarcity reinforcing brand desirability; linked to his own writing on luxury dynamics.
-- **d_burfoot**: Historical anecdote: Swiss watchmaking supremacy originated because Calvin's Geneva banned jewelry as ostentation, pushing skilled artisans into watches.
-- **dworks**: Argued Apple demonstrates that consumers actively want premium-feeling products and "are willing to pay for it"—validating brand as genuine value creation.
-- **benleejamin**: Defended branding as legitimate value, arguing "all life is storytelling" and that dismissing non-engineering improvements as mere marketing misses how humans actually derive satisfaction.
-- **socalgal2**: Pointed to a related EconTalk episode on Seiko, Swatch, and the Swiss watch industry for historical context.
+- **d_burfoot**: 歴史的事例として、カルヴァン派のジュネーブで宝飾品が禁止されたことでスイス人が代替として高級時計の製造に注力し、世界最高の時計産業が生まれたと紹介。ブランドと文化的制約の関係を示す興味深い逸話。
+- **dworks**: AppleのMacbook Neoの発表動画を見て「人々はマーケティングにお金を払いたい」と感じたと述べ、製品自体の優位性だけでなくブランドの物語が所有体験の満足度に直結すると指摘。
+- **socalgal2**: 製品へのブランドロゴ印刷に反感を持つと告白。トイレ・自転車・キッチン家電・コンピュータ周辺機器まで、あらゆる製品にブランドが主張することへの不満を綴り「自分の商品を広告させるなら私にお金を払うべき」と主張。
 
 ---
 
-## 7. [Where Things Stand with the Department of War](https://www.anthropic.com/news/where-stand-department-war)
+## 7. [The next generations of Bubble Tea, Lip Gloss, and Bubbles are available now](https://charm.land/blog/v2/)
 
-**Score:** 137 | **Comments:** 88
+**Score:** 141 | **Comments:** 51 | [Post](https://news.ycombinator.com/item?id=47268662)
 
-Anthropic published a statement clarifying its position on working with the U.S. Department of Defense, acknowledging narrow exceptions (cybersecurity, logistics, non-lethal applications) while reaffirming limits on autonomous weapons development.
+TUIライブラリ群で知られるCharmが主要プロダクト（Bubble Tea、Lip Gloss、Bubbles）のv2をリリースした。ターミナルUIフレームワークの大幅アップデートで、開発者コミュニティから好評を受けている。
 
 ### Key Discussion Points
 
-- **hglaser**: Observed that tech industry norms have shifted dramatically since 2007, when workers commonly refused to work at companies supporting war efforts; Anthropic's "narrow exceptions" framing represents a fundamentally different ethical posture.
-- **simonw**: Quoted Anthropic's line back critically: "Anthropic has much more in common with the Department of War than we have differences."
-- **6thbit**: Asked why OpenAI staff are departing for Anthropic if both organizations are willing DoD partners, and whether Anthropic's stated exceptions provide meaningful ethical limits.
-- **CurtHagenlocher**: "Nothing brings home the Orwellian nature of USA 2026 more for me than the word 'warfighter'."
-- **intrasight**: More supportive, expressing hope that Anthropic's framing prevails in the court of public opinion.
+- **thoughtfulchris**: ターミナルアプリがAIエージェントのself-improvementループを促進していると分析。Claude CodeがInkを使用しており、OpenCodeやOpenTUIなどの動きと合わせてターミナルが非技術者にも普及する可能性を示唆。
+- **jasongi**: Charmの`gum`ライブラリを絶賛。bashスクリプトをTUIに変換できる設計で、必須オプションが省略された際にエラーではなくインタラクティブUIを表示するパターンが優れていると評価。
 
 ---
 
-## 8. [The Next Generations of Bubble Tea, Lip Gloss, and Bubbles Are Available Now](https://charm.land/blog/v2/)
+## 8. [A standard protocol to handle and discard low-effort, AI-Generated pull requests](https://406.fail/)
 
-**Score:** 84 | **Comments:** 25
+**Score:** 105 | **Comments:** 30 | [Post](https://news.ycombinator.com/item?id=47267947)
 
-Charm released v2 of their Go-based terminal UI libraries (Bubble Tea, Lip Gloss, Bubbles), bringing significant API and rendering improvements to the ecosystem.
+低品質なAI生成プルリクエストに対応するための標準的なプロトコル「406」（HTTP 406 Not Acceptable）を提案するサイト。AIが大量生成するスパムPRを丁重かつ明確に拒否するためのテンプレート対応策を紹介している。
 
 ### Key Discussion Points
 
-- **zabzonk**: Asked for a plain-language explanation of what the libraries do and why someone should use them, finding GitHub-centric release posts insufficient.
-- **WhyNotHugo**: Expressed aesthetic unease with the Charm ecosystem's demos, describing them as resembling sci-fi movie interfaces with constantly moving elements and stacked modal windows.
-- **abrinz**: Shared a practical pain point: building a coding agent with Bubble Tea, the biggest blocker is the inability to simultaneously support mouse-wheel scrolling and text selection for copy-paste—hoping v2 resolves this.
-- **ftchd**: Admired the creative worldbuilding behind what is ultimately a collection of terminal UI packages.
+- **deckar01**: GitHubアーカイブのデータを独自分析した結果、PRの99%が1リポジトリのみへの投稿であり、5件以上にPRするユーザーを手動確認したところ全てボットだったと報告。GitHubに未登録ボットへのレート制限導入を求める。
+- **est**: ユーモラスな返しとして「`rm -rf`は過激すぎる、`chmod -R 000 /`の方がいい」とジョークを投稿（コミュニティのトーンを示す一例）。
 
 ---
 
-## 9. [A Standard Protocol to Handle and Discard Low-Effort, AI-Generated Pull Requests](https://406.fail/)
+## 9. [Labor market impacts of AI: A new measure and early evidence](https://www.anthropic.com/research/labor-market-impacts)
 
-**Score:** 83 | **Comments:** 21
+**Score:** 78 | **Comments:** 85 | [Post](https://news.ycombinator.com/item?id=47268391)
 
-The site `406.fail` proposes a formal response protocol for open-source maintainers receiving AI-generated, low-quality pull requests—returning HTTP 406 (Not Acceptable) as a metaphor for rejection, with a blunt FAQ for handling such contributions.
+Anthropicが労働市場へのAI影響を測定する新しい指標と初期エビデンスを発表した研究。ソフトウェア開発者を中心とした職種への影響を分析している。
 
 ### Key Discussion Points
 
-- **vicchenai**: A small OSS maintainer sharing experience: AI-generated PRs started arriving ~6 months ago and are insidious because they look plausible at first glance, wasting 10 minutes of review before the vacuousness becomes apparent.
-- **deckar01**: Advocated that developers maintain their own forks rather than contributing upstream without production use, citing GitHub archive data showing bots are the only actors submitting to multiple repos daily; suggested rate-limiting unregistered automated contributors.
-- **ramon156**: Set a minimal but concrete bar: bug fixes need a red line showing the fix works; features need acceptance criteria; docs just need to be followable.
-- **klardotsh**: Praised the site's "blissfully blunt and appropriately impolite" FAQ tone.
-- **0cf8612b2e1e**: Critiqued the RFC 2119 keyword usage in the protocol spec as ambiguous, advocating for clearer MUST/SHOULD language.
+- **bandrami**: コードを書く仕事はしていないがシステム管理者として「AIは今のところ自分の仕事にほぼ影響なし」と断言。2年前と比較してソフトウェア納品速度に変化はなく、DockerやCI/CDの方がパイプラインへの影響が大きかったと述べ、AI効果への懐疑的な視点を提供。
+- **ChrisMarshallNY**: 対照的に、AIに大きく依存したプロジェクトでは2年かけて書いたシステムの再構築が1ヶ月で半分以上完了したと報告。ただし「LLMの出力を全行レビューはしないが、まだ完全には信頼できない」と慎重な姿勢も維持していると語る。
 
 ---
 
-## 10. [Hardware Hotplug Events on Linux, the Gory Details](https://arcanenibble.github.io/hardware-hotplug-events-on-linux-the-gory-details.html)
+## 10. [Nobody ever got fired for using a struct](https://www.feldera.com/blog/nobody-ever-got-fired-for-using-a-struct)
 
-**Score:** 117 | **Comments:** 5
+**Score:** 16 | **Comments:** 1 | [Post](https://news.ycombinator.com/item?id=47225655)
 
-A detailed technical deep-dive into how Linux handles hardware hotplug events: from kernel detection through udev rule processing, device node creation, and userspace notification via netlink sockets.
+「IBMを選んで解雇された者はいない」というIT業界の格言をもじり、シンプルなデータ構造（struct）を選択することのリスク回避性を論じた技術記事。複雑な設計より保守的な選択が職業的安全をもたらすという観点を展開している。
 
 ### Key Discussion Points
 
-- **philips**: Shared a real-world encounter: a DDR dance pad worked on coldplug but not hotplug, requiring a udev workaround to suspend and reconnect the device—illustrating why these gory details matter in practice.
-- **robinsonb5**: Described exasperation with udev configuration opacity after updating tools that switched an FPGA board from rawhid to libusb, requiring entirely different udev entries that were non-obvious to discover.
-- **WaitWaitWha**: Created a sequence diagram tracing the full hotplug flow for visual learners, covering hardware insertion → kernel → udevd → device node → netlink → userspace (including systemd integration).
+- **SoftTalker**: 記事内のSQL例（700列のテーブル）に強く異議を唱え「それ自体が大きな危険信号だ。700列のテーブルはおろか、100列に近いものでも経験したことがない」と実務的な観点から反論。
 
 ---
 
 ## Trends
 
-Several themes emerged across today's HN top 10:
+今週のHacker Newsトップ10から、以下の共通テーマが浮かび上がる：
 
-1. **AI's expanding footprint—and its discontents.** GPT-5.4's launch, the AI PR spam protocol, and Anthropic's DoD positioning all reflect AI becoming deeply embedded in developer workflows and geopolitical decisions. The community is increasingly grappling with quality control (AI PRs), pricing complexity (model fragmentation), and ethics (military AI).
+1. **AIの軍事・労働・社会への影響** — GPT-5.4の発表、AnthropicのDepartment of War方針、労働市場調査と、AIの実社会への影響を問うストーリーが上位を占めた。技術的進歩と倫理的責任のせめぎ合いがコミュニティの主要関心事となっている。
 
-2. **Security incidents driven by trusted insiders and old code.** The Wikipedia worm spread not through an external attacker but through a privileged employee loading dormant, malicious user scripts. The lesson resonates broadly: dormant code and high-privilege accounts are a latent risk.
+2. **AIの実用性への冷静な評価** — 「AI PRスパム問題」「管理者視点でのAI無影響論」「信頼はするが監視は必要」など、AI礼賛一辺倒ではなく現実的・批判的な声が多く見られた。
 
-3. **Hardware reliability as an underappreciated software problem.** Firefox's bitflip data and the Linux hotplug deep-dive highlight how low-level hardware realities surface as mysterious software bugs. The absence of ECC RAM in consumer devices is a recurring frustration.
+3. **ソフトウェアの持続可能性と完成の概念** — "Good software knows when to stop" と "Nobody ever got fired for using a struct" が共鳴。シンプルさと完成を称える価値観が再評価されている。
 
-4. **Software philosophy: restraint as a virtue.** "Good Software Knows When to Stop" and the Charm v2 discussion both touched on whether constant feature growth is healthy. The community showed genuine appetite for software that reaches completeness and stays there.
+4. **プライバシーと監視技術** — CBPの広告データ活用やFirefoxのビット反転問題（ECC普及の遅れ）など、ハードウェア・インフラレベルのセキュリティ課題への関心が高い。
 
-5. **Privacy erosion via ad-tech infrastructure.** CBP's use of advertising bidstream data for surveillance underscored that the ad ecosystem has become a de-facto surveillance network—even if its precision is debated, its use by law enforcement without warrants is a structural concern.
+5. **開発者ツールのTUI/ターミナル回帰** — Charm v2の好評とClaude CodeのターミナルUI採用が示すように、AIエージェント時代においてターミナルインターフェースが再び注目を集めている。
