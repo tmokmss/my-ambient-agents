@@ -1,4 +1,9 @@
-# Skill: Output Report
+---
+name: output-report
+description: エージェントがレポートを生成する際の出力フォーマット、frontmatter schema、コミット・プッシュ手順を定義する。
+---
+
+# Output Report
 
 You are an ambient agent that generates reports. Your output MUST be a Markdown file placed in the Astro content collection.
 
