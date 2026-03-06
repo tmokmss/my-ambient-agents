@@ -1,17 +1,22 @@
 ---
 import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
-import { Copy, Check, MessageCircle, ExternalLink } from "@lucide/astro";
+import { Copy, Check, MessageCircle, ExternalLink, ChevronLeft, ChevronRight } from "@lucide/astro";
 
 export async function getStaticPaths() {
   const reports = await getCollection("reports");
-  return reports.map((entry) => ({
+  const sorted = reports.sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+  return sorted.map((entry, i) => ({
     params: { slug: entry.id },
-    props: { entry },
+    props: {
+      entry,
+      prev: sorted[i - 1] ?? null,
+      next: sorted[i + 1] ?? null,
+    },
   }));
 }
 
-const { entry } = Astro.props;
+const { entry, prev, next } = Astro.props;
 const { Content } = await render(entry);
 ---
 
@@ -41,6 +46,26 @@ const { Content } = await render(entry);
       </button>
     </div>
     <script type="application/json" id="report-meta">{JSON.stringify({ title: entry.data.title, summary: entry.data.summary, rawUrl: `${Astro.site}my-ambient-agents/raw/${entry.id}.md` })}</script>
+    <nav class="flex justify-between items-start gap-4 mt-12 pt-6 border-t border-[var(--border)]">
+      {prev ? (
+        <a href={`${import.meta.env.BASE_URL}/reports/${prev.id}/`} class="flex items-start gap-2 no-underline text-[var(--fg)] hover:text-[var(--accent)] transition-colors max-w-[48%]">
+          <ChevronLeft size={20} class="shrink-0 mt-0.5" />
+          <div>
+            <div class="text-[0.7rem] text-[var(--muted)]">前の記事</div>
+            <div class="text-[0.85rem] leading-snug">{prev.data.title}</div>
+          </div>
+        </a>
+      ) : <div />}
+      {next ? (
+        <a href={`${import.meta.env.BASE_URL}/reports/${next.id}/`} class="flex items-start gap-2 no-underline text-[var(--fg)] hover:text-[var(--accent)] transition-colors max-w-[48%] ml-auto">
+          <div class="text-right">
+            <div class="text-[0.7rem] text-[var(--muted)]">次の記事</div>
+            <div class="text-[0.85rem] leading-snug">{next.data.title}</div>
+          </div>
+          <ChevronRight size={20} class="shrink-0 mt-0.5" />
+        </a>
+      ) : <div />}
+    </nav>
   </article>
 
   <script>
