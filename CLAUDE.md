@@ -106,6 +106,6 @@ tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 ## Key Points
 
 - エージェントは `src/content/reports/` 以外のファイルを変更してはならない
-- ファイル名は `YYYY-MM-DD-<slug>.md` 形式
+- ファイル名は `YYYY-MM-DD-HH-mm-<slug>.md` 形式（UTC時刻）
 - エージェントは main に直接コミット・プッシュする
 - OAuth トークンは `CLAUDE_CODE_OAUTH_TOKEN` シークレットで管理
