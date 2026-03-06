@@ -10,31 +10,116 @@ const reports = (await getCollection("reports")).sort(
 const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle };
 
 const allTags = [...new Set(reports.flatMap((r) => r.data.tags ?? []))].sort();
+const PAGE_SIZE = 20;
 ---
 
 <Layout title="Reports" showSubtitle>
-  <style>
-    .tag-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .tag-btn {
-      padding: 0.25rem 0.75rem;
-      font-size: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      background: var(--card-bg);
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
+  <style is:global>
+    /* Filters */
+    .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; align-items: flex-start; }
+
+    /* Tag combobox */
+    .tag-combo { position: relative; min-width: 200px; flex: 1; max-width: 320px; }
+    .tag-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
     }
-    .tag-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .tag-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .tag-input {
+      width: 100%;
+      padding: 0.5rem 2rem 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--card-bg);
+      color: var(--fg);
+      outline: none;
+    }
+    .tag-input::placeholder { color: var(--muted); }
+    .tag-input:focus { border-color: var(--accent); }
+    .tag-clear {
+      position: absolute;
+      right: 0.4rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 1.25rem;
+      height: 1.25rem;
+      border: none;
+      border-radius: 9999px;
+      background: var(--muted);
+      color: var(--bg);
+      font-size: 0.7rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .tag-clear:hover { background: var(--fg); }
+    .tag-clear.visible { display: flex; }
+    .tag-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 0.5rem 0.5rem;
+      z-index: 10;
+      list-style: none;
+    }
+    .tag-dropdown.open { display: block; }
+    .tag-option {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--fg);
+    }
+    .tag-option:hover { background: var(--code-bg); }
+    .tag-option.selected { color: var(--accent); font-weight: 600; }
+    .selected-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; min-height: 1.5rem; margin-top: 0.4rem; }
+    .selected-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--accent);
+      color: var(--bg);
+      cursor: pointer;
+      border: none;
+    }
+    .selected-tag:hover { opacity: 0.8; }
+
+    /* Date filter */
+    .date-filter { display: flex; align-items: center; gap: 0.5rem; }
+    .date-filter label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+    .date-input {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--card-bg);
+      color: var(--fg);
+      outline: none;
+    }
+    .date-input:focus { border-color: var(--accent); }
+
+    /* Report list */
     .report-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
     .report-card {
       padding: 1rem 1.25rem;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 0.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
     }
-    .report-card { display: flex; gap: 1rem; align-items: flex-start; }
     .category-icon { flex-shrink: 0; color: var(--muted); margin-top: 0.15rem; }
     .category-icon :global(svg) { width: 18px; height: 18px; }
     .report-body { min-width: 0; }
@@ -50,78 +135,228 @@ const allTags = [...new Set(reports.flatMap((r) => r.data.tags ?? []))].sort();
       color: var(--muted);
     }
     .empty { color: var(--muted); }
+
+    /* Load more */
+    .load-more-wrap { text-align: center; margin-top: 1.5rem; }
+    .load-more {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--card-bg);
+      color: var(--fg);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .load-more:hover { border-color: var(--accent); color: var(--accent); }
+    .result-count { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
+
+    @media (max-width: 640px) {
+      .filters { flex-direction: row; }
+      .tag-combo { min-width: 0; max-width: none; flex: 1; }
+      .date-filter label { display: none; }
+      .date-input { width: 100%; }
+    }
   </style>
 
-  {allTags.length > 0 && (
-    <div class="tag-filter" id="tag-filter">
-      {allTags.map((tag) => (
-        <button class="tag-btn" data-tag={tag}>{tag}</button>
-      ))}
+  <div class="filters">
+    {allTags.length > 0 && (
+      <div class="tag-combo" id="tag-combo">
+        <div class="tag-input-wrap">
+          <input class="tag-input" id="tag-input" type="text" placeholder="タグで絞り込み..." autocomplete="off" />
+          <button class="tag-clear" id="tag-clear" aria-label="タグをクリア">&times;</button>
+        </div>
+        <ul class="tag-dropdown" id="tag-dropdown">
+          {allTags.map((tag) => (
+            <li class="tag-option" data-tag={tag}>{tag}</li>
+          ))}
+        </ul>
+        <div class="selected-tags" id="selected-tags"></div>
+      </div>
+    )}
+    <div class="date-filter">
+      <label for="date-until">表示期間:</label>
+      <input class="date-input" id="date-until" type="date" />
     </div>
-  )}
+  </div>
 
   {reports.length === 0 ? (
     <p class="empty">No reports yet. The agent will generate the first report on its next scheduled run.</p>
   ) : (
-    <ul class="report-list" id="report-list">
-      {reports.map((report) => (
-        <li class="report-card" data-tags={JSON.stringify(report.data.tags ?? [])}>
-          {() => {
-            const Icon = categoryIcons[report.data.category];
-            return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
-          }}
-          <div class="report-body">
-            <h2><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
-            <div class="meta">
-              <span>{report.data.date}</span> &middot;
-              <span>{report.data.category}</span>
-            </div>
-            <p class="summary">{report.data.summary}</p>
-            {(report.data.tags ?? []).length > 0 && (
-              <div class="tags">
-                {(report.data.tags ?? []).map((tag) => (
-                  <span class="tag">{tag}</span>
-                ))}
+    <>
+      <p class="result-count" id="result-count"></p>
+      <ul class="report-list" id="report-list">
+        {reports.map((report) => (
+          <li class="report-card" data-tags={JSON.stringify(report.data.tags ?? [])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
+            {() => {
+              const Icon = categoryIcons[report.data.category];
+              return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
+            }}
+            <div class="report-body">
+              <h2><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
+              <div class="meta">
+                <span>{new Date(report.data.date).toISOString().slice(0, 10)}</span> &middot;
+                <span>{report.data.category}</span>
               </div>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+              <p class="summary">{report.data.summary}</p>
+              {(report.data.tags ?? []).length > 0 && (
+                <div class="tags">
+                  {(report.data.tags ?? []).map((tag) => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div class="load-more-wrap" id="load-more-wrap">
+        <button class="load-more" id="load-more">もっと表示</button>
+      </div>
+    </>
   )}
 
-  <script is:inline>
+  <script is:inline define:vars={{ PAGE_SIZE }}>
     (function() {
-      var filter = document.getElementById('tag-filter');
-      if (!filter) return;
-      var buttons = filter.querySelectorAll('.tag-btn');
-      var cards = document.querySelectorAll('#report-list .report-card');
-      var activeTags = new Set();
+      var allCards = Array.from(document.querySelectorAll('#report-list .report-card'));
+      var loadMoreBtn = document.getElementById('load-more');
+      var loadMoreWrap = document.getElementById('load-more-wrap');
+      var resultCount = document.getElementById('result-count');
+      var dateInput = document.getElementById('date-until');
+      var tagInput = document.getElementById('tag-input');
+      var tagClearBtn = document.getElementById('tag-clear');
+      var dropdown = document.getElementById('tag-dropdown');
+      var selectedTagsEl = document.getElementById('selected-tags');
 
-      buttons.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var tag = btn.getAttribute('data-tag');
-          if (activeTags.has(tag)) {
-            activeTags.delete(tag);
-            btn.classList.remove('active');
-          } else {
-            activeTags.add(tag);
-            btn.classList.add('active');
+      if (!allCards.length) return;
+
+      var activeTags = new Set();
+      var visibleCount = PAGE_SIZE;
+
+      // --- Tag combobox ---
+      if (tagInput && dropdown) {
+        var options = Array.from(dropdown.querySelectorAll('.tag-option'));
+
+        tagInput.addEventListener('focus', function() { updateDropdown(); });
+        tagInput.addEventListener('input', function() { updateDropdown(); });
+
+        document.addEventListener('click', function(e) {
+          if (!document.getElementById('tag-combo').contains(e.target)) {
+            dropdown.classList.remove('open');
           }
-          cards.forEach(function(card) {
-            if (activeTags.size === 0) {
-              card.style.display = '';
-              return;
+        });
+
+        options.forEach(function(opt) {
+          opt.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var tag = opt.getAttribute('data-tag');
+            if (activeTags.has(tag)) {
+              activeTags.delete(tag);
+            } else {
+              activeTags.add(tag);
             }
-            var cardTags = JSON.parse(card.getAttribute('data-tags') || '[]');
-            var match = false;
-            activeTags.forEach(function(t) {
-              if (cardTags.indexOf(t) !== -1) match = true;
-            });
-            card.style.display = match ? '' : 'none';
+            tagInput.value = '';
+            updateDropdown();
+            renderSelectedTags();
+            applyFilters();
           });
         });
-      });
+
+        function updateDropdown() {
+          var query = tagInput.value.toLowerCase();
+          var anyVisible = false;
+          options.forEach(function(opt) {
+            var tag = opt.getAttribute('data-tag');
+            var match = !query || tag.toLowerCase().indexOf(query) !== -1;
+            opt.style.display = match ? '' : 'none';
+            opt.classList.toggle('selected', activeTags.has(tag));
+            if (match) anyVisible = true;
+          });
+          dropdown.classList.toggle('open', anyVisible);
+        }
+
+        function renderSelectedTags() {
+          selectedTagsEl.innerHTML = '';
+          activeTags.forEach(function(tag) {
+            var btn = document.createElement('button');
+            btn.className = 'selected-tag';
+            btn.textContent = tag + ' \u00d7';
+            btn.addEventListener('click', function() {
+              activeTags.delete(tag);
+              renderSelectedTags();
+              updateDropdown();
+              applyFilters();
+            });
+            selectedTagsEl.appendChild(btn);
+          });
+          tagClearBtn.classList.toggle('visible', activeTags.size > 0);
+        }
+
+        tagClearBtn.addEventListener('click', function() {
+          activeTags.clear();
+          tagInput.value = '';
+          renderSelectedTags();
+          updateDropdown();
+          applyFilters();
+        });
+      }
+
+      // --- Date filter ---
+      if (dateInput) {
+        dateInput.addEventListener('change', function() { applyFilters(); });
+      }
+
+      // --- Filtering & pagination ---
+      function getFilteredCards() {
+        var dateVal = dateInput ? dateInput.value : '';
+        return allCards.filter(function(card) {
+          if (activeTags.size > 0) {
+            var cardTags = JSON.parse(card.getAttribute('data-tags') || '[]');
+            var tagMatch = false;
+            activeTags.forEach(function(t) {
+              if (cardTags.indexOf(t) !== -1) tagMatch = true;
+            });
+            if (!tagMatch) return false;
+          }
+          if (dateVal) {
+            var cardDate = card.getAttribute('data-date');
+            if (cardDate > dateVal) return false;
+          }
+          return true;
+        });
+      }
+
+      function applyFilters() {
+        visibleCount = PAGE_SIZE;
+        render();
+      }
+
+      function render() {
+        var filtered = getFilteredCards();
+        allCards.forEach(function(c) { c.style.display = 'none'; });
+        for (var i = 0; i < filtered.length && i < visibleCount; i++) {
+          filtered[i].style.display = '';
+        }
+        if (resultCount) {
+          var total = filtered.length;
+          var shown = Math.min(visibleCount, total);
+          resultCount.textContent = total + '件中 ' + shown + '件表示';
+        }
+        if (loadMoreWrap) {
+          loadMoreWrap.style.display = visibleCount < filtered.length ? '' : 'none';
+        }
+      }
+
+      // --- Load more ---
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+          visibleCount += PAGE_SIZE;
+          render();
+        });
+      }
+
+      // Initial render
+      render();
     })();
   </script>
 </Layout>

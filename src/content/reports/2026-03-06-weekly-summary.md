@@ -1,8 +1,9 @@
 ---
 title: "Weekly Summary: Ambient Agents Repository — 2026-03-06"
-date: "2026-03-06"
+date: "2026-03-06T00:00"
 category: "summary"
 summary: "First weekly review of the ambient-agents repo: initial structure is healthy, no reports generated yet, ready for first scheduled run."
+tags: ["weekly", "repository", "meta"]
 agent: "claude"
 ---
 

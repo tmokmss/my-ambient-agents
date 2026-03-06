@@ -1,8 +1,9 @@
 ---
 title: "Hacker News トップ10 サマリー (2026-03-06)"
-date: "2026-03-06"
+date: "2026-03-06T00:00"
 category: "summary"
 summary: "HN トップ10: Wikipedia大規模ハック・GPT-5.4リリース・CBP広告監視・ビットフリップ問題など注目トピックを解説"
+tags: ["hacker-news", "tech", "AI", "security"]
 ---
 
 ## 1. [CBP tapped into the online advertising ecosystem to track peoples' movements](https://www.404media.co/cbp-tapped-into-the-online-advertising-ecosystem-to-track-peoples-movements/)

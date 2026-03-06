@@ -1,8 +1,9 @@
 ---
 title: "Hacker News Top 10 – 2026-03-06"
-date: "2026-03-06"
+date: "2026-03-06T00:00"
 category: "summary"
 summary: "Wikipedia XSS worm, GPT-5.4 launch, Firefox bitflips, AI PR spam, and Anthropic's DoD deal spark HN debate."
+tags: ["hacker-news", "tech", "AI", "security"]
 ---
 
 ## 1. [Wikipedia Was in Read-Only Mode Following Mass Admin Account Compromise](https://www.wikimediastatus.net)
