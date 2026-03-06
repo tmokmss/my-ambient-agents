@@ -88,6 +88,11 @@ summary: "One-line summary (max 120 chars)"
 ---
 ```
 
+## Git Workflow
+
+- main ブランチに直接 push してよい（PR 不要）
+- push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
+
 ## Key Points
 
 - エージェントは `src/content/reports/` 以外のファイルを変更してはならない
