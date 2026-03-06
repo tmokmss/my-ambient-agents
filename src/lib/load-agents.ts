@@ -1,0 +1,61 @@
+import { readdir, readFile } from "node:fs/promises";
+import { join, basename } from "node:path";
+import { parse } from "yaml";
+
+export interface AgentInfo {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  cron: string;
+  scheduleLabel: string;
+}
+
+const WORKFLOWS_DIR = join(process.cwd(), ".github", "workflows");
+
+export async function loadAgents(): Promise<AgentInfo[]> {
+  const files = await readdir(WORKFLOWS_DIR);
+  const ymlFiles = files.filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"));
+
+  const agents: AgentInfo[] = [];
+
+  for (const file of ymlFiles) {
+    const filePath = join(WORKFLOWS_DIR, file);
+    const raw = await readFile(filePath, "utf-8");
+    const doc = parse(raw);
+
+    // Only include workflows with a schedule trigger (i.e., agents)
+    if (!doc.on?.schedule) continue;
+
+    const id = basename(file, ".yml").replace(/\.yaml$/, "");
+    const name: string = doc.name ?? id;
+    const cron: string = doc.on.schedule[0]?.cron ?? "";
+
+    // Extract schedule comment from raw text (yaml parser discards comments)
+    const cronMatch = raw.match(/cron:\s*"[^"]+"\s*#\s*(.+)/);
+    const scheduleLabel = cronMatch?.[1]?.trim() ?? cron;
+
+    // Extract slug and category from prompt text
+    const prompt = extractPrompt(doc);
+    const slugMatch = prompt.match(/slug:\s*(\S+)/);
+    const categoryMatch = prompt.match(/category:\s*"?(\w+)"?/);
+
+    const slug = slugMatch?.[1] ?? id;
+    const category = categoryMatch?.[1] ?? "summary";
+
+    agents.push({ id, name, slug, category, cron, scheduleLabel });
+  }
+
+  return agents.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function extractPrompt(doc: Record<string, unknown>): string {
+  const jobs = doc.jobs as Record<string, { steps?: Array<{ with?: { prompt?: string } }> }> | undefined;
+  if (!jobs) return "";
+  for (const job of Object.values(jobs)) {
+    for (const step of job.steps ?? []) {
+      if (step.with?.prompt) return step.with.prompt;
+    }
+  }
+  return "";
+}

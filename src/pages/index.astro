@@ -13,7 +13,7 @@ const allTags = [...new Set(reports.flatMap((r) => [`category:${r.data.category}
 const PAGE_SIZE = 20;
 ---
 
-<Layout title="Reports" showSubtitle>
+<Layout title="Reports">
   <div class="flex flex-wrap gap-3 mb-6 items-start">
     <div class="flex-1 min-w-[200px] max-sm:min-w-0">
       <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" class="w-full h-9 px-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)] placeholder:text-[var(--muted)]" />

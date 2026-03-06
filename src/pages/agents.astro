@@ -1,0 +1,74 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+import { loadAgents } from "../lib/load-agents";
+import { FileText, Search, AlertTriangle, Flame, Clock, Activity } from "@lucide/astro";
+
+const agents = await loadAgents();
+const reports = await getCollection("reports");
+
+const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle, buzz: Flame };
+
+const now = Date.now();
+const MS_7D = 7 * 24 * 60 * 60 * 1000;
+
+const agentStats = agents.map((agent) => {
+  const matched = reports
+    .filter((r) => r.id.includes(agent.slug))
+    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+  const total = matched.length;
+  const last = matched[0] ?? null;
+  const lastDate = last ? new Date(last.data.date) : null;
+  const recent7d = matched.filter((r) => now - new Date(r.data.date).getTime() < MS_7D).length;
+
+  return { agent, total, last, lastDate, recent7d };
+});
+---
+
+<Layout title="Agents">
+  <div class="flex items-center gap-2 mb-6">
+    <span class="text-[var(--muted)] [&_svg]:w-5 [&_svg]:h-5"><Activity size={20} /></span>
+    <h2 class="text-lg font-semibold">Agent Setup Status</h2>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    {agentStats.map(({ agent, total, last, lastDate, recent7d }) => {
+      const Icon = categoryIcons[agent.category];
+      return (
+        <div class="px-5 py-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg">
+          <div class="flex items-center gap-2 mb-2">
+            {Icon && <span class="text-[var(--muted)] [&_svg]:w-[18px] [&_svg]:h-[18px]"><Icon size={18} /></span>}
+            <h3 class="text-base font-semibold"><a href={`https://github.com/tmokmss/my-ambient-agents/blob/main/.github/workflows/${agent.id}.yml`} target="_blank">{agent.name}</a></h3>
+          </div>
+
+          <dl class="text-[0.8rem] space-y-1.5 [&_dt]:text-[var(--muted)] [&_dt]:inline [&_dd]:inline [&_dd]:ml-1">
+            <div class="flex items-center gap-1.5">
+              <Clock size={14} class="text-[var(--muted)] shrink-0" />
+              <dt>Schedule:</dt>
+              <dd>{agent.scheduleLabel}</dd>
+            </div>
+            <div>
+              <dt>Last report:</dt>
+              <dd>
+                {last ? (
+                  <a href={`${import.meta.env.BASE_URL}/reports/${last.id}/`}>
+                    <time class="local-time" datetime={lastDate!.toISOString()}>
+                      {new Date(lastDate!.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 16).replace("T", " ")} JST
+                    </time>
+                  </a>
+                ) : (
+                  <span class="text-[var(--muted)]">-</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Reports:</dt>
+              <dd>{total} total (last 7 days: {recent7d})</dd>
+            </div>
+          </dl>
+        </div>
+      );
+    })}
+  </div>
+</Layout>
