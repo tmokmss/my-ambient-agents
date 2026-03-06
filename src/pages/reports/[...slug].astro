@@ -17,10 +17,12 @@ export async function getStaticPaths() {
 }
 
 const { entry, prev, next } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
+const tocHeadings = headings.filter(h => h.depth === 2);
 ---
 
 <Layout title={entry.data.title}>
+  <div class="report-layout">
   <article id="report-article">
     <h1 class="text-2xl mb-1">{entry.data.title}</h1>
     <div class="text-[0.8rem] text-[var(--muted)] mb-6">
@@ -45,7 +47,7 @@ const { Content } = await render(entry);
         <span class="icon-check"><Check size={18} /></span>
       </button>
     </div>
-    <script type="application/json" id="report-meta">{JSON.stringify({ title: entry.data.title, summary: entry.data.summary, rawUrl: `${Astro.site}my-ambient-agents/raw/${entry.id}.md` })}</script>
+    <script is:inline type="application/json" id="report-meta" set:html={JSON.stringify({ title: entry.data.title, summary: entry.data.summary, rawUrl: `${Astro.site}my-ambient-agents/raw/${entry.id}.md` })} />
     <nav class="flex justify-between items-start gap-4 mt-12 pt-6 border-t border-[var(--border)]">
       {prev ? (
         <a href={`${import.meta.env.BASE_URL}/reports/${prev.id}/`} class="flex items-start gap-2 no-underline text-[var(--fg)] hover:text-[var(--accent)] transition-colors max-w-[48%]">
@@ -67,6 +69,40 @@ const { Content } = await render(entry);
       ) : <div />}
     </nav>
   </article>
+  {tocHeadings.length >= 2 && (
+    <aside class="toc-aside">
+      <nav>
+        <h2>目次</h2>
+        <ul>
+          {tocHeadings.map(h => (
+            <li><a href={`#${h.slug}`}>{h.text}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  )}
+  </div>
+
+  <script>
+    const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.toc-aside a');
+    if (tocLinks.length > 0) {
+      const headingEls = Array.from(tocLinks).map(a =>
+        document.getElementById(a.getAttribute('href')!.slice(1))
+      ).filter(Boolean) as HTMLElement[];
+
+      const observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            tocLinks.forEach(a => a.classList.remove('active'));
+            const link = document.querySelector(`.toc-aside a[href="#${entry.target.id}"]`);
+            link?.classList.add('active');
+          }
+        }
+      }, { rootMargin: '0px 0px -70% 0px' });
+
+      for (const el of headingEls) observer.observe(el);
+    }
+  </script>
 
   <script>
     const copyBtn = document.getElementById('copy-md')!;
@@ -80,7 +116,7 @@ const { Content } = await render(entry);
 
     const meta = JSON.parse(document.getElementById('report-meta')!.textContent!);
     const askBtn = document.getElementById('ask-claude') as HTMLAnchorElement;
-    const prompt = `「${meta.title}」\n${meta.summary}\n\n以下のURLのレポートを読んで、内容について質問に答えてください。\n${meta.rawUrl}`;
+    const prompt = `${meta.title}\n${meta.summary}\n\n以下のURLのレポートを読んで、内容について質問に答えてください。\n${meta.rawUrl}`;
     askBtn.href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
     askBtn.target = '_blank';
     askBtn.rel = 'noopener';
