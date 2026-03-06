@@ -40,6 +40,7 @@ jobs:
             ### 2. Bilibili (中国トレンド)
             - https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all
             data.list から上位の動画タイトル・再生数・説明を取得。
+            各動画のURLは https://www.bilibili.com/video/{bvid} の形式でリンクすること。
 
             ### 3. はてなブックマーク (日本のホットエントリ)
             RSSを取得してパース:
