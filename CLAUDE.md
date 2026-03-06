@@ -71,8 +71,12 @@ jobs:
 
 ### 3. レポートのカテゴリ追加
 
-新しいカテゴリが必要なら `output-report.md` の frontmatter schema に追加する:
-- 現在の category: `summary | analysis | alert | buzz`
+新しいカテゴリが必要な場合、以下の3箇所を更新する:
+1. この CLAUDE.md の category 一覧（本セクションと Report Frontmatter Schema）
+2. `src/pages/index.astro` の `categoryIcons` にアイコンを追加（`@lucide/astro` から import）
+3. `.claude/skills/output-report.md` の frontmatter schema
+
+現在の category: `summary | analysis | alert | buzz`
 
 ### 4. デプロイ
 
