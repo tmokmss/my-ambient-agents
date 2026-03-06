@@ -33,30 +33,31 @@ const { Content } = await render(entry);
       <a id="ask-claude" class="inline-flex items-center gap-1.5 h-11 px-4 bg-[var(--accent)] text-[var(--bg)] border border-transparent rounded-lg cursor-pointer transition-opacity duration-150 hover:opacity-85 text-[0.85rem] font-semibold no-underline [&_svg]:w-[18px] [&_svg]:h-[18px]" aria-label="Ask Claude" title="Ask Claude">
         <MessageCircle size={18} /> Ask Claude <ExternalLink size={14} />
       </a>
-      <button class="copy-md inline-flex items-center justify-center w-11 h-11 bg-[var(--card-bg)] text-[var(--fg)] border border-[var(--border)] rounded-lg cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] [&_svg]:w-[18px] [&_svg]:h-[18px]" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
+      <button class="copy-md inline-flex items-center justify-center w-11 h-11 bg-[var(--card-bg)] text-[var(--fg)] border border-[var(--border)] rounded-lg cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] [&_svg]:w-[18px] [&_svg]:h-[18px]" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown"
+        data-markdown={entry.body}
+      >
         <span class="icon-copy"><Copy size={18} /></span>
         <span class="icon-check"><Check size={18} /></span>
       </button>
     </div>
+    <script type="application/json" id="report-meta">{JSON.stringify({ title: entry.data.title, summary: entry.data.summary, rawUrl: `${Astro.site}my-ambient-agents/raw/${entry.id}.md` })}</script>
   </article>
 
-  <script is:inline define:vars={{ markdown: entry.body, rawUrl: Astro.site + 'my-ambient-agents/raw/' + entry.id + '.md', reportTitle: entry.data.title, reportSummary: entry.data.summary }}>
-    (function() {
-      // Copy markdown button
-      var copyBtn = document.getElementById('copy-md');
-      copyBtn.addEventListener('click', function() {
-        navigator.clipboard.writeText(markdown).then(function() {
-          copyBtn.classList.add('copied');
-          setTimeout(function() { copyBtn.classList.remove('copied'); }, 2000);
-        });
+  <script>
+    const copyBtn = document.getElementById('copy-md')!;
+    const markdown = copyBtn.getAttribute('data-markdown')!;
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(markdown).then(() => {
+        copyBtn.classList.add('copied');
+        setTimeout(() => copyBtn.classList.remove('copied'), 2000);
       });
+    });
 
-      // Ask Claude button
-      var askBtn = document.getElementById('ask-claude');
-      var prompt = '「' + reportTitle + '」\n' + reportSummary + '\n\n以下のURLのレポートを読んで、内容について質問に答えてください。\n' + rawUrl;
-      askBtn.href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
-      askBtn.target = '_blank';
-      askBtn.rel = 'noopener';
-    })();
+    const meta = JSON.parse(document.getElementById('report-meta')!.textContent!);
+    const askBtn = document.getElementById('ask-claude') as HTMLAnchorElement;
+    const prompt = `「${meta.title}」\n${meta.summary}\n\n以下のURLのレポートを読んで、内容について質問に答えてください。\n${meta.rawUrl}`;
+    askBtn.href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+    askBtn.target = '_blank';
+    askBtn.rel = 'noopener';
   </script>
 </Layout>

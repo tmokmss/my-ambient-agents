@@ -43,58 +43,52 @@ const { title, showSubtitle = false } = Astro.props;
     <main>
       <slot />
     </main>
-    <script is:inline>
-      (function() {
-        var btn = document.getElementById('theme-toggle');
-        var icons = {
-          system: document.getElementById('icon-system'),
-          light: document.getElementById('icon-light'),
-          dark: document.getElementById('icon-dark')
-        };
-        var modes = ['system', 'light', 'dark'];
-        var titles = { system: 'Theme: System', light: 'Theme: Light', dark: 'Theme: Dark' };
+    <script>
+      const btn = document.getElementById('theme-toggle')!;
+      const icons: Record<string, HTMLElement> = {
+        system: document.getElementById('icon-system')!,
+        light: document.getElementById('icon-light')!,
+        dark: document.getElementById('icon-dark')!,
+      };
+      const modes = ['system', 'light', 'dark'] as const;
+      type Mode = (typeof modes)[number];
+      const titles: Record<Mode, string> = { system: 'Theme: System', light: 'Theme: Light', dark: 'Theme: Dark' };
 
-        function current() {
-          return localStorage.getItem('theme') || 'system';
+      const current = (): Mode => (localStorage.getItem('theme') as Mode) || 'system';
+
+      const apply = (mode: Mode) => {
+        if (mode === 'system') {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.removeItem('theme');
+        } else {
+          document.documentElement.setAttribute('data-theme', mode);
+          localStorage.setItem('theme', mode);
         }
-
-        function apply(mode) {
-          if (mode === 'system') {
-            document.documentElement.removeAttribute('data-theme');
-            localStorage.removeItem('theme');
-          } else {
-            document.documentElement.setAttribute('data-theme', mode);
-            localStorage.setItem('theme', mode);
-          }
-          btn.title = titles[mode];
-          for (var key in icons) {
-            icons[key].classList.toggle('active', key === mode);
-          }
+        btn.title = titles[mode];
+        for (const key of Object.keys(icons)) {
+          icons[key].classList.toggle('active', key === mode);
         }
+      };
 
-        apply(current());
+      apply(current());
 
-        btn.addEventListener('click', function() {
-          var next = modes[(modes.indexOf(current()) + 1) % modes.length];
-          apply(next);
-        });
-      })();
+      btn.addEventListener('click', () => {
+        const next = modes[(modes.indexOf(current()) + 1) % modes.length];
+        apply(next);
+      });
     </script>
-    <script is:inline>
-      (function() {
-        var times = document.querySelectorAll('.local-time');
-        for (var i = 0; i < times.length; i++) {
-          var el = times[i];
-          var d = new Date(el.getAttribute('datetime'));
-          var jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-          el.textContent = jst.getUTCFullYear() + '-'
-            + String(jst.getUTCMonth() + 1).padStart(2, '0') + '-'
-            + String(jst.getUTCDate()).padStart(2, '0') + ' '
-            + String(jst.getUTCHours()).padStart(2, '0') + ':'
-            + String(jst.getUTCMinutes()).padStart(2, '0')
-            + ' JST';
-        }
-      })();
+    <script>
+      const times = document.querySelectorAll<HTMLTimeElement>('.local-time');
+      for (const el of times) {
+        const d = new Date(el.getAttribute('datetime')!);
+        const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+        el.textContent = jst.getUTCFullYear() + '-'
+          + String(jst.getUTCMonth() + 1).padStart(2, '0') + '-'
+          + String(jst.getUTCDate()).padStart(2, '0') + ' '
+          + String(jst.getUTCHours()).padStart(2, '0') + ':'
+          + String(jst.getUTCMinutes()).padStart(2, '0')
+          + ' JST';
+      }
     </script>
   </body>
 </html>
