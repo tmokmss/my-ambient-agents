@@ -21,7 +21,7 @@ tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 ## Time Handling
 
 - Filename and `date` frontmatter are always in **UTC**.
-- If the prompt provides a JST time or edition name (e.g. 朝刊/夕刊/夜刊), use them only for display purposes in the `title` and `summary`. Do NOT use JST for the filename or `date` field.
+- If the prompt provides a JST time, use it only for display purposes in the `title` and `summary`. Do NOT use JST for the filename or `date` field.
 
 4. After the frontmatter, write the report body in Markdown.
 5. Use `##` for sections. Keep it concise and actionable.
