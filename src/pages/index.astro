@@ -1,13 +1,13 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
-import { FileText, Search, AlertTriangle } from "@lucide/astro";
+import { FileText, Search, AlertTriangle, Flame } from "@lucide/astro";
 
 const reports = (await getCollection("reports")).sort(
   (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime(),
 );
 
-const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle };
+const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle, buzz: Flame };
 
 const allTags = [...new Set(reports.flatMap((r) => r.data.tags ?? []))].sort();
 const PAGE_SIZE = 20;
