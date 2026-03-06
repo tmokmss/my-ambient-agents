@@ -2,7 +2,7 @@ name: Daily News Briefing
 
 on:
   schedule:
-    - cron: "0 23 * * *" # Every day at 23:00 UTC (08:00 JST)
+    - cron: "3 23 * * *" # Every day at 23:03 UTC (08:03 JST)
   workflow_dispatch:
     inputs:
       prompt:

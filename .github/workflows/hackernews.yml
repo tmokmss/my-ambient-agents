@@ -2,7 +2,7 @@ name: Hacker News Summary
 
 on:
   schedule:
-    - cron: "0 0,12 * * *" # Every day at 00:00 and 12:00 UTC
+    - cron: "3 0,12 * * *" # Every day at 00:03 and 12:03 UTC
   workflow_dispatch:
     inputs:
       prompt:

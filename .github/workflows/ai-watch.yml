@@ -2,7 +2,7 @@ name: AI Watch
 
 on:
   schedule:
-    - cron: "0 22 * * *" # JST 7:00 (daily)
+    - cron: "3 22 * * *" # JST 7:03 (daily)
   workflow_dispatch:
     inputs:
       prompt:
