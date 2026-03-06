@@ -85,6 +85,7 @@ title: "Report title"
 date: "YYYY-MM-DD"
 category: "summary | analysis | alert"
 summary: "One-line summary (max 120 chars)"
+tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 ---
 ```
 

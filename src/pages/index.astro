@@ -8,10 +8,25 @@ const reports = (await getCollection("reports")).sort(
 );
 
 const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle };
+
+const allTags = [...new Set(reports.flatMap((r) => r.data.tags ?? []))].sort();
 ---
 
 <Layout title="Reports" showSubtitle>
   <style>
+    .tag-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tag-btn {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      background: var(--card-bg);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .tag-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
     .report-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
     .report-card {
       padding: 1rem 1.25rem;
@@ -26,15 +41,31 @@ const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search
     .report-body h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
     .meta { font-size: 0.8rem; color: var(--muted); }
     .summary { font-size: 0.875rem; margin-top: 0.5rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+    .tag {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--code-bg);
+      color: var(--muted);
+    }
     .empty { color: var(--muted); }
   </style>
+
+  {allTags.length > 0 && (
+    <div class="tag-filter" id="tag-filter">
+      {allTags.map((tag) => (
+        <button class="tag-btn" data-tag={tag}>{tag}</button>
+      ))}
+    </div>
+  )}
 
   {reports.length === 0 ? (
     <p class="empty">No reports yet. The agent will generate the first report on its next scheduled run.</p>
   ) : (
-    <ul class="report-list">
+    <ul class="report-list" id="report-list">
       {reports.map((report) => (
-        <li class="report-card">
+        <li class="report-card" data-tags={JSON.stringify(report.data.tags ?? [])}>
           {() => {
             const Icon = categoryIcons[report.data.category];
             return Icon ? <span class="category-icon"><Icon size={18} /></span> : null;
@@ -46,9 +77,51 @@ const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search
               <span>{report.data.category}</span>
             </div>
             <p class="summary">{report.data.summary}</p>
+            {(report.data.tags ?? []).length > 0 && (
+              <div class="tags">
+                {(report.data.tags ?? []).map((tag) => (
+                  <span class="tag">{tag}</span>
+                ))}
+              </div>
+            )}
           </div>
         </li>
       ))}
     </ul>
   )}
+
+  <script is:inline>
+    (function() {
+      var filter = document.getElementById('tag-filter');
+      if (!filter) return;
+      var buttons = filter.querySelectorAll('.tag-btn');
+      var cards = document.querySelectorAll('#report-list .report-card');
+      var activeTags = new Set();
+
+      buttons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var tag = btn.getAttribute('data-tag');
+          if (activeTags.has(tag)) {
+            activeTags.delete(tag);
+            btn.classList.remove('active');
+          } else {
+            activeTags.add(tag);
+            btn.classList.add('active');
+          }
+          cards.forEach(function(card) {
+            if (activeTags.size === 0) {
+              card.style.display = '';
+              return;
+            }
+            var cardTags = JSON.parse(card.getAttribute('data-tags') || '[]');
+            var match = false;
+            activeTags.forEach(function(t) {
+              if (cardTags.indexOf(t) !== -1) match = true;
+            });
+            card.style.display = match ? '' : 'none';
+          });
+        });
+      });
+    })();
+  </script>
 </Layout>

@@ -27,6 +27,14 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
     article :global(ul), article :global(ol) { margin-bottom: 1rem; padding-left: 1.5rem; }
     article :global(code) { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
     article :global(pre) { background: var(--code-bg); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; margin-bottom: 1rem; }
+    .tag {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 9999px;
+      background: var(--code-bg);
+      color: var(--muted);
+    }
     .chat-link {
       display: inline-flex;
       align-items: center;
@@ -69,6 +77,13 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
     <div class="meta">
       {entry.data.date} &middot; {entry.data.category}
     </div>
+    {(entry.data.tags ?? []).length > 0 && (
+      <div class="tags">
+        {(entry.data.tags ?? []).map((tag: string) => (
+          <span class="tag">{tag}</span>
+        ))}
+      </div>
+    )}
     <Content />
     <div class="actions">
       <a class="chat-link" href={chatUrl} target="_blank" rel="noopener"><MessageCircle size={16} /> Ask Claude</a>
