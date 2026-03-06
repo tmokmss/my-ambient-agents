@@ -12,6 +12,9 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+
+const chatPrompt = `以下のレポートについて質問や議論をしたいです。\n\n---\n# ${entry.data.title}\nDate: ${entry.data.date}\nCategory: ${entry.data.category}\n\n${entry.body}\n---\n\nこのレポートの内容について、何でも聞いてください。`;
+const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
 ---
 
 <Layout title={entry.data.title}>
@@ -22,8 +25,23 @@ const { Content } = await render(entry);
     article :global(h2) { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
     article :global(p) { margin-bottom: 1rem; }
     article :global(ul), article :global(ol) { margin-bottom: 1rem; padding-left: 1.5rem; }
-    article :global(code) { background: #1a1a2e; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
-    article :global(pre) { background: #1a1a2e; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+    article :global(code) { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+    article :global(pre) { background: var(--code-bg); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+    .chat-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 2rem;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .chat-link:hover { opacity: 0.85; text-decoration: none; }
   </style>
 
   <a class="back" href={`${import.meta.env.BASE_URL}/`}>&larr; Back</a>
@@ -33,5 +51,6 @@ const { Content } = await render(entry);
       {entry.data.date} &middot; {entry.data.category} &middot; agent: {entry.data.agent}
     </div>
     <Content />
+    <a class="chat-link" href={chatUrl} target="_blank" rel="noopener">Talk with Claude about this report</a>
   </article>
 </Layout>
