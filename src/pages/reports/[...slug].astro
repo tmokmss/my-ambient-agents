@@ -13,7 +13,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 
-const chatPrompt = `以下のレポートについて質問や議論をしたいです。\n\n---\n# ${entry.data.title}\nDate: ${entry.data.date}\nCategory: ${entry.data.category}\n\n${entry.body}\n---\n\nこのレポートの内容について、何でも聞いてください。`;
+const chatPrompt = `以下のレポートについて質問や議論をしたいです。\n\n---\n# ${entry.data.title}\nDate: ${entry.data.date}\nCategory: ${entry.data.category}\n\n${entry.body}\n---`;
 const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
 ---
 
