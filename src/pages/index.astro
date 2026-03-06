@@ -15,7 +15,7 @@ const PAGE_SIZE = 20;
 
 <Layout title="Reports" showSubtitle>
   <div class="flex flex-wrap gap-3 mb-6 items-start">
-    <div class="flex-1 min-w-[200px]">
+    <div class="flex-1 min-w-[200px] max-sm:min-w-0">
       <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" class="w-full h-9 px-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)] placeholder:text-[var(--muted)]" />
     </div>
     {allTags.length > 0 && (
@@ -29,7 +29,6 @@ const PAGE_SIZE = 20;
             <li class="tag-option px-3 py-1.5 text-[0.8rem] cursor-pointer text-[var(--fg)] hover:bg-[var(--code-bg)]" data-tag={tag}>{tag}</li>
           ))}
         </ul>
-        <div class="flex flex-wrap gap-1 min-h-6 mt-1.5" id="selected-tags"></div>
       </div>
     )}
     <div class="flex items-center gap-2 max-sm:[&_label]:hidden max-sm:[&_.date-input]:w-full">
@@ -37,6 +36,7 @@ const PAGE_SIZE = 20;
       <input class="date-input h-9 px-3 text-[0.8rem] font-[inherit] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none focus:border-[var(--accent)]" id="date-until" type="date" />
     </div>
   </div>
+  <div class="flex flex-wrap gap-1.5 mb-4 empty:hidden" id="selected-tags"></div>
 
   {reports.length === 0 ? (
     <p class="text-[var(--muted)]">No reports yet. The agent will generate the first report on its next scheduled run.</p>
