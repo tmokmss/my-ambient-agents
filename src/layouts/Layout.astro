@@ -166,5 +166,19 @@ const { title, showSubtitle = false } = Astro.props;
         });
       })();
     </script>
+    <script is:inline>
+      (function() {
+        var times = document.querySelectorAll('.local-time');
+        for (var i = 0; i < times.length; i++) {
+          var el = times[i];
+          var d = new Date(el.getAttribute('datetime'));
+          el.textContent = d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0') + ' '
+            + String(d.getHours()).padStart(2, '0') + ':'
+            + String(d.getMinutes()).padStart(2, '0');
+        }
+      })();
+    </script>
   </body>
 </html>
