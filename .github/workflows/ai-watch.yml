@@ -80,7 +80,7 @@ jobs:
 
             ## 重複排除
 
-            src/content/reports/ ディレクトリ内でファイル名に "ai-watch" を含むものをファイル名の降順でソートし、直近3件を読み込む。
+            src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "ai-watch" を含むものをパスの降順でソートし、直近3件を読み込む。
             過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
             ただし、重要な続報（新モデルのベンチマーク結果発表など）は続報として取り上げてよい。
 
@@ -89,7 +89,7 @@ jobs:
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "analysis"
             - title: "AI Watch（{日本時間の日付}）" の形式にする（例: AI Watch（2026年3月6日））
-            - slug: ai-watch (例: 2026-03-06-22-00-ai-watch.md)
+            - slug: ai-watch (例: src/content/reports/2026-03-06/22-00-ai-watch.md)
             - tags: 記事の内容に応じて自由にタグをつける（例: "llm", "multimodal", "benchmark", "open-source", "safety", "agents" など）。ソース名をタグにする必要はない
 
             本文の構造:

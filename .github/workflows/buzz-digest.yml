@@ -31,12 +31,12 @@ jobs:
           prompt: |
             ${{ inputs.prompt || '
             現在の日本時間: ${{ steps.time.outputs.jst_time }}
-
+0
             世界のバズ・トレンドを収集し、暇つぶしに読めるダイジェストレポートを日本語で生成せよ。
 
             ## データソースと取得方法
 
-            以下の5ソースからデータを取得する。
+            以下の6ソースからデータを取得する。
             注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
             Reddit は User-Agent ヘッダが必須（例: curl -H "User-Agent: ambient-agents/1.0"）。
 
@@ -65,9 +65,16 @@ jobs:
             - https://togetter.com/rss/hot
             各エントリの title, link, description を取得。
 
+            ### 6. Google Trends (日本の検索トレンド)
+            RSSを取得してパース:
+            - https://trends.google.co.jp/trending/rss?geo=JP
+            名前空間 ht (https://trends.google.com/trending/rss) の要素を参照すること。
+            各エントリの title, ht:approx_traffic を取得。
+            関連ニュースがある場合は ht:news_item 内の ht:news_item_title と ht:news_item_url も取得。
+
             ## 重複排除
 
-            src/content/reports/ ディレクトリ内でファイル名に "buzz-digest" を含むものをファイル名の降順でソートし、直近3件を読み込む。
+            src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "buzz-digest" を含むものをパスの降順でソートし、直近3件を読み込む。
             過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
             同じURL、同じ話題の別記事、同一事件の続報などは重複とみなす。
 
@@ -76,7 +83,7 @@ jobs:
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "buzz"
             - title: "世界バズ・ダイジェスト（{日本時間の日付}）" の形式にする（例: 世界バズ・ダイジェスト（2026年3月6日））
-            - slug: buzz-digest (例: 2026-03-06-08-00-buzz-digest.md)
+            - slug: buzz-digest (例: src/content/reports/2026-03-06/08-00-buzz-digest.md)
             - tags: 記事の内容に応じて自由にタグをつける（例: "ai", "gaming", "politics", "security", "culture" など）。ソース名をタグにする必要はない
 
             本文の構造:
@@ -98,6 +105,9 @@ jobs:
 
             ## Togetter
             - **[タイトル](url)** - 日本語で内容の解説
+
+            ## Google Trends (日本)
+            - **キーワード** ({検索ボリューム}) - 関連ニュース: [ニュースタイトル](url) / なぜ話題なのかを1-2文で解説
 
             最後に ## ひとこと セクションで、全体を通じて気になったトピックを1つだけ取り上げて軽くコメントする。
             ' }}

@@ -47,7 +47,7 @@ jobs:
 
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "summary"
-            - slug: news-briefing (例: 2026-03-06-news-briefing.md)
+            - slug: news-briefing (例: src/content/reports/2026-03-06/00-00-news-briefing.md)
 
             本文は以下の構造で書く:
 

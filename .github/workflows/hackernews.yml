@@ -41,7 +41,7 @@ jobs:
 
             output-report skill に従い src/content/reports/ にファイルを作成する。
             - category: "summary"
-            - slug: hackernews-top10 (例: 2026-03-06-hackernews-top10.md)
+            - slug: hackernews-top10 (例: src/content/reports/2026-03-06/10-00-hackernews-top10.md)
 
             本文は以下の構造で書く:
 

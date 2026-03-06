@@ -1,6 +1,6 @@
 ---
 title: "Hacker News トップ10 サマリー (2026-03-06)"
-date: "2026-03-06T10:00"
+date: "2026-03-06T00:00"
 category: "summary"
 summary: "GPT-5.4発表、Anthropicの軍事利用方針転換、Firefoxクラッシュの10%がビット反転に起因など注目トピック"
 tags: ["hackernews", "ai", "security", "software", "openai", "anthropic"]

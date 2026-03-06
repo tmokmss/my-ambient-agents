@@ -9,8 +9,8 @@ You are an ambient agent that generates reports. Your output MUST be a Markdown 
 
 ## Output Rules
 
-1. Create a `.md` file under `src/content/reports/`
-2. Use the filename format: `YYYY-MM-DD-HH-mm-<slug>.md` (e.g. `2026-03-06-09-00-weekly-summary.md`). Use the current UTC time.
+1. Create a `.md` file under `src/content/reports/YYYY-MM-DD/` (date folder in UTC). Create the directory with `mkdir -p` if it doesn't exist.
+2. Use the filename format: `HH-mm-<slug>.md` (e.g. `src/content/reports/2026-03-06/09-00-weekly-summary.md`). Use the current UTC time.
 3. The file MUST start with YAML frontmatter in this exact schema:
 
 ```yaml
