@@ -53,7 +53,7 @@ const { Content } = await render(entry);
     .copy-md.copied .icon-check { display: flex; }
     #ask-claude-popup {
       display: none;
-      position: absolute;
+      position: fixed;
       z-index: 100;
       background: var(--accent);
       color: var(--bg);
@@ -107,12 +107,48 @@ const { Content } = await render(entry);
         });
       });
 
+      // Convert HTML element/fragment to Markdown
+      function htmlToMd(node) {
+        if (node.nodeType === 3) return node.textContent;
+        if (node.nodeType !== 1) return '';
+        var tag = node.tagName;
+        var children = '';
+        for (var i = 0; i < node.childNodes.length; i++) {
+          children += htmlToMd(node.childNodes[i]);
+        }
+        switch (tag) {
+          case 'H1': return '# ' + children.trim() + '\n\n';
+          case 'H2': return '## ' + children.trim() + '\n\n';
+          case 'H3': return '### ' + children.trim() + '\n\n';
+          case 'P': return children.trim() + '\n\n';
+          case 'STRONG': case 'B': return '**' + children + '**';
+          case 'EM': case 'I': return '*' + children + '*';
+          case 'CODE':
+            if (node.parentElement && node.parentElement.tagName === 'PRE') return children;
+            return '`' + children + '`';
+          case 'PRE': return '```\n' + children.trim() + '\n```\n\n';
+          case 'A':
+            var href = node.getAttribute('href') || '';
+            return '[' + children + '](' + href + ')';
+          case 'UL': case 'OL':
+            var items = '';
+            var lis = node.querySelectorAll(':scope > li');
+            for (var j = 0; j < lis.length; j++) {
+              var prefix = tag === 'OL' ? (j + 1) + '. ' : '- ';
+              items += prefix + htmlToMd(lis[j]).trim() + '\n';
+            }
+            return items + '\n';
+          case 'LI': return children;
+          case 'BR': return '\n';
+          default: return children;
+        }
+      }
+
       // Ask Claude popup on text selection
       var popup = document.getElementById('ask-claude-popup');
       var article = document.getElementById('report-article');
 
       document.addEventListener('mouseup', function(e) {
-        // Small delay to let selection finalize
         setTimeout(function() {
           var sel = window.getSelection();
           var text = sel ? sel.toString().trim() : '';
@@ -123,8 +159,10 @@ const { Content } = await render(entry);
           var range = sel.getRangeAt(0);
           var rect = range.getBoundingClientRect();
           popup.style.display = 'inline-flex';
-          popup.style.top = (window.scrollY + rect.top - popup.offsetHeight - 8) + 'px';
-          popup.style.left = (window.scrollX + rect.left + (rect.width - popup.offsetWidth) / 2) + 'px';
+          popup.style.top = (rect.top - popup.offsetHeight - 8) + 'px';
+          var left = rect.left + (rect.width - popup.offsetWidth) / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - popup.offsetWidth - 8));
+          popup.style.left = left + 'px';
         }, 10);
       });
 
@@ -136,9 +174,14 @@ const { Content } = await render(entry);
 
       popup.addEventListener('click', function() {
         var sel = window.getSelection();
-        var text = sel ? sel.toString().trim() : '';
-        if (!text) return;
-        var prompt = '以下は「' + reportTitle + '」からの抜粋です。これについて質問・議論したいです。\n\n---\n' + text + '\n---';
+        if (!sel || !sel.rangeCount) return;
+        var range = sel.getRangeAt(0);
+        var fragment = range.cloneContents();
+        var tmp = document.createElement('div');
+        tmp.appendChild(fragment);
+        var md = htmlToMd(tmp).trim();
+        if (!md) return;
+        var prompt = '以下は「' + reportTitle + '」からの抜粋です。これについて質問・議論したいです。\n\n---\n' + md + '\n---';
         var url = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
         window.open(url, '_blank', 'noopener');
         popup.style.display = 'none';
