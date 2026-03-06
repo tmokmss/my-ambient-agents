@@ -59,15 +59,7 @@ jobs:
 
             Use the skill defined in .github/skills/output-report.md for output format.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            Bash(git *)
-            Bash(ls *)
-            Bash(cat *)
-            Write
-            Edit
-            Read
-            Glob
-            Grep
+          claude_args: "--dangerously-skip-permissions"
 ```
 
 ### 2. (任意) スキルファイルを追加

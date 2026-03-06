@@ -29,13 +29,4 @@ jobs:
 
             Use the skill defined in .github/skills/output-report.md for output format.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          show_full_output: true
-          additional_permissions: |
-            Bash(*)
-            Write(*)
-            Edit(*)
-            Read(*)
-            Glob(*)
-            Grep(*)
-            WebSearch(*)
-            WebFetch(*)
+          claude_args: "--dangerously-skip-permissions"
