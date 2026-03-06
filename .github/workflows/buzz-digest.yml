@@ -1,0 +1,88 @@
+name: Buzz Digest
+
+on:
+  schedule:
+    - cron: "0 */2 * * *" # Every 2 hours
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Custom prompt for the agent"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+  id-token: write
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            ${{ inputs.prompt || '
+            世界のバズ・トレンドを収集し、暇つぶしに読めるダイジェストレポートを日本語で生成せよ。
+
+            ## データソースと取得方法
+
+            以下の4ソースからデータを取得する:
+
+            ### 1. Reddit (海外バズ)
+            以下のURLに GET リクエスト（JSONレスポンス）:
+            - https://www.reddit.com/r/all/hot.json?limit=20
+            各投稿の title, url, score, num_comments, subreddit を取得。
+
+            ### 2. Bilibili (中国トレンド)
+            - https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all
+            data.list から上位の動画タイトル・再生数・説明を取得。
+
+            ### 3. はてなブックマーク (日本のホットエントリ)
+            RSSを取得してパース:
+            - https://b.hatena.ne.jp/hotentry/it.rss (テクノロジー)
+            - https://b.hatena.ne.jp/hotentry/general.rss (総合)
+            各エントリの title, link, description, bookmarkcount を取得。
+
+            ### 4. Togetter (X/Twitterまとめ)
+            RSSを取得してパース:
+            - https://togetter.com/rss/hot
+            各エントリの title, link, description を取得。
+
+            ## 重複排除
+
+            src/content/reports/ ディレクトリ内の直近3件の buzz-digest レポート（ファイル名に "buzz-digest" を含むもの）を読み込み、
+            過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
+            同じURL、同じ話題の別記事、同一事件の続報などは重複とみなす。
+
+            ## レポート形式
+
+            output-report skill に従い src/content/reports/ にファイルを作成する。
+            - category: "summary"
+            - slug: buzz-digest (例: 2026-03-06T14-buzz-digest.md)
+            - tags: ソースに応じて ["reddit", "bilibili", "hatena", "togetter"] から該当するものを含める
+
+            本文の構造:
+
+            ソース別にセクションを分け、各ソースから面白い・注目すべきトピックを3-5件ピックアップする。
+            単なるタイトル列挙ではなく、なぜ面白いのか・何が話題なのかを1-2文で解説する。
+
+            ## Reddit
+            - **[タイトル](url)** (r/{subreddit}, {score}pt) - 日本語で内容の解説
+
+            ## Bilibili
+            - **[タイトル](url)** ({再生数}) - 日本語で内容の解説
+
+            ## はてなブックマーク
+            - **[タイトル](url)** ({users}users) - 日本語で内容の解説
+
+            ## Togetter
+            - **[タイトル](url)** - 日本語で内容の解説
+
+            最後に ## ひとこと セクションで、全体を通じて気になったトピックを1つだけ取り上げて軽くコメントする。
+            ' }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--dangerously-skip-permissions"
