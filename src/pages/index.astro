@@ -53,7 +53,7 @@ const PAGE_SIZE = 20;
             <div class="min-w-0">
               <h2 class="text-base font-semibold mb-1"><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
               <div class="text-[0.8rem] text-[var(--muted)]">
-                <time class="local-time" datetime={new Date(report.data.date).toISOString()}>{new Date(report.data.date).toISOString().slice(0, 16).replace('T', ' ')}</time> &middot;
+                <time class="local-time" datetime={new Date(report.data.date).toISOString()}>{new Date(new Date(report.data.date).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ')} JST</time> &middot;
                 <span>{report.data.category}</span>
               </div>
               <p class="text-sm mt-2">{report.data.summary}</p>
