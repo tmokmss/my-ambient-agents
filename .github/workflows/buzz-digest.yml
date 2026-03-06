@@ -38,6 +38,7 @@ jobs:
 
             以下の6ソースからデータを取得する。
             注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
+            JSON のパースには jq を使うこと。
             Reddit は User-Agent ヘッダが必須（例: curl -H "User-Agent: ambient-agents/1.0"）。
 
             ### 1. Reddit (海外バズ)
@@ -71,6 +72,11 @@ jobs:
             名前空間 ht (https://trends.google.com/trending/rss) の要素を参照すること。
             各エントリの title, ht:approx_traffic を取得。
             関連ニュースがある場合は ht:news_item 内の ht:news_item_title と ht:news_item_url も取得。
+
+            ## 取得失敗時の対応
+
+            各ソースの取得が失敗した場合（HTTP エラー、空レスポンス、パース不能など）は、リトライせずそのソースをスキップしてレポートに「取得失敗」と明記する。
+            最低2ソース以上のデータが取得できればレポートを生成する。全ソース失敗の場合はレポートを生成しない。
 
             ## 重複排除
 
