@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import { Copy, Check } from "@lucide/astro";
 
 export async function getStaticPaths() {
   const reports = await getCollection("reports");
@@ -19,7 +20,6 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
 
 <Layout title={entry.data.title}>
   <style>
-    .back { font-size: 0.875rem; margin-bottom: 1rem; display: inline-block; }
     article h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; }
     article :global(h2) { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
@@ -31,7 +31,6 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      margin-top: 2rem;
       padding: 0.5rem 1rem;
       background: var(--accent);
       color: var(--bg);
@@ -42,15 +41,52 @@ const chatUrl = `https://claude.ai/new?q=${encodeURIComponent(chatPrompt)}`;
       transition: opacity 0.15s;
     }
     .chat-link:hover { opacity: 0.85; text-decoration: none; }
+    .actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
+    .copy-md {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      background: var(--card-bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .copy-md:hover { border-color: var(--accent); }
+    .copy-md svg { width: 18px; height: 18px; }
+    .copy-md .icon-check { display: none; color: var(--accent); }
+    .copy-md.copied .icon-copy { display: none; }
+    .copy-md.copied .icon-check { display: flex; }
   </style>
 
-  <a class="back" href={`${import.meta.env.BASE_URL}/`}>&larr; Back</a>
   <article>
     <h1>{entry.data.title}</h1>
     <div class="meta">
       {entry.data.date} &middot; {entry.data.category} &middot; agent: {entry.data.agent}
     </div>
     <Content />
-    <a class="chat-link" href={chatUrl} target="_blank" rel="noopener">Talk with Claude about this report</a>
+    <div class="actions">
+      <a class="chat-link" href={chatUrl} target="_blank" rel="noopener">Talk with Claude about this report</a>
+      <button class="copy-md" id="copy-md" aria-label="Copy as Markdown" title="Copy Markdown">
+        <span class="icon-copy"><Copy size={18} /></span>
+        <span class="icon-check"><Check size={18} /></span>
+      </button>
+    </div>
+    <script is:inline define:vars={{ markdown: entry.body }}>
+      (function() {
+        var btn = document.getElementById('copy-md');
+        btn.addEventListener('click', function() {
+          navigator.clipboard.writeText(markdown).then(function() {
+            btn.classList.add('copied');
+            setTimeout(function() {
+              btn.classList.remove('copied');
+            }, 2000);
+          });
+        });
+      })();
+    </script>
   </article>
 </Layout>

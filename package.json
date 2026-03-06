@@ -7,6 +7,10 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@lucide/astro": "^0.577.0",
     "astro": "^5.5.0"
+  },
+  "devDependencies": {
+    "@playwright/cli": "^0.1.1"
   }
 }
