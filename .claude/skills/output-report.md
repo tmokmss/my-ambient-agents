@@ -27,4 +27,5 @@ summary: "A one-line summary (max 120 chars) shown on the index page"
 After writing the report file:
 - Commit the new file to the `main` branch directly
 - Push to origin with `git push origin main`
+- If the push fails due to a non-fast-forward error, run `git pull --rebase origin main` and then retry `git push origin main`. Repeat up to 3 times.
 - Do NOT create branches or PRs
