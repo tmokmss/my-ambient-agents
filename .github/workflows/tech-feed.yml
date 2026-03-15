@@ -36,7 +36,7 @@ jobs:
 
             ## データソースと取得方法
 
-            以下の6ソースからデータを取得する。
+            以下の8ソースからデータを取得する。
             注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
             XML/Atom のパースには適宜 grep/sed 等を使うこと。
 
@@ -69,6 +69,16 @@ jobs:
             RSSを取得してパース:
             - https://dev.to/feed
             各エントリの title, link, description を取得。
+
+            ### 7. TechCrunch
+            RSSを取得してパース:
+            - https://techcrunch.com/feed/
+            各エントリの title, link, pubDate, description を取得。
+
+            ### 8. Ars Technica
+            RSSを取得してパース:
+            - https://feeds.arstechnica.com/arstechnica/index
+            各エントリの title, link, pubDate, description を取得。
 
             ## 取得失敗時の対応
 
@@ -111,6 +121,12 @@ jobs:
             - **[タイトル](url)** ({score}pt) - 日本語で解説
 
             ## dev.to
+            - **[タイトル](url)** - 日本語で解説
+
+            ## TechCrunch
+            - **[タイトル](url)** - 日本語で解説
+
+            ## Ars Technica
             - **[タイトル](url)** - 日本語で解説
 
             ## 注目トピック
