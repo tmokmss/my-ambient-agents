@@ -36,42 +36,39 @@ jobs:
 
             ## データソースと取得方法
 
-            以下の6ソースからデータを取得する。
+            以下の5ソースからデータを取得する。
             注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
             JSON のパースには jq を使うこと。
-            Reddit は User-Agent ヘッダが必須（例: curl -H "User-Agent: ambient-agents/1.0"）。
 
-            ### 1. Reddit (海外バズ)
-            - https://www.reddit.com/r/all/hot.json?limit=20
-            各投稿の title, url, score, num_comments, subreddit を取得。
-
-            ### 2. The Verge (英語圏テック・カルチャー)
+            ### 1. はてなブックマーク (日本のホットエントリ)
             RSSを取得してパース:
-            - https://www.theverge.com/rss/index.xml
-            各エントリの title, link, description を取得。
-
-            ### 3. Bilibili (中国トレンド)
-            - https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all
-            data.list から上位の動画タイトル・再生数・説明を取得。
-            各動画のURLは https://www.bilibili.com/video/{bvid} の形式でリンクすること。
-
-            ### 4. はてなブックマーク (日本のホットエントリ)
-            RSSを取得してパース:
-            - https://b.hatena.ne.jp/hotentry/it.rss (テクノロジー)
             - https://b.hatena.ne.jp/hotentry/general.rss (総合)
             各エントリの title, link, description, bookmarkcount を取得。
 
-            ### 5. Togetter (X/Twitterまとめ)
+            ### 2. Togetter (X/Twitterまとめ)
             RSSを取得してパース:
             - https://togetter.com/rss/hot
             各エントリの title, link, description を取得。
 
-            ### 6. Google Trends (日本の検索トレンド)
+            ### 3. Google Trends (日本の検索トレンド)
             RSSを取得してパース:
             - https://trends.google.co.jp/trending/rss?geo=JP
             名前空間 ht (https://trends.google.com/trending/rss) の要素を参照すること。
             各エントリの title, ht:approx_traffic を取得。
             関連ニュースがある場合は ht:news_item 内の ht:news_item_title と ht:news_item_url も取得。
+
+            ### 4. YouTube Trending (トレンド動画)
+            YouTube Data API を使用して、US と JP の2地域のトレンド動画を取得する:
+            - US: curl "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=US&maxResults=20&key=$YOUTUBE_DATA_API_KEY"
+            - JP: curl "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=JP&maxResults=20&key=$YOUTUBE_DATA_API_KEY"
+            snippet.title, snippet.channelTitle, statistics.viewCount を取得。
+            各動画のURLは https://www.youtube.com/watch?v={id} の形式でリンクすること。
+            注意: API キーは環境変数 $YOUTUBE_DATA_API_KEY を直接参照すること。キーの値を echo や print で出力してはならない。
+
+            ### 5. Boing Boing (英語圏ネットカルチャー)
+            RSSを取得してパース:
+            - https://boingboing.net/feed
+            各エントリの title, link, description を取得。
 
             ## 取得失敗時の対応
 
@@ -97,15 +94,6 @@ jobs:
             ソース別にセクションを分け、各ソースから面白い・注目すべきトピックを3-5件ピックアップする。
             単なるタイトル列挙ではなく、なぜ面白いのか・何が話題なのかを1-2文で解説する。
 
-            ## Reddit
-            - **[タイトル](url)** (r/{subreddit}, {score}pt) - 日本語で内容の解説
-
-            ## The Verge
-            - **[タイトル](url)** - 日本語で内容の解説
-
-            ## Bilibili
-            - **[タイトル](url)** ({再生数}) - 日本語で内容の解説
-
             ## はてなブックマーク
             - **[タイトル](url)** ({users}users) - 日本語で内容の解説
 
@@ -115,8 +103,19 @@ jobs:
             ## Google Trends (日本)
             - **キーワード** ({検索ボリューム}) - 関連ニュース: [ニュースタイトル](url) / なぜ話題なのかを1-2文で解説
 
+            ## YouTube Trending (US)
+            - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
+
+            ## YouTube Trending (JP)
+            - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
+
+            ## Boing Boing
+            - **[タイトル](url)** - 日本語で内容の解説
+
             最後に ## ひとこと セクションで、全体を通じて気になったトピックを1つだけ取り上げて軽くコメントする。
             ' }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
           show_full_output: true
+        env:
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
