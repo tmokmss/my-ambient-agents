@@ -55,7 +55,7 @@ jobs:
             - https://qiita.com/popular-items/feed.atom
             各エントリの title, link, summary を取得。
 
-            ### 4. AWS What'\''s New
+            ### 4. AWS Whats New
             RSSを取得してパース:
             - https://aws.amazon.com/about-aws/whats-new/recent/feed/
             各エントリの title, link, pubDate, description を取得。
