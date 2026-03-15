@@ -2,7 +2,7 @@ name: Tech Feed Digest
 
 on:
   schedule:
-    - cron: "3 21 * * *" # JST 6:03
+    - cron: "3 21,9 * * *" # JST 6:03, 18:03
   workflow_dispatch:
     inputs:
       prompt:
