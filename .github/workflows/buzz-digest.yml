@@ -57,7 +57,6 @@ jobs:
 
             ### 4. はてなブックマーク (日本のホットエントリ)
             RSSを取得してパース:
-            - https://b.hatena.ne.jp/hotentry/it.rss (テクノロジー)
             - https://b.hatena.ne.jp/hotentry/general.rss (総合)
             各エントリの title, link, description, bookmarkcount を取得。
 
