@@ -95,7 +95,8 @@ jobs:
             単なるタイトル列挙ではなく、なぜ面白いのか・何が話題なのかを1-2文で解説する。
 
             ## はてなブックマーク
-            - **[タイトル](url)** ({users}users) - 日本語で内容の解説
+            - **[タイトル](元記事url)** ([{users}users](はてブページurl)) - 日本語で内容の解説
+            はてブページURLは https://b.hatena.ne.jp/entry/s/{元記事URLからhttps://を除いたもの} の形式（例: 元記事が https://example.com/foo なら https://b.hatena.ne.jp/entry/s/example.com/foo）
 
             ## Togetter
             - **[タイトル](url)** - 日本語で内容の解説

@@ -106,7 +106,8 @@ jobs:
             英語記事は日本語で要約すること。
 
             ## はてなブックマーク (テクノロジー)
-            - **[タイトル](url)** ({users}users) - 解説
+            - **[タイトル](元記事url)** ([{users}users](はてブページurl)) - 解説
+            はてブページURLは https://b.hatena.ne.jp/entry/s/{元記事URLからhttps://を除いたもの} の形式（例: 元記事が https://example.com/foo なら https://b.hatena.ne.jp/entry/s/example.com/foo）
 
             ## Zenn
             - **[タイトル](url)** - 解説
