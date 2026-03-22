@@ -59,7 +59,7 @@ jobs:
             | 6 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/cmlink/1.1617539 |
             | 7 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
             | 8 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
-            | 9 | Al Jazeera English | カタール/アラブ | 英語 | https://www.aljazeera.com/xml/rss/all.xml |
+            | 9 | Al Arabiya | サウジ/アラブ | 英語 | https://www.alarabiya.net/feed/rss2/english.xml |
             | 10 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
             | 11 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
             | 12 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
