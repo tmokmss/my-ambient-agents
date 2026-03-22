@@ -10,6 +10,7 @@
     "@lucide/astro": "^0.577.0",
     "@tailwindcss/vite": "^4.2.1",
     "astro": "^5.5.0",
+    "country-flag-emoji-polyfill": "^0.1.8",
     "minisearch": "^7.2.0",
     "rehype-external-links": "^3.0.0",
     "tailwindcss": "^4.2.1",
