@@ -1,0 +1,215 @@
+name: Geopolitical Dual View
+
+on:
+  schedule:
+    - cron: "3 21 * * *" # JST 6:03 (daily)
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Custom prompt for the agent"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+  id-token: write
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set JST time
+        id: time
+        run: echo "jst_time=$(TZ=Asia/Tokyo date '+%Y-%m-%dT%H:%M')" >> "$GITHUB_OUTPUT"
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            ${{ inputs.prompt || '
+            現在の日本時間: ${{ steps.time.outputs.jst_time }}
+
+            世界の主要紛争（ウクライナ、ガザ、イラン）に関するニュースを**当事者双方の視点**から収集し、日本語の分析レポートを生成せよ。
+            ソースは当事国の言語（ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語）を含む。各言語のRSSを直接読み取り、日本語で要約すること。
+
+            ## 日付の扱い（重要）
+
+            各ニュース・記事の公開日（pubDate）を必ず確認し、以下のルールに従うこと:
+            - **過去24時間以内**: 最優先で取り上げる。ハイライトの候補になる。
+            - **過去2-3日以内**: 重要なものだけ取り上げる。
+            - **4日以上前**: 原則スキップ。停戦合意・大規模攻撃等の重大ニュースで、かつ過去のレポートで未掲載の場合のみ取り上げてよい。
+            - レポート本文で各ニュースに日付を明記すること（例: 3/22、3/20 など）。
+
+            ## データソースと取得方法
+
+            以下の13ソースからデータを取得する。
+            注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
+            各ソースごとに `curl -sL --connect-timeout 10 --max-time 30` で取得し、XML/RSSをパースする。
+
+            ---
+
+            ### ウクライナ紛争
+
+            #### ウクライナ側ソース
+
+            **1. Ukrainska Pravda（ウクライナ語）**
+            - URL: https://www.pravda.com.ua/rss/
+            - ウクライナ最大手ニュースサイト。ウクライナ語のRSSを取得し、title, link, pubDate, description を抽出。
+            - 紛争関連記事をフィルタ（キーワード: війна, фронт, ЗСУ, Росія, обстріл, Зеленський, НАТО, окупація）
+
+            **2. Kyiv Independent（英語）**
+            - URL: https://kyivindependent.com/feed/
+            - 英語のRSSを取得。ウクライナ紛争に特化したメディアなのでフィルタ不要。
+
+            #### ロシア側ソース
+
+            **3. TASS（ロシア語）**
+            - URL: https://tass.com/rss/v2.xml
+            - ロシア国営通信社。ロシア語のRSSを取得。
+            - 紛争関連記事をフィルタ（キーワード: Украина, спецоперация, Донбасс, НАТО, Зеленский, фронт, ВСУ）
+
+            **4. RIA Novosti（ロシア語）**
+            - URL: https://ria.ru/export/rss2/archive/index.xml
+            - ロシア国営メディア。ロシア語のRSSを取得。
+            - 同上のキーワードでフィルタ。
+
+            ---
+
+            ### ガザ紛争
+
+            #### イスラエル側ソース
+
+            **5. Ynet（ヘブライ語）**
+            - URL: https://www.ynet.co.il/Integration/StoryRss2.xml
+            - イスラエル最大のニュースサイト。ヘブライ語のRSSを取得。
+            - 紛争関連記事をフィルタ（キーワード: עזה, חמאס, צה"ל, מלחמה, חטופים, רצועה, גבול）
+
+            **6. Haaretz（ヘブライ語）**
+            - URL: https://www.haaretz.co.il/cmlink/1.1617539
+            - イスラエルのリベラル系有力紙。ヘブライ語のRSSを取得。
+            - 同上のキーワードでフィルタ。
+
+            **7. Times of Israel（英語）**
+            - URL: https://www.timesofisrael.com/feed/
+            - 英語のRSSを取得。
+            - 紛争関連記事をフィルタ（キーワード: Gaza, Hamas, IDF, ceasefire, hostage, Palestinian, Hezbollah）
+
+            #### パレスチナ・アラブ側ソース
+
+            **8. Al Jazeera Arabic（アラビア語）**
+            - URL: https://www.aljazeera.net/feed
+            - アラビア語のRSSを取得。
+            - 紛争関連記事をフィルタ（キーワード: غزة, حماس, إسرائيل, فلسطين, الاحتلال, شهداء, قصف）
+
+            **9. Al Jazeera English（英語）**
+            - URL: https://www.aljazeera.com/xml/rss/all.xml
+            - 英語のRSSを取得。
+            - 紛争関連記事をフィルタ（キーワード: Gaza, Hamas, Israel, Palestinian, ceasefire, occupation）
+
+            ---
+
+            ### イラン情勢
+
+            #### 西側ソース
+
+            **10. BBC Persian（ペルシャ語）**
+            - URL: https://feeds.bbci.co.uk/persian/rss.xml
+            - ペルシャ語のRSSを取得。イラン人向けだが西側視点。
+            - イラン関連記事をフィルタ（キーワード: ایران, تهران, سپاه, هسته‌ای, تحریم, خامنه‌ای）
+
+            **11. BBC Middle East（英語）**
+            - URL: https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
+            - 英語のRSSを取得。
+            - イラン関連記事をフィルタ（キーワード: Iran, Tehran, IRGC, nuclear, sanctions, Khamenei）
+
+            #### イラン側ソース
+
+            **12. Tehran Times（英語）**
+            - URL: https://www.tehrantimes.com/rss
+            - イラン政府系英語メディア。RSSを取得。
+
+            **13. IRNA（英語）**
+            - URL: https://en.irna.ir/rss
+            - イラン国営通信社（英語版）。RSSを取得。
+
+            ---
+
+            ## 取得失敗時の対応
+
+            各ソースの取得が失敗した場合（HTTP エラー、パース不能、タイムアウトなど）は、そのソースをスキップして次に進む。
+            レポート内で取得失敗したソースを「⚠ 取得失敗」と明記する。
+            - 最低2つの紛争について双方のデータが取得できればレポートを生成する。
+            - 全ソース失敗の場合はレポートを生成しない。
+            - リトライは行わない。
+
+            ## 重複排除
+
+            src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "geopolitics-dual-view" を含むものをパスの降順でソートし、直近3件を読み込む。
+            過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
+            ただし、重要な続報（停戦交渉の進展、新たな軍事作戦開始など）は続報として取り上げてよい。
+
+            ## 中立性（重要）
+
+            - 各視点の記事を**客観的に要約**すること。一方を支持したり批判したりしない。
+            - 事実の報道内容を忠実に伝える。
+            - 「対比分析」セクションでは、双方の主張・報道の**違い**と**一致点**を中立的に指摘する。
+            - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
+            - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
+
+            ## レポート形式
+
+            output-report skill に従い src/content/reports/ にファイルを作成する。
+            - category: "analysis"
+            - title: "地政学デュアルビュー（{日本時間の日付}）" の形式にする（例: 地政学デュアルビュー（2026年3月22日））
+            - slug: geopolitics-dual-view (例: src/content/reports/2026-03-22/21-03-geopolitics-dual-view.md)
+            - tags: 記事の内容に応じて自由にタグをつける（例: "geopolitics", "ukraine", "gaza", "iran", "ceasefire", "nuclear", "sanctions", "nato" など）
+
+            本文の構造:
+
+            ## 今日のハイライト
+            3紛争横断で最も重要なニュース1-2件を簡潔にまとめる（2-3文）。
+
+            ## ウクライナ紛争
+
+            ### ウクライナ側の報道
+            各ソースから3-5件をピックアップ。
+            - **[記事タイトル日本語訳](元記事URL)**（ソース名, M/D）— 日本語で1-2文の要約
+
+            ### ロシア側の報道
+            各ソースから3-5件をピックアップ。
+            - **[記事タイトル日本語訳](元記事URL)**（ソース名, M/D）— 日本語で1-2文の要約
+
+            ### 対比分析
+            両者の報道の相違点と一致点を中立的に分析（1-2段落）。同じ事象について双方がどう伝えているかを対比する。
+
+            ## ガザ紛争
+
+            ### イスラエル側の報道
+            各ソースから3-5件をピックアップ。
+
+            ### パレスチナ・アラブ側の報道
+            各ソースから3-5件をピックアップ。
+
+            ### 対比分析
+            両者の報道の相違点と一致点を中立的に分析（1-2段落）。
+
+            ## イラン情勢
+
+            ### 西側の報道
+            各ソースから3-5件をピックアップ。
+
+            ### イラン側の報道
+            各ソースから3-5件をピックアップ。
+
+            ### 対比分析
+            両者の報道の相違点と一致点を中立的に分析（1-2段落）。
+
+            ## 総括
+            3紛争横断のトレンド、エスカレーション/デエスカレーションの傾向、国際関係への影響を2-3文でまとめる。
+            ' }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--dangerously-skip-permissions"
+          show_full_output: true
