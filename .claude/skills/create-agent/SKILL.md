@@ -26,8 +26,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: read
+  issues: write
   id-token: write
 
 jobs:
