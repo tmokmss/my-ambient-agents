@@ -13,10 +13,10 @@ permissions:
   pull-requests: write
   issues: write
   id-token: write
+  workflows: write
 
 concurrency:
   group: implement-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
   # Job 1: Issue → 実装 → PR 作成
@@ -69,6 +69,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions --max-turns 25"
           show_full_output: true
+          track_progress: true
 
   # Job 2: PR レビューコメントへの対応
   review:
