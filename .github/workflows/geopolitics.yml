@@ -32,8 +32,8 @@ jobs:
             ${{ inputs.prompt || '
             現在の日本時間: ${{ steps.time.outputs.jst_time }}
 
-            世界の主要紛争・地政学的緊張（ウクライナ、ガザ、イラン、中国）に関するニュースを**当事者双方の視点**から収集し、日本語の分析レポートを生成せよ。
-            ソースは当事国の言語（ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語）を含む。各言語のRSSを直接読み取り、日本語で要約すること。
+            世界の紛争・地政学ニュースを**複数の国・立場のメディア**から収集し、異なる視点を対比する日本語レポートを生成せよ。
+            ソースは7言語（英語、ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語）にまたがる。各言語のRSSを直接読み取り、日本語で要約すること。
 
             ## 日付の扱い（重要）
 
@@ -43,134 +43,38 @@ jobs:
             - **4日以上前**: 原則スキップ。停戦合意・大規模攻撃等の重大ニュースで、かつ過去のレポートで未掲載の場合のみ取り上げてよい。
             - レポート本文で各ニュースに日付を明記すること（例: 3/22、3/20 など）。
 
-            ## データソースと取得方法
+            ## データソース
 
-            以下の13ソースからデータを取得する。
+            以下の17ソースからRSSを取得する。
             注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
             各ソースごとに `curl -sL --connect-timeout 10 --max-time 30` で取得し、XML/RSSをパースする。
+            各ソースから title, link, pubDate, description を抽出し、地政学・紛争・安全保障に関連する記事をピックアップする。
 
-            ---
-
-            ### ウクライナ紛争
-
-            #### ウクライナ側ソース
-
-            **1. Ukrainska Pravda（ウクライナ語）**
-            - URL: https://www.pravda.com.ua/rss/
-            - ウクライナ最大手ニュースサイト。ウクライナ語のRSSを取得し、title, link, pubDate, description を抽出。
-            - 紛争関連記事をフィルタ（キーワード: війна, фронт, ЗСУ, Росія, обстріл, Зеленський, НАТО, окупація）
-
-            **2. Kyiv Independent（英語）**
-            - URL: https://kyivindependent.com/feed/
-            - 英語のRSSを取得。ウクライナ紛争に特化したメディアなのでフィルタ不要。
-
-            #### ロシア側ソース
-
-            **3. TASS（ロシア語）**
-            - URL: https://tass.com/rss/v2.xml
-            - ロシア国営通信社。ロシア語のRSSを取得。
-            - 紛争関連記事をフィルタ（キーワード: Украина, спецоперация, Донбасс, НАТО, Зеленский, фронт, ВСУ）
-
-            **4. RIA Novosti（ロシア語）**
-            - URL: https://ria.ru/export/rss2/archive/index.xml
-            - ロシア国営メディア。ロシア語のRSSを取得。
-            - 同上のキーワードでフィルタ。
-
-            ---
-
-            ### ガザ紛争
-
-            #### イスラエル側ソース
-
-            **5. Ynet（ヘブライ語）**
-            - URL: https://www.ynet.co.il/Integration/StoryRss2.xml
-            - イスラエル最大のニュースサイト。ヘブライ語のRSSを取得。
-            - 紛争関連記事をフィルタ（キーワード: עזה, חמאס, צה"ל, מלחמה, חטופים, רצועה, גבול）
-
-            **6. Haaretz（ヘブライ語）**
-            - URL: https://www.haaretz.co.il/cmlink/1.1617539
-            - イスラエルのリベラル系有力紙。ヘブライ語のRSSを取得。
-            - 同上のキーワードでフィルタ。
-
-            **7. Times of Israel（英語）**
-            - URL: https://www.timesofisrael.com/feed/
-            - 英語のRSSを取得。
-            - 紛争関連記事をフィルタ（キーワード: Gaza, Hamas, IDF, ceasefire, hostage, Palestinian, Hezbollah）
-
-            #### パレスチナ・アラブ側ソース
-
-            **8. Al Jazeera Arabic（アラビア語）**
-            - URL: https://www.aljazeera.net/feed
-            - アラビア語のRSSを取得。
-            - 紛争関連記事をフィルタ（キーワード: غزة, حماس, إسرائيل, فلسطين, الاحتلال, شهداء, قصف）
-
-            **9. Al Jazeera English（英語）**
-            - URL: https://www.aljazeera.com/xml/rss/all.xml
-            - 英語のRSSを取得。
-            - 紛争関連記事をフィルタ（キーワード: Gaza, Hamas, Israel, Palestinian, ceasefire, occupation）
-
-            ---
-
-            ### イラン情勢
-
-            #### 西側ソース
-
-            **10. BBC Persian（ペルシャ語）**
-            - URL: https://feeds.bbci.co.uk/persian/rss.xml
-            - ペルシャ語のRSSを取得。イラン人向けだが西側視点。
-            - イラン関連記事をフィルタ（キーワード: ایران, تهران, سپاه, هسته‌ای, تحریم, خامنه‌ای）
-
-            **11. BBC Middle East（英語）**
-            - URL: https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
-            - 英語のRSSを取得。
-            - イラン関連記事をフィルタ（キーワード: Iran, Tehran, IRGC, nuclear, sanctions, Khamenei）
-
-            #### イラン側ソース
-
-            **12. Tehran Times（英語）**
-            - URL: https://www.tehrantimes.com/rss
-            - イラン政府系英語メディア。RSSを取得。
-
-            **13. IRNA（英語）**
-            - URL: https://en.irna.ir/rss
-            - イラン国営通信社（英語版）。RSSを取得。
-
-            ---
-
-            ### 中国関連
-
-            #### 中国側ソース
-
-            **14. 新華網（中国語）**
-            - URL: http://www.news.cn/rss/politics.xml
-            - 中国国営通信社。中国語のRSSを取得。
-            - 地政学関連記事をフィルタ（キーワード: 台湾, 南海, 美国, 日本, 军事, 外交, 制裁, 一带一路, 安全）
-
-            **15. 環球時報 Global Times（英語）**
-            - URL: https://www.globaltimes.cn/rss/outbrain.xml
-            - 中国共産党系メディアの英語版。RSSを取得。
-            - 地政学・外交関連記事をフィルタ（キーワード: Taiwan, South China Sea, US, military, sanctions, diplomacy, NATO, Japan）
-
-            #### 西側・外部ソース
-
-            **16. BBC Chinese（中国語簡体字）**
-            - URL: https://feeds.bbci.co.uk/zhongwen/simp/rss.xml
-            - BBC中国語サービス。中国語のRSSを取得。西側視点で中国関連ニュースを報道。
-            - 地政学関連記事をフィルタ（キーワード: 台湾, 南海, 美国, 军事, 外交, 制裁, 习近平, 人权）
-
-            **17. Radio Free Asia（英語）**
-            - URL: https://www.rfa.org/english/rss2.xml
-            - 米国政府系メディア。RSSを取得。
-            - 中国関連記事をフィルタ（キーワード: China, Taiwan, South China Sea, Uyghur, Hong Kong, Xi, Beijing）
-
-            ---
+            | # | ソース名 | 国/立場 | 言語 | RSS URL |
+            |---|----------|---------|------|---------|
+            | 1 | Ukrainska Pravda | ウクライナ | ウクライナ語 | https://www.pravda.com.ua/rss/ |
+            | 2 | Kyiv Independent | ウクライナ | 英語 | https://kyivindependent.com/feed/ |
+            | 3 | TASS | ロシア | ロシア語 | https://tass.com/rss/v2.xml |
+            | 4 | RIA Novosti | ロシア | ロシア語 | https://ria.ru/export/rss2/archive/index.xml |
+            | 5 | Ynet | イスラエル | ヘブライ語 | https://www.ynet.co.il/Integration/StoryRss2.xml |
+            | 6 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/cmlink/1.1617539 |
+            | 7 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
+            | 8 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
+            | 9 | Al Jazeera English | カタール/アラブ | 英語 | https://www.aljazeera.com/xml/rss/all.xml |
+            | 10 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
+            | 11 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
+            | 12 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
+            | 13 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
+            | 14 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
+            | 15 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
+            | 16 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
+            | 17 | Radio Free Asia | 米国 | 英語 | https://www.rfa.org/english/rss2.xml |
 
             ## 取得失敗時の対応
 
             各ソースの取得が失敗した場合（HTTP エラー、パース不能、タイムアウトなど）は、そのソースをスキップして次に進む。
-            レポート内で取得失敗したソースを「⚠ 取得失敗」と明記する。
-            - 最低2つの紛争について双方のデータが取得できればレポートを生成する。
-            - 全ソース失敗の場合はレポートを生成しない。
+            レポート末尾で取得失敗したソースを「⚠ 取得失敗」と明記する。
+            - 最低5ソース以上のデータが取得できればレポートを生成する。
             - リトライは行わない。
 
             ## 重複排除
@@ -183,7 +87,6 @@ jobs:
 
             - 各視点の記事を**客観的に要約**すること。一方を支持したり批判したりしない。
             - 事実の報道内容を忠実に伝える。
-            - 「対比分析」セクションでは、双方の主張・報道の**違い**と**一致点**を中立的に指摘する。
             - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
             - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
 
@@ -193,30 +96,24 @@ jobs:
             - category: "analysis"
             - title: "地政学デュアルビュー（{日本時間の日付}）" の形式にする（例: 地政学デュアルビュー（2026年3月22日））
             - slug: geopolitics-dual-view (例: src/content/reports/2026-03-22/21-03-geopolitics-dual-view.md)
-            - tags: 記事の内容に応じて自由にタグをつける（例: "geopolitics", "ukraine", "gaza", "iran", "ceasefire", "nuclear", "sanctions", "nato" など）
+            - tags: 記事の内容に応じて自由にタグをつける（例: "geopolitics", "ukraine", "gaza", "iran", "china", "ceasefire", "nuclear", "sanctions", "nato" など）
 
             本文の構造:
 
-            **重要: 紛争ごとにセクションを分けるのではなく、その日の主要トピック（出来事）ごとにセクションを構成する。**
-            各トピック内で、関係する双方の視点を対比して紹介する。
-            トピック数はその日のニュース量に応じて柔軟に決める（3-7トピック程度）。
-            ニュースが少ない紛争は独立トピックにせず、関連トピックに統合してよい。
+            **全ソースを横断的に読み、その日の主要トピック（出来事）を3-7件ピックアップしてセクションを構成する。**
+            紛争や地域で固定的にセクションを分けるのではなく、話題の大きさ・重要度でトピックを選ぶ。
+            各トピック内で、異なる国・立場のメディアがその出来事をどう報じているかを対比する。
+            同じ出来事を報じるソースが2カ国以上あるトピックを優先的に取り上げる。
 
             ## 今日のハイライト
             最も重要なニュース1-2件を簡潔にまとめる（2-3文）。
 
-            ## {トピック名}（例: 「ホルムズ海峡封鎖とトランプの最後通牒」「ドローン戦の激化」「西岸入植者暴力」など）
+            ## {トピック名}（例: 「ホルムズ海峡封鎖とトランプの最後通牒」「ドローン戦の激化」「中国がイラン制裁を批判」など）
 
-            ### 側Aの報道
-            関連する記事を2-4件ピックアップ。
-            - **[記事タイトル日本語訳](元記事URL)**（ソース名, M/D）— 日本語で1-2文の要約
+            各国メディアの報道を国・立場ごとにまとめ、対比する。
+            - **[記事タイトル日本語訳](元記事URL)**（ソース名 [国旗], M/D）— 日本語で1-2文の要約
 
-            ### 側Bの報道
-            関連する記事を2-4件ピックアップ。
-            - **[記事タイトル日本語訳](元記事URL)**（ソース名, M/D）— 日本語で1-2文の要約
-
-            ### 対比分析
-            同じ出来事について双方がどう伝えているかを中立的に対比する（1-2段落）。
+            対比が可能なトピックでは、最後に **「視点の対比」** として双方の報道の違いと一致点を1-2段落で分析する。
 
             （以降、トピックごとに繰り返す）
 
