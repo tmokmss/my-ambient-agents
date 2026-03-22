@@ -32,8 +32,8 @@ jobs:
             ${{ inputs.prompt || '
             現在の日本時間: ${{ steps.time.outputs.jst_time }}
 
-            世界の主要紛争（ウクライナ、ガザ、イラン）に関するニュースを**当事者双方の視点**から収集し、日本語の分析レポートを生成せよ。
-            ソースは当事国の言語（ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語）を含む。各言語のRSSを直接読み取り、日本語で要約すること。
+            世界の主要紛争・地政学的緊張（ウクライナ、ガザ、イラン、中国）に関するニュースを**当事者双方の視点**から収集し、日本語の分析レポートを生成せよ。
+            ソースは当事国の言語（ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語）を含む。各言語のRSSを直接読み取り、日本語で要約すること。
 
             ## 日付の扱い（重要）
 
@@ -134,6 +134,34 @@ jobs:
             **13. IRNA（英語）**
             - URL: https://en.irna.ir/rss
             - イラン国営通信社（英語版）。RSSを取得。
+
+            ---
+
+            ### 中国関連
+
+            #### 中国側ソース
+
+            **14. 新華網（中国語）**
+            - URL: http://www.news.cn/rss/politics.xml
+            - 中国国営通信社。中国語のRSSを取得。
+            - 地政学関連記事をフィルタ（キーワード: 台湾, 南海, 美国, 日本, 军事, 外交, 制裁, 一带一路, 安全）
+
+            **15. 環球時報 Global Times（英語）**
+            - URL: https://www.globaltimes.cn/rss/outbrain.xml
+            - 中国共産党系メディアの英語版。RSSを取得。
+            - 地政学・外交関連記事をフィルタ（キーワード: Taiwan, South China Sea, US, military, sanctions, diplomacy, NATO, Japan）
+
+            #### 西側・外部ソース
+
+            **16. BBC Chinese（中国語簡体字）**
+            - URL: https://feeds.bbci.co.uk/zhongwen/simp/rss.xml
+            - BBC中国語サービス。中国語のRSSを取得。西側視点で中国関連ニュースを報道。
+            - 地政学関連記事をフィルタ（キーワード: 台湾, 南海, 美国, 军事, 外交, 制裁, 习近平, 人权）
+
+            **17. Radio Free Asia（英語）**
+            - URL: https://www.rfa.org/english/rss2.xml
+            - 米国政府系メディア。RSSを取得。
+            - 中国関連記事をフィルタ（キーワード: China, Taiwan, South China Sea, Uyghur, Hong Kong, Xi, Beijing）
 
             ---
 
