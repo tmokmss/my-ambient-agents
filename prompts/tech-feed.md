@@ -1,0 +1,102 @@
+現在の日本時間: ${JST_TIME}
+
+テック系RSSフィードを巡回し、開発者向けダイジェストレポートを日本語で生成せよ。
+
+## データソースと取得方法
+
+以下の8ソースからデータを取得する。
+注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
+XML/Atom のパースには適宜 grep/sed 等を使うこと。
+
+### 1. はてなブックマーク テクノロジー
+RSSを取得してパース:
+- https://b.hatena.ne.jp/hotentry/it.rss
+各エントリの title, link, description, bookmarkcount を取得。
+
+### 2. Zenn トレンド
+RSSを取得してパース:
+- https://zenn.dev/feed
+各エントリの title, link, description を取得。
+
+### 3. Qiita 人気記事
+Atom フィードを取得してパース:
+- https://qiita.com/popular-items/feed.atom
+各エントリの title, link, summary を取得。
+
+### 4. AWS Whats New
+RSSを取得してパース:
+- https://aws.amazon.com/about-aws/whats-new/recent/feed/
+各エントリの title, link, pubDate, description を取得。
+
+### 5. Lobsters
+RSSを取得してパース:
+- https://lobste.rs/rss
+各エントリの title, link, score, comments_count を取得。
+
+### 6. dev.to
+RSSを取得してパース:
+- https://dev.to/feed
+各エントリの title, link, description を取得。
+
+### 7. TechCrunch
+RSSを取得してパース:
+- https://techcrunch.com/feed/
+各エントリの title, link, pubDate, description を取得。
+
+### 8. Ars Technica
+RSSを取得してパース:
+- https://feeds.arstechnica.com/arstechnica/index
+各エントリの title, link, pubDate, description を取得。
+
+## 取得失敗時の対応
+
+各ソースの取得が失敗した場合（HTTP エラー、空レスポンス、パース不能など）は、リトライせずそのソースをスキップしてレポートに「取得失敗」と明記する。
+最低2ソース以上のデータが取得できればレポートを生成する。全ソース失敗の場合はレポートを生成しない。
+
+## 重複排除
+
+src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "${AGENT_SLUG}" を含むものをパスの降順でソートし、直近3件を読み込む。
+過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
+同じURL、同じ話題の別記事、同一事件の続報などは重複とみなす。
+
+## レポート形式
+
+output-report skill に従い src/content/reports/ にファイルを作成する。
+- category: "${AGENT_CATEGORY}"
+- title: "Tech Feed ダイジェスト（{日本時間の日付}）" の形式にする（例: Tech Feed ダイジェスト（2026年3月6日））
+- slug: ${AGENT_SLUG} (例: src/content/reports/2026-03-06/06-03-${AGENT_SLUG}.md)
+- tags: 記事の内容に応じて自由にタグをつける（例: "aws", "frontend", "security", "ai", "devops", "golang" 等）。ソース名をタグにする必要はない
+
+本文の構造:
+
+ソース別にセクションを分け、各ソースから注目すべきトピックを3-5件ピックアップする。
+単なるタイトル列挙ではなく、技術的な解説を1-2文で付与する。
+英語記事は日本語で要約すること。
+
+## はてなブックマーク (テクノロジー)
+- **[タイトル](元記事url)** ([{users}users](はてブページurl)) - 解説
+はてブページURLは https://b.hatena.ne.jp/entry/s/{元記事URLからhttps://を除いたもの} の形式（例: 元記事が https://example.com/foo なら https://b.hatena.ne.jp/entry/s/example.com/foo）
+
+## Zenn
+- **[タイトル](url)** - 解説
+
+## Qiita
+- **[タイトル](url)** - 解説
+
+## AWS 新着
+- **[タイトル](url)** ({日付}) - 解説
+
+## Lobsters
+- **[タイトル](url)** ({score}pt) - 日本語で解説
+
+## dev.to
+- **[タイトル](url)** - 日本語で解説
+
+## TechCrunch
+- **[タイトル](url)** - 日本語で解説
+
+## Ars Technica
+- **[タイトル](url)** - 日本語で解説
+
+## 注目トピック
+全ソースを通じて特に注目すべき技術トレンドや話題を1-2段落でまとめる。

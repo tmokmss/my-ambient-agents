@@ -33,13 +33,9 @@ export async function loadAgents(): Promise<AgentInfo[]> {
 
     const scheduleLabel = buildScheduleLabel(cron);
 
-    // Extract slug and category from prompt text
-    const prompt = extractPrompt(doc);
-    const slugMatch = prompt.match(/slug:\s*(\S+)/);
-    const categoryMatch = prompt.match(/category:\s*"?(\w+)"?/);
-
-    const slug = slugMatch?.[1] ?? id;
-    const category = categoryMatch?.[1] ?? "summary";
+    // Extract slug and category from workflow-level env
+    const slug = (doc.env as Record<string, string>)?.AGENT_SLUG ?? id;
+    const category = (doc.env as Record<string, string>)?.AGENT_CATEGORY ?? "summary";
 
     agents.push({ id, name, slug, category, cron, scheduleLabel });
   }
@@ -61,13 +57,3 @@ function buildScheduleLabel(cron: string): string {
   return `Daily at ${times} JST`;
 }
 
-function extractPrompt(doc: Record<string, unknown>): string {
-  const jobs = doc.jobs as Record<string, { steps?: Array<{ with?: { prompt?: string } }> }> | undefined;
-  if (!jobs) return "";
-  for (const job of Object.values(jobs)) {
-    for (const step of job.steps ?? []) {
-      if (step.with?.prompt) return step.with.prompt;
-    }
-  }
-  return "";
-}

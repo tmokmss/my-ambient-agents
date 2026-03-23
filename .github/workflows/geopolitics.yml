@@ -4,11 +4,10 @@ on:
   schedule:
     - cron: "3 21 * * *" # JST 6:03 (daily)
   workflow_dispatch:
-    inputs:
-      prompt:
-        description: "Custom prompt for the agent"
-        required: false
-        type: string
+
+env:
+  AGENT_SLUG: geopolitics-dual-view
+  AGENT_CATEGORY: analysis
 
 permissions:
   contents: write
@@ -22,103 +21,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set JST time
-        id: time
-        run: echo "jst_time=$(TZ=Asia/Tokyo date '+%Y-%m-%dT%H:%M')" >> "$GITHUB_OUTPUT"
+        run: echo "JST_TIME=$(TZ=Asia/Tokyo date '+%Y-%m-%dT%H:%M')" >> "$GITHUB_ENV"
+
+      - name: Load prompt
+        run: |
+          {
+            echo 'AGENT_PROMPT<<PROMPT_EOF'
+            envsubst < prompts/geopolitics.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_ENV"
 
       - uses: anthropics/claude-code-action@v1
         with:
-          prompt: |
-            ${{ inputs.prompt || '
-            現在の日本時間: ${{ steps.time.outputs.jst_time }}
-
-            世界の紛争・地政学ニュースを**複数の国・立場のメディア**から収集し、異なる視点を対比する日本語レポートを生成せよ。
-            ソースは7言語（英語、ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語）にまたがる。各言語のRSSを直接読み取り、日本語で要約すること。
-
-            ## 日付の扱い（重要）
-
-            各ニュース・記事の公開日（pubDate）を必ず確認し、以下のルールに従うこと:
-            - **過去24時間以内**: 最優先で取り上げる。ハイライトの候補になる。
-            - **過去2-3日以内**: 重要なものだけ取り上げる。
-            - **4日以上前**: 原則スキップ。停戦合意・大規模攻撃等の重大ニュースで、かつ過去のレポートで未掲載の場合のみ取り上げてよい。
-            - レポート本文で各ニュースに日付を明記すること（例: 3/22、3/20 など）。
-
-            ## データソース
-
-            以下の17ソースからRSSを取得する。
-            注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
-            各ソースごとに `curl -sL --connect-timeout 10 --max-time 30` で取得し、XML/RSSをパースする。
-            各ソースから title, link, pubDate, description を抽出し、地政学・紛争・安全保障に関連する記事をピックアップする。
-
-            | # | ソース名 | 国/立場 | 言語 | RSS URL |
-            |---|----------|---------|------|---------|
-            | 1 | Ukrainska Pravda | ウクライナ | ウクライナ語 | https://www.pravda.com.ua/rss/ |
-            | 2 | Kyiv Independent | ウクライナ | 英語 | https://kyivindependent.com/feed/ |
-            | 3 | TASS | ロシア | ロシア語 | https://tass.com/rss/v2.xml |
-            | 4 | RIA Novosti | ロシア | ロシア語 | https://ria.ru/export/rss2/archive/index.xml |
-            | 5 | Ynet | イスラエル | ヘブライ語 | https://www.ynet.co.il/Integration/StoryRss2.xml |
-            | 6 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/cmlink/1.1617539 |
-            | 7 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
-            | 8 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
-            | 9 | Al Arabiya | サウジ/アラブ | 英語 | https://www.alarabiya.net/feed/rss2/english.xml |
-            | 10 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
-            | 11 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
-            | 12 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
-            | 13 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
-            | 14 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
-            | 15 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
-            | 16 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
-            | 17 | Radio Free Asia | 米国 | 英語 | https://www.rfa.org/english/rss2.xml |
-
-            ## 取得失敗時の対応
-
-            各ソースの取得が失敗した場合（HTTP エラー、パース不能、タイムアウトなど）は、そのソースをスキップして次に進む。
-            レポート末尾で取得失敗したソースを「⚠ 取得失敗」と明記する。
-            - 最低5ソース以上のデータが取得できればレポートを生成する。
-            - リトライは行わない。
-
-            ## 重複排除
-
-            src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "geopolitics-dual-view" を含むものをパスの降順でソートし、直近3件を読み込む。
-            過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
-            ただし、重要な続報（停戦交渉の進展、新たな軍事作戦開始など）は続報として取り上げてよい。
-
-            ## 中立性（重要）
-
-            - 各視点の記事を**客観的に要約**すること。一方を支持したり批判したりしない。
-            - 事実の報道内容を忠実に伝える。
-            - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
-            - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
-
-            ## レポート形式
-
-            output-report skill に従い src/content/reports/ にファイルを作成する。
-            - category: "analysis"
-            - title: "地政学デュアルビュー（{日本時間の日付}）" の形式にする（例: 地政学デュアルビュー（2026年3月22日））
-            - slug: geopolitics-dual-view (例: src/content/reports/2026-03-22/21-03-geopolitics-dual-view.md)
-            - tags: 記事の内容に応じて自由にタグをつける（例: "geopolitics", "ukraine", "gaza", "iran", "china", "ceasefire", "nuclear", "sanctions", "nato" など）
-
-            本文の構造:
-
-            **全ソースを横断的に読み、その日の主要トピック（出来事）を3-7件ピックアップしてセクションを構成する。**
-            紛争や地域で固定的にセクションを分けるのではなく、話題の大きさ・重要度でトピックを選ぶ。
-            各トピック内で、異なる国・立場のメディアがその出来事をどう報じているかを対比する。
-            同じ出来事を報じるソースが2カ国以上あるトピックを優先的に取り上げる。
-
-            ## 今日のハイライト
-            最も重要なニュース1-2件を簡潔にまとめる（2-3文）。
-
-            ## {トピック名}（例: 「ホルムズ海峡封鎖とトランプの最後通牒」「ドローン戦の激化」「中国がイラン制裁を批判」など）
-
-            各国メディアの報道を国・立場ごとにまとめ、対比する。
-            - **[記事タイトル日本語訳](元記事URL)**（ソース名 [国旗], M/D）— 日本語で1-2文の要約
-
-            対比が可能なトピックでは、最後に **「視点の対比」** として双方の報道の違いと一致点を1-2段落で分析する。
-
-            （以降、トピックごとに繰り返す）
-
-            ## 総括
-            全体のトレンド、エスカレーション/デエスカレーションの傾向、国際関係への影響を2-3文でまとめる。
-            ' }}
+          prompt: ${{ env.AGENT_PROMPT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
           show_full_output: true

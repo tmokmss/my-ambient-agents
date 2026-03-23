@@ -4,11 +4,10 @@ on:
   schedule:
     - cron: "3 0,12 * * *" # Every day at 00:03 and 12:03 UTC
   workflow_dispatch:
-    inputs:
-      prompt:
-        description: "Custom prompt for the agent"
-        required: false
-        type: string
+
+env:
+  AGENT_SLUG: hackernews-top10
+  AGENT_CATEGORY: summary
 
 permissions:
   contents: write
@@ -21,44 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load prompt
+        run: |
+          {
+            echo 'AGENT_PROMPT<<PROMPT_EOF'
+            envsubst < prompts/hackernews.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_ENV"
+
       - uses: anthropics/claude-code-action@v1
         with:
-          prompt: |
-            ${{ inputs.prompt || '
-            Hacker News のトップストーリーを取得し、上位10件をサマライズしてレポートを生成せよ。
-            言語は日本語で出力すること。
-
-            ## データ取得方法
-
-            Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
-            1. GET /topstories.json でトップストーリーIDの配列を取得
-            2. 上位10件の各IDについて GET /item/{id}.json でストーリー詳細を取得
-            3. 各ストーリーの kids (コメントID) から上位5件について GET /item/{comment_id}.json でコメントを取得
-            4. 注目すべきコメントにはリプライも2-3件取得して議論の文脈を把握する
-
-            ## レポート形式
-
-            output-report skill に従い src/content/reports/ にファイルを作成する。
-            - category: "summary"
-            - slug: hackernews-top10 (例: src/content/reports/2026-03-06/10-00-hackernews-top10.md)
-
-            本文は以下の構造で書く:
-
-            各ストーリーについて:
-
-            ## 1. [Story Title](url)
-
-            **Score:** {score} | **Comments:** {descendants} | [Post](https://news.ycombinator.com/item?id={id})
-
-            {ストーリーの内容を2-3文で要約}
-
-            ### Key Discussion Points
-
-            - **{commenter}**: {コメントとそのスレッドの要約}
-            - **{commenter}**: {コメントとそのスレッドの要約}
-
-            最後に ## Trends セクションを設け、トップ10に共通するテーマや傾向を簡潔にまとめる。
-            ' }}
+          prompt: ${{ env.AGENT_PROMPT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--dangerously-skip-permissions"
           show_full_output: true
