@@ -9,9 +9,23 @@
 XML/Atom のパースには適宜 grep/sed 等を使うこと。
 
 ### 1. はてなブックマーク テクノロジー
-RSSを取得してパース:
-- https://b.hatena.ne.jp/hotentry/it.rss
-各エントリの title, link, description, bookmarkcount を取得。
+RSSを取得し、Python で RDF 全体をパースする（`head` 等で出力を制限してはならない）:
+
+```bash
+curl -s --max-time 15 'https://b.hatena.ne.jp/hotentry/it.rss' | python3 -c "
+import sys, re, html
+data = sys.stdin.read()
+for m in re.finditer(r'<item rdf:about=\"([^\"]+)\">(.*?)</item>', data, re.DOTALL):
+    url = m.group(1)
+    content = m.group(2)
+    title = re.search(r'<title>(.*?)</title>', content)
+    count = re.search(r'<hatena:bookmarkcount>(.*?)</hatena:bookmarkcount>', content)
+    if title:
+        print(count.group(1) if count else '?', html.unescape(title.group(1)), url)
+"
+```
+
+各エントリの title, link, bookmarkcount を全件取得すること。
 
 ### 2. Zenn トレンド
 RSSを取得してパース:
