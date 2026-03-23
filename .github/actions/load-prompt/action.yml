@@ -1,0 +1,23 @@
+name: Load Prompt
+description: Set JST time and load prompt file with envsubst
+
+inputs:
+  prompt-file:
+    description: Path to the prompt file (e.g. prompts/hackernews.md)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set JST time
+      shell: bash
+      run: echo "JST_TIME=$(TZ=Asia/Tokyo date '+%Y-%m-%dT%H:%M')" >> "$GITHUB_ENV"
+
+    - name: Load prompt
+      shell: bash
+      run: |
+        {
+          echo 'AGENT_PROMPT<<PROMPT_EOF'
+          envsubst < ${{ inputs.prompt-file }}
+          echo 'PROMPT_EOF'
+        } >> "$GITHUB_ENV"

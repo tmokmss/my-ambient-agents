@@ -20,13 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Load prompt
-        run: |
-          {
-            echo 'AGENT_PROMPT<<PROMPT_EOF'
-            envsubst < prompts/news-briefing.md
-            echo 'PROMPT_EOF'
-          } >> "$GITHUB_ENV"
+      - uses: ./.github/actions/load-prompt
+        with:
+          prompt-file: prompts/news-briefing.md
 
       - uses: anthropics/claude-code-action@v1
         with:
