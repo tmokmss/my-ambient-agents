@@ -25,6 +25,6 @@ runs:
       run: |
         {
           echo 'AGENT_PROMPT<<PROMPT_EOF'
-          envsubst < ${{ inputs.prompt-file }}
+          envsubst '$JST_TIME $AGENT_SLUG $AGENT_CATEGORY' < ${{ inputs.prompt-file }}
           echo 'PROMPT_EOF'
         } >> "$GITHUB_ENV"
