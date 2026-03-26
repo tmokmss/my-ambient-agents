@@ -14,7 +14,7 @@
     "minisearch": "^7.2.0",
     "rehype-external-links": "^3.0.0",
     "tailwindcss": "^4.2.1",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@playwright/cli": "^0.1.1",
