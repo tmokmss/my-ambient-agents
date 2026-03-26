@@ -38,7 +38,7 @@ permissions:
 
 jobs:
   run-agent:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
