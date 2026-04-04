@@ -36,7 +36,7 @@
 | 14 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
 | 15 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
 | 16 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
-| 17 | Radio Free Asia | 米国 | 英語 | https://www.rfa.org/english/rss2.xml |
+| 17 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 
 ## 取得失敗時の対応
 
