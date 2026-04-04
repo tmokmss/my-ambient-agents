@@ -10,6 +10,22 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
    - ページが非常に長い場合は冒頭部分（約3000文字）のみ使用する
    - 取得失敗（paywall、認証必須、タイムアウトなど）の場合はコメントベースの要約にフォールバックする
    - `url` フィールドがない場合（Ask HN など）はスキップする
+   - 以下の既知ペイウォール・アクセスブロックドメインは WebFetch をスキップし、最初からコメントベースの要約を使用する:
+     - sciencedirect.com
+     - businessinsider.com
+     - nytimes.com
+     - wsj.com
+     - ft.com
+     - bloomberg.com
+     - technologyreview.com
+     - latimes.com
+     - substack.com（サブドメイン含む、例: xxx.substack.com）
+     - bbc.com
+     - axios.com
+     - arstechnica.com
+     - medium.com
+     - twitter.com
+     - x.com
 4. 各ストーリーの kids (コメントID) から上位5件について GET /item/{comment_id}.json でコメントを取得
 5. **スコアが150以上のストーリー**については、各トップレベルコメントの kids から上位2〜3件のリプライも GET /item/{reply_id}.json で追加取得する
    - リプライがさらにリプライを持つ場合（孫コメント）は取得不要
