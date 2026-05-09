@@ -21,13 +21,15 @@ description: レポート生成完了後に、エージェント自身の改善�
 
 ### 2. 既存 Issue の検索
 
+**open / closed 両方を検索する**（closed は「対応済み」または「対応しないと判断された」案件のため、再起票・再コメントしてはならない）:
+
 ```bash
-gh issue list --label "enhancement" --state open --limit 9999
+gh issue list --label "enhancement" --state all --limit 9999
 ```
 
-各改善案について、同一または類似の Issue が既にあるかタイトルと内容を確認する。
+各改善案について、同一または類似の Issue が open/closed どちらに存在するかタイトルと内容を確認する。
 
-### 3a. 類似の既存 Issue がある場合
+### 3a. 類似の **open** Issue がある場合
 
 コメントで +1 する:
 
@@ -35,7 +37,13 @@ gh issue list --label "enhancement" --state open --limit 9999
 gh issue comment {issue番号} --body "本日（{日付}）の {エージェント名} 実行でも同様の課題を確認。{追加の観察があれば記載}"
 ```
 
-### 3b. 類似の既存 Issue がない場合
+### 3b. 類似の **closed** Issue がある場合
+
+**何もしない**。close されている＝「対応済み」または「対応しないと判断された」案件であり、同じ提案を繰り返さない。
+ただし以下は例外的に新規 Issue を起票してよい:
+- closed-as-completed（fix がマージ済み）にもかかわらず同じ症状が再発しており、明らかに修正が不十分・回帰したと判断できる場合 → 新規 Issue を起票し、本文の冒頭で `関連: #{closed issue 番号}（修正後に再発）` を明記する
+
+### 3c. 類似の Issue が（open/closed のいずれにも）ない場合
 
 新規 Issue を作成する:
 
