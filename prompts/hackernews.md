@@ -6,30 +6,18 @@ Hacker News のトップストーリーを取得し、上位10件をサマライ
 Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
 1. GET /topstories.json でトップストーリーIDの配列を取得
 2. 上位10件の各IDについて GET /item/{id}.json でストーリー詳細を取得
-3. 各ストーリーの `url` フィールドが存在する場合、WebFetch でリンク先の記事コンテンツを取得する
-   - ページが非常に長い場合は冒頭部分（約3000文字）のみ使用する
-   - 取得失敗（paywall、認証必須、タイムアウトなど）の場合はコメントベースの要約にフォールバックする
-   - `url` フィールドがない場合（Ask HN など）はスキップする
-   - 以下の既知ペイウォール・アクセスブロックドメインは WebFetch をスキップし、最初からコメントベースの要約を使用する:
-     - sciencedirect.com
-     - businessinsider.com
-     - nytimes.com
-     - wsj.com
-     - ft.com
-     - bloomberg.com
-     - technologyreview.com
-     - latimes.com
-     - substack.com（サブドメイン含む、例: xxx.substack.com）
-     - bbc.com
-     - axios.com
-     - arstechnica.com
-     - medium.com
-     - twitter.com
-     - x.com
-4. 各ストーリーの kids (コメントID) から上位5件について GET /item/{comment_id}.json でコメントを取得
-5. **スコアが150以上のストーリー**については、各トップレベルコメントの kids から上位2〜3件のリプライも GET /item/{reply_id}.json で追加取得する
+3. 各ストーリーの kids (コメントID) から上位5件について GET /item/{comment_id}.json でコメントを取得
+4. **スコアが150以上のストーリー**については、各トップレベルコメントの kids から上位2〜3件のリプライも GET /item/{reply_id}.json で追加取得する
    - リプライがさらにリプライを持つ場合（孫コメント）は取得不要
    - リプライが存在しない（kids が空）コメントはスキップ
+5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
+   1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 2. に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用。403 / paywall / 認証必須 / タイムアウト等で失敗した場合は 2. に進む
+      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com
+   2. **アーカイブURLフォールバック**: 取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、以下のドメインを含むURLを抽出して WebFetch を試みる。HN ではペイウォール記事に有志がアーカイブURLをコメントすることが多いため有効
+      - 対象ドメイン: `web.archive.org` / `archive.org` / `archive.is` / `archive.ph` / `archive.today` / `archive.li` / `archive.fo` / `12ft.io` / `freedium.cfd`（Medium向け）
+      - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
+      - 複数ヒットした場合は archive.org / archive.is 系を優先し、最初に成功したものを採用
+   3. **コメントベース要約**: 上記いずれも失敗した場合は、コメント本文から記事内容を推測して要約する
 
 ## レポート形式
 
