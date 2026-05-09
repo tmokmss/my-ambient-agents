@@ -6,7 +6,7 @@
 以下の2つのRSSフィードからニュースを取得する:
 
 1. **NHK News Web** (主要ニュース)
-   - URL: https://www.nhk.or.jp/rss/news/cat0.xml
+   - URL: https://www3.nhk.or.jp/rss/news/cat0.xml （失敗時は https://www.nhk.or.jp/rss/news/cat0.xml を `curl -sL --max-time 30` でリダイレクト追従）
    - curl で取得し、XMLをパースして最新15件のタイトル・リンク・概要を抽出
 
 2. **Reuters Japan**
