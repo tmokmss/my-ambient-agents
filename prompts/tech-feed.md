@@ -43,9 +43,25 @@ RSSを取得してパース:
 各エントリの title, link, pubDate, description を取得。
 
 ### 5. Lobsters
-RSSを取得してパース:
-- https://lobste.rs/rss
-各エントリの title, link, score, comments_count を取得。
+JSON API を取得してパース（RSS にはスコア情報が含まれないため JSON API を使用する）:
+- https://lobste.rs/hottest.json
+
+```bash
+curl -s --max-time 15 'https://lobste.rs/hottest.json' | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for item in data[:15]:
+    print('TITLE:', item['title'])
+    print('URL:', item['url'])
+    print('SCORE:', item['score'])
+    print('COMMENTS:', item['comment_count'])
+    print('COMMENTS_URL:', item['comments_url'])
+    print('TAGS:', ','.join(item.get('tags', [])))
+    print('---')
+"
+```
+
+各エントリの title, url, score, comment_count, tags を取得。タグ（programming, security, web 等）を品質フィルタとして活用してよい。
 
 ### 6. dev.to
 RSSを取得してパース:
