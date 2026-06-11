@@ -33,6 +33,23 @@ tags: ["tag1", "tag2"]  # optional, free-form tags for filtering
 6. Do NOT modify any files outside of `src/content/reports/`.
 7. Do NOT create duplicate filenames. If a file for today's date and slug exists, use a different slug.
 
+## Frontmatter Quoting Rules
+
+Broken frontmatter YAML breaks the site deploy, so be strict here:
+
+- Never put a raw `"` inside a double-quoted value (`title`, `summary`, etc.). Use Japanese brackets `「」` / `『』` instead, or escape as `\"`.
+- Keep each frontmatter value on a single line.
+
+## Validate Before Commit
+
+After writing the report file, ALWAYS run:
+
+```sh
+node scripts/validate-reports.mjs
+```
+
+It must print `OK`. If it reports an error for your file, fix the frontmatter and re-run until it passes. Do not commit a file that fails validation.
+
 ## Commit & Push
 
 After writing the report file:

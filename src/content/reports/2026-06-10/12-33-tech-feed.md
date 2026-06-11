@@ -2,7 +2,7 @@
 title: "Tech Feed ダイジェスト（2026年6月10日）"
 date: "2026-06-10T12:33"
 category: "summary"
-summary: "全固体電池詐欺疑惑・おおさかけんぽうバイラル・OpenSSL use-after-free・Starlink月額ハードウェア料金・Apple AIはGoogleサーバー上でも"プライベート""
+summary: "全固体電池詐欺疑惑・おおさかけんぽうバイラル・OpenSSL use-after-free・Starlink月額ハードウェア料金・Apple AIはGoogleサーバー上でも「プライベート」"
 tags: ["ai", "security", "aws", "apple", "testing", "frontend", "infra", "llm", "openssl", "fusion"]
 ---
 

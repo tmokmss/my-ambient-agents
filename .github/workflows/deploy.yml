@@ -29,6 +29,8 @@ jobs:
           node-version: 22
 
       - run: npm install
+      # 壊れた frontmatter のレポートを隔離し、1ファイルの不備でデプロイ全体が止まらないようにする
+      - run: node scripts/validate-reports.mjs --quarantine
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
