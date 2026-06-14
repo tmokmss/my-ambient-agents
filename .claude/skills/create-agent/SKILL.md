@@ -40,7 +40,12 @@ jobs:
   run-agent:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          # claude[bot] の App トークンで push して deploy.yml をトリガーするため、
+          # checkout が GITHUB_TOKEN 認証情報を仕込まないようにする（false 必須）。
+          # これを付けないと push が GITHUB_TOKEN 認証になり、Pages デプロイが起動しない。
+          persist-credentials: false
 
       - uses: ./.github/actions/load-prompt
         with:
