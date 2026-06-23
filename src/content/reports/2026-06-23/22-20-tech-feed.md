@@ -86,7 +86,7 @@ tags: ["ai", "security", "zig", "aws", "frontend", "llm", "devtools", "rails", "
 
 - **[AI chipmaker Groq confirms $650M raise, re-staffs after Nvidia's $20B not-acqui-hire deal](https://techcrunch.com/2026/06/22/ai-chipmaker-groq-confirms-650m-raise-re-staffs-after-nvidias-20b-not-acqui-hire-deal/)** (2026-06-22) - LPU（Language Processing Unit）チップメーカーのGroqがNvidiaによる「非買収型人材獲得」後に650百万ドルの資金調達を完了し、再びスタッフを増強していると発表した。Nvidia GPU一強体制に対抗する推論特化チップのエコシステムが生き残りを模索する動きとして注目される。
 
-- **[Klue says hackers stole credential from 2022 that led to customer data breaches](https://techcrunch.com/2026/06/23/klue-says-hackers-stole-credential-from-2022-that led-to-customer-data-breaches/)** (2026-06-23) - 競合情報SaaS「Klue」が2022年に盗まれたクレデンシャルが今回の顧客データ漏洩の起点だったと公表した。同一インシデントでLastPassの顧客サポートデータも流出しており、未失効クレデンシャルが数年後に悪用されるパターンとして、クレデンシャルローテーションと定期監査の重要性を改めて示す事例だ。
+- **[Klue says hackers stole credential from 2022 that led to customer data breaches](https://techcrunch.com/2026/06/23/klue-says-hackers-stole-credential-from-2022-that-led-to-customer-data-breaches/)** (2026-06-23) - 競合情報SaaS「Klue」が2022年に盗まれたクレデンシャルが今回の顧客データ漏洩の起点だったと公表した。同一インシデントでLastPassの顧客サポートデータも流出しており、未失効クレデンシャルが数年後に悪用されるパターンとして、クレデンシャルローテーションと定期監査の重要性を改めて示す事例だ。
 
 ## Ars Technica
 
