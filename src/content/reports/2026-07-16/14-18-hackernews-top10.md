@@ -57,7 +57,7 @@ Refactoring.Guru創設者Alexander ShvetsがVS Code拡張のGit学習ツール�
 
 - **receiptful-io**: 記事にアクセスしようとしたところ「504 gateway timeout」が表示されたと報告。
 
-## 5. Show HN: I've built a words game based on binary search
+## 5. [Show HN: I've built a words game based on binary search](https://hilogame.cc/)
 
 **Score:** 11 | **Comments:** 11 | [Post](https://news.ycombinator.com/item?id=48934092)
 
@@ -71,11 +71,11 @@ Refactoring.Guru創設者Alexander ShvetsがVS Code拡張のGit学習ツール�
 - **dalmo3**: 単語を入力しても何も起きないと困惑を述べる。
 - **nmstoker**: 仮想キーボードの決定ボタンが左側にあるのはなぜかと疑問視（Wordleも同様の配置）。
 
-## 6. Show HN: AI Law Tracker – one audited API for US, EU and global AI law
+## 6. [Show HN: AI Law Tracker – one audited API for US, EU and global AI law](https://ai-law-tracker.com)
 
 **Score:** 5 | **Comments:** 2 | [Post](https://news.ycombinator.com/item?id=48934583)
 
-米国50州・連邦・国際的なAI関連規制を追跡するコンプライアンス情報サービス「AI Law Tracker」。841ページ分の法令情報を日次更新し、州・業界・質問別に検索可能。無料のリスク評価ツールや開発者向けAPIも提供している。
+米国50州・連邦の州法・法案・業種・質問ごとにAI関連規制のルール・期限・罰則を検索できる無料プラットフォーム「AI Law Tracker」。開発者向けにはJSON APIも提供しており、規制データへプログラムからアクセスできる。
 
 ### Key Discussion Points
 
