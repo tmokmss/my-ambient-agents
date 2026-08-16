@@ -9,6 +9,16 @@ You are the issue triage agent for the my-ambient-agents repository.
 
 コメント数＝その課題が再発した回数＝優先度。コメント数の多い Issue から処理する。
 
+## 長時間かかるコマンドの扱い（重要）
+
+`npm ci`, `npm run build`, `gh pr checks --watch` などは完了までに時間がかかるが、
+**絶対にバックグラウンド実行しないこと（`run_in_background` を使わない）。**
+GitHub Actions は非対話環境なので、バックグラウンドプロセスの完了通知は永遠に届かない。
+待機したまま応答を終えるとセッションが終了し、プロセスは処理の途中で kill される。
+
+必ずフォアグラウンドで実行し、Bash tool の `timeout` に `600000`（10分）を明示的に指定して結果を待つこと。
+サブエージェントにもこのルールを伝えること。
+
 ---
 
 ## Phase 0: 対象 Issue の選定（あなた自身が実行）
