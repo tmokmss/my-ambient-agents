@@ -39,5 +39,6 @@ jobs:
         with:
           prompt: ${{ env.AGENT_PROMPT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: "--dangerously-skip-permissions"
+          # Issue の実装判断とセルフレビューを伴うため Opus を明示指定する
+          claude_args: "--dangerously-skip-permissions --model claude-opus-5"
           show_full_output: true

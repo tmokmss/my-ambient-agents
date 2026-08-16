@@ -110,6 +110,12 @@ Issue: #<番号>
    ```
 2. Issue の根本原因を潰す変更を実装する。`prompts/`, `scripts/`, `.github/workflows/`, `src/` のいずれを
    変更してもよいが、**Issue のスコープ外のファイルは変更しない**。
+
+   ただし `.github/workflows/` の変更は、GitHub App トークンに workflows 権限がないと push が
+   `refusing to allow ... to create or update workflow` で拒否される。拒否された場合は、
+   ワークフローの変更を取り消して他のファイルだけで解決できないか検討し、
+   ワークフロー変更が必須なら PR を close して Issue に `needs-human` ラベルを付け、
+   「ワークフローファイルの変更が必要なため自動実装できない」旨をコメントして終了する。
 3. **セルフレビュー**: `git diff` を読み直し、以下を確認する:
    - Issue に書かれた問題が実際に解消されるか。対症療法で終わっていないか
    - プロンプトを編集した場合、既存の指示と矛盾していないか。重複した指示を増やしていないか
