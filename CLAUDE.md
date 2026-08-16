@@ -34,7 +34,7 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 - `dedupe-issues.yml`（週次・月曜 06:00 JST） — 重複 Issue を集約する。
   close する側の本文・コメントを `scripts/merge-issue-comments.mjs` で残す側にコピーしてから close するため、
   **コメント数＝再発回数＝優先度**のシグナルが失われない
-- `triage-issues.yml`（日次・07:30 JST） — コメント数の多い Issue を最大3件ピックアップし、
+- `triage-issues.yml`（日次・03:00 JST） — コメント数の多い Issue を最大3件ピックアップし、
   サブエージェントで「取り入れ（実装 → PR → セルフレビュー → CI → マージ）」または
   「見送り（コメント → `wontfix` → close）」まで決着させる。
   自動実装が危険なものは `needs-human` ラベルを付けて残し、以降の triage 対象から外す
