@@ -1,0 +1,40 @@
+name: Dedupe Issues
+
+on:
+  schedule:
+    - cron: "0 21 * * 0" # JST 月曜 06:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: issue-maintenance
+  cancel-in-progress: false
+
+jobs:
+  dedupe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # この agent はファイルを変更しないため、書き込み用の credentials を仕込まない
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: ./.github/actions/load-prompt
+        with:
+          prompt-file: prompts/dedupe-issues.md
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: ${{ env.AGENT_PROMPT }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--dangerously-skip-permissions"
+          show_full_output: true
