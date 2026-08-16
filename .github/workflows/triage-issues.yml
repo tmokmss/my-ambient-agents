@@ -1,0 +1,45 @@
+name: Triage Issues
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # JST 03:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: issue-maintenance
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # claude[bot] の App トークンで push するため、GITHUB_TOKEN の credentials を仕込まない。
+          # これにより PR の Build Check や main への push 後の deploy.yml が正しくトリガーされる。
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: ./.github/actions/load-prompt
+        with:
+          prompt-file: prompts/triage-issues.md
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: ${{ env.AGENT_PROMPT }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Issue の実装判断とセルフレビューを伴うため Opus を指定する。
+          # バージョン固定を避けるためエイリアスを使う（[1m] は 1M コンテキスト版）
+          claude_args: "--dangerously-skip-permissions --model opus[1m]"
+          show_full_output: true

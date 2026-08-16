@@ -10,7 +10,7 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 ## Git Workflow
 
 - main ブランチに直接 push してよい（PR 不要）
-- ただし implement-issue ワークフロー（Issue 自動実装）は PR を作成する
+- ただし implement-issue / triage-issues ワークフロー（Issue 自動実装）は PR を作成する
 - push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
 - `git reset --hard` や `git checkout .` など、ローカルの変更を破棄する操作は絶対に行わないこと（ユーザーが明示的に指示した場合を除く）
 
@@ -25,10 +25,25 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 ## Self-Improvement
 
 - エージェントはレポート生成・コミット・プッシュ完了後に、suggest-improvements skill に従い改善提案の Issue を起票すること
+- 起票前に `docs/declined-issues.md`（見送り済み台帳）を必ず確認し、見送られたテーマは再起票しない
+
+## Issue Maintenance
+
+自己改善 Issue が溜まり続けるため、2つのメンテナンスエージェントが自動で捌く:
+
+- `dedupe-issues.yml`（週次・月曜 06:00 JST） — 重複 Issue を集約する。
+  close する側の本文・コメントを `scripts/merge-issue-comments.mjs` で残す側にコピーしてから close するため、
+  **コメント数＝再発回数＝優先度**のシグナルが失われない
+- `triage-issues.yml`（日次・03:00 JST） — コメント数の多い Issue を最大3件ピックアップし、
+  サブエージェントで「取り入れ（実装 → PR → セルフレビュー → CI → マージ）」または
+  「見送り（コメント → `wontfix` → close）」まで決着させる。
+  自動実装が危険なものは `needs-human` ラベルを付けて残し、以降の triage 対象から外す
+- 見送った Issue は `docs/declined-issues.md` に記録され、同じ提案の再起票を防ぐ
 
 ## Key Points
 
-- エージェントは `src/content/reports/` 以外のファイルを変更してはならない
+- レポート生成エージェントは `src/content/reports/` 以外のファイルを変更してはならない
+  （例外: `triage-issues` / `implement-issue` エージェントはリポジトリ全体を変更してよい）
 - ファイルは `src/content/reports/YYYY-MM-DD/HH-mm-<slug>.md` 形式で配置（UTC時刻）
 - レポート生成エージェントは main に直接コミット・プッシュする
 - Issue 実装エージェント（implement-issue）は PR を作成する
