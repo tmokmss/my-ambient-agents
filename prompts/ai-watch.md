@@ -23,9 +23,10 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 - https://openai.com/blog/rss.xml (RSS をパース。リダイレクトされるので curl -sL でフォローすること)
 - pubDate を確認し、上記の日付ルールに従って選別する
 
-### 3. Google DeepMind ブログ
-- https://deepmind.google/discover/blog/ (HTML をパースして最新記事のタイトル・URL・公開日を取得)
-- 公開日を確認し、上記の日付ルールに従って選別する
+### 3. Google DeepMind ブログ (RSS)
+- https://deepmind.google/blog/rss.xml (curl -sL で取得し、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` を取得)
+- `<pubDate>` は RFC 2822 形式（例: `Thu, 13 Aug 2026 17:04:18 +0000`）。これを確認し、上記の日付ルールに従って選別する
+- https://deepmind.google/discover/blog/ は JS レンダリング依存で静的 HTML から記事一覧・公開日を取得できないため、フォールバック先として使わないこと
 
 ### 4. arxiv (AI/ML 新着論文)
 - https://rss.arxiv.org/rss/cs.AI (RSS をパース)
