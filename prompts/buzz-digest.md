@@ -34,10 +34,12 @@ snippet.title, snippet.channelTitle, statistics.viewCount を取得。
 注意: API キーは環境変数 $YOUTUBE_DATA_API_KEY を直接参照すること。キーの値を echo や print で出力してはならない。
 取得後に jq で `statistics.viewCount` が 10000 未満（ライブ配信中・終了直後など視聴数未集計の動画）の動画を除外し、残った動画からピックアップすること。
 
-### 5. Boing Boing (英語圏ネットカルチャー)
-RSSを取得してパース:
-- https://boingboing.net/feed
-各エントリの title, link, description を取得。
+### 5. 英語圏ネットカルチャー (Boing Boing + Atlas Obscura)
+以下の2つのRSSを両方取得してパースする。どちらも RSS 2.0 で item/title・link・description の構造が同じなので、同じパース処理を流用してよい:
+- Boing Boing: `curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://boingboing.net/feed"` (約30件)
+- Atlas Obscura: `curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://www.atlasobscura.com/feeds/latest"` (約27件)
+各エントリの title, link, description を取得し、どちらのフィード由来かを保持しておく（レポートでソース名を併記するため）。
+片方のフィードだけ取得に失敗した場合は「取得失敗時の対応」のルールに従いリトライせずスキップし、取得できた側だけでこのセクションを成立させる。
 
 ## 取得失敗時の対応
 
@@ -79,7 +81,12 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 ## YouTube Trending (JP)
 - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
 
-## Boing Boing
-- **[タイトル](url)** - 日本語で内容の解説
+## 英語圏ネットカルチャー
+- **[タイトル](url)** (Boing Boing) - 日本語で内容の解説
+- **[タイトル](url)** (Atlas Obscura) - 日本語で内容の解説
+
+Boing Boing と Atlas Obscura の記事を合算した候補から3-5件をピックアップし、各項目の末尾に上記のようにソース名を併記する。
+偏りを避けるため、片方のフィードから採用するのは最大4件までとする。
+重複排除後の合算候補が3件未満になった場合は、無理に件数を埋めず取得できた件数のみを掲載し、セクション末尾に「※ 新規に取り上げられる記事が N 件のみだった」旨の注記を1行入れる。
 
 最後に ## ひとこと セクションで、全体を通じて気になったトピックを1つだけ取り上げて軽くコメントする。
