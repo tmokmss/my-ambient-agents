@@ -10,7 +10,7 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 ## Git Workflow
 
 - main ブランチに直接 push してよい（PR 不要）
-- ただし implement-issue / triage-issues ワークフロー（Issue 自動実装）は PR を作成する
+- ただし triage-issues ワークフロー（Issue 自動実装）は PR を作成する
 - push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
 - `git reset --hard` や `git checkout .` など、ローカルの変更を破棄する操作は絶対に行わないこと（ユーザーが明示的に指示した場合を除く）
 
@@ -43,8 +43,8 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 ## Key Points
 
 - レポート生成エージェントは `src/content/reports/` 以外のファイルを変更してはならない
-  （例外: `triage-issues` / `implement-issue` エージェントはリポジトリ全体を変更してよい）
+  （例外: `triage-issues` エージェントはリポジトリ全体を変更してよい）
 - ファイルは `src/content/reports/YYYY-MM-DD/HH-mm-<slug>.md` 形式で配置（UTC時刻）
 - レポート生成エージェントは main に直接コミット・プッシュする
-- Issue 実装エージェント（implement-issue）は PR を作成する
+- Issue 実装エージェント（triage-issues）は PR を作成する
 - OAuth トークンは `CLAUDE_CODE_OAUTH_TOKEN` シークレットで管理
