@@ -6,7 +6,8 @@
 
 以下の8ソースからデータを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
-XML/Atom のパースには適宜 grep/sed 等を使うこと。
+XML/Atom のパースには Python（`re.DOTALL` を有効にした正規表現）を使うこと。
+`<description>` などが複数行の CDATA で出力されるフィードがあり、単一行前提の grep/sed では中身が空になる。
 
 ### 1. はてなブックマーク テクノロジー
 RSSを取得し、Python で RDF 全体をパースする（`head` 等で出力を制限してはならない）:
@@ -69,19 +70,55 @@ RSSを取得してパース:
 各エントリの title, link, description を取得。
 
 ### 7. TechCrunch
-RSSを取得してパース:
-- https://techcrunch.com/feed/
+RSSを取得し、Python でパースする（`<description>` は複数行の CDATA で出力されるため、`re.DOTALL` と CDATA 展開が必須。単一行の grep/sed では概要が空になる）:
+
+```bash
+curl -s --max-time 15 'https://techcrunch.com/feed/' | python3 -c "
+import sys, re, html
+d = sys.stdin.read()
+def unwrap(s):
+    m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
+    s = m.group(1) if m else s
+    s = re.sub(r'<[^>]+>', ' ', s)
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
+    g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
+    desc = g('description') or g('content:encoded')[:300]
+    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
+"
+```
+
 各エントリの title, link, pubDate, description を取得。
 
 ### 8. Ars Technica
-RSSを取得してパース:
-- https://feeds.arstechnica.com/arstechnica/index
+RSSを取得し、TechCrunch と同じスクリプトでパースする（URL のみ差し替え。こちらも `<description>` は複数行 CDATA）:
+
+```bash
+curl -s --max-time 15 'https://feeds.arstechnica.com/arstechnica/index' | python3 -c "
+import sys, re, html
+d = sys.stdin.read()
+def unwrap(s):
+    m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
+    s = m.group(1) if m else s
+    s = re.sub(r'<[^>]+>', ' ', s)
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
+    g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
+    desc = g('description') or g('content:encoded')[:300]
+    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
+"
+```
+
 各エントリの title, link, pubDate, description を取得。
 
 ## 取得失敗時の対応
 
 各ソースの取得が失敗した場合（HTTP エラー、空レスポンス、パース不能など）は、リトライせずそのソースをスキップしてレポートに「取得失敗」と明記する。
 最低2ソース以上のデータが取得できればレポートを生成する。全ソース失敗の場合はレポートを生成しない。
+
+RSS の `<description>` が空に見える場合、多くはパーサが複数行 CDATA に対応していないことが原因（フィード側の問題ではない）。
+上記スニペットのように `re.DOTALL` と CDATA 展開を使ったパースを必ず試し、それでも空のときだけ `<content:encoded>` にフォールバックすること。
+個別記事を WebFetch/curl で取得しに行く必要はない。
 
 ## 重複排除
 
