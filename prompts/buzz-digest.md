@@ -24,6 +24,9 @@ RSSを取得してパース:
 名前空間 ht (https://trends.google.com/trending/rss) の要素を参照すること。
 各エントリの title, ht:approx_traffic を取得。
 関連ニュースがある場合は ht:news_item 内の ht:news_item_title と ht:news_item_url も取得。
+ただし ht:news_item が0件、または ht:news_item_url がすべて空のエントリは候補から除外し、次点のキーワードへ繰り上げる
+（トラフィックの多寡にかかわらず除外する）。話題になった根拠となるニュース記事が取れたエントリのみを掲載し、
+推測でトレンド入りの理由を書いてはならない。
 
 ### 4. YouTube Trending (トレンド動画)
 YouTube Data API を使用して、US と JP の2地域のトレンド動画を取得する:
@@ -82,6 +85,8 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 
 ## Google Trends (日本)
 - **キーワード** ({検索ボリューム}) - 関連ニュース: [ニュースタイトル](url) / なぜ話題なのかを1-2文で解説
+
+関連ニュース情報が空のエントリを除外した結果、候補が3件未満になった場合は、無理に件数を埋めず取得できた件数のみを掲載し、セクション末尾に「※ 関連ニュース情報のあるトレンドが N 件のみだった」旨の注記を1行入れる。
 
 ## YouTube Trending (US)
 - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
