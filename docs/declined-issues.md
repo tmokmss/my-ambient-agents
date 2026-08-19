@@ -12,7 +12,8 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 
 | Issue | エージェント | 見送りテーマ | 該当基準 | 判断日 |
 | --- | --- | --- | --- | --- |
-| - | - | （まだ見送り事例はありません） | - | - |
+| #15 | news-briefing | Reuters RSS の description が空なので記事本文取得の代替手段を追加する | 重複 | 2026-08-20 |
+| #23 | tech-feed | Lobsters のスコアが RSS から取れず全件 `?` になるので JSON API 等で補完する | 重複 | 2026-08-20 |
 
 ## 該当基準
 
