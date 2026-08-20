@@ -13,30 +13,37 @@
 
 ## データソース
 
-以下の17ソースからRSSを取得する。
+以下の18ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
-各ソースごとに `curl -sL --connect-timeout 10 --max-time 30` で取得し、XML/RSSをパースする。
+各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
+
+```
+curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" <RSS URL>
+```
+
+**User-Agent（`-A`）を省略すると TASS 等が 403 を返すため必ず付与すること。**
 各ソースから title, link, pubDate, description を抽出し、地政学・紛争・安全保障に関連する記事をピックアップする。
 
 | # | ソース名 | 国/立場 | 言語 | RSS URL |
 |---|----------|---------|------|---------|
 | 1 | Ukrainska Pravda | ウクライナ | ウクライナ語 | https://www.pravda.com.ua/rss/ |
-| 2 | Kyiv Independent | ウクライナ | 英語 | https://kyivindependent.com/feed/ |
-| 3 | TASS | ロシア | ロシア語 | https://tass.com/rss/v2.xml |
-| 4 | RIA Novosti | ロシア | ロシア語 | https://ria.ru/export/rss2/archive/index.xml |
-| 5 | Ynet | イスラエル | ヘブライ語 | https://www.ynet.co.il/Integration/StoryRss2.xml |
-| 6 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/cmlink/1.1617539 |
-| 7 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
-| 8 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
-| 9 | Al Arabiya | サウジ/アラブ | 英語 | https://www.alarabiya.net/feed/rss2/english.xml |
-| 10 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
-| 11 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
-| 12 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
-| 13 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
-| 14 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
-| 15 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
-| 16 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
-| 17 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
+| 2 | Ukrinform | ウクライナ（国営通信） | 英語 | https://www.ukrinform.net/rss/block-lastnews |
+| 3 | TASS | ロシア（国営） | 英語 | https://tass.com/rss/v2.xml |
+| 4 | RIA Novosti | ロシア（国営） | ロシア語 | https://ria.ru/export/rss2/archive/index.xml |
+| 5 | Meduza（英語版） | ロシア（独立系・亡命） | 英語 | https://meduza.io/rss/en/all |
+| 6 | Ynet | イスラエル | ヘブライ語 | https://www.ynet.co.il/Integration/StoryRss2.xml |
+| 7 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/cmlink/1.1617539 |
+| 8 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
+| 9 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
+| 10 | Al Arabiya | サウジ/アラブ | 英語 | https://www.alarabiya.net/feed/rss2/english.xml |
+| 11 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
+| 12 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
+| 13 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
+| 14 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
+| 15 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
+| 16 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
+| 17 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
+| 18 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 
 ## 取得失敗時の対応
 
@@ -57,6 +64,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - 事実の報道内容を忠実に伝える。
 - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
 - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
+- ロシア側のソースは国営（TASS・RIA Novosti）と独立系・亡命メディア（Meduza）を含む。両者の論調は大きく異なるため、同じ出来事について差異があれば「ロシア国内でも報じ方が分かれている」対比材料として扱う。どちらか一方をロシアの唯一の見解として扱わないこと。
 
 ## レポート形式
 
