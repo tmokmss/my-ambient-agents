@@ -41,7 +41,15 @@ snippet.title, snippet.channelTitle, statistics.viewCount を取得。
 以下の2つのRSSを両方取得してパースする。どちらも RSS 2.0 で item/title・link・description の構造が同じなので、同じパース処理を流用してよい:
 - Boing Boing: `curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://boingboing.net/feed"` (約30件)
 - Atlas Obscura: `curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://www.atlasobscura.com/feeds/latest"` (約27件)
-各エントリの title, link, description を取得し、どちらのフィード由来かを保持しておく（レポートでソース名を併記するため）。
+各エントリの title, link, description, category（複数あり得る）, dc:creator を取得し、どちらのフィード由来かを保持しておく（レポートでソース名を併記するため）。
+
+Boing Boing のエントリのうち、`<category>` に `BoingBoing Shop` または `shop` を含むもの、
+あるいは `<dc:creator>` が `Boing Boing's Shop` であるものは、アフィリエイト目的の商品販売・オンラインコース紹介記事
+（スポンサードコンテンツ）であるため、ピックアップ候補から必ず除外する。
+「$19.99 のこのアプリが…」のようにタイトルだけではニュース記事と区別がつかないため、
+タイトルの文面ではなく必ず category / dc:creator フィールドで機械的に判定すること。
+この除外は Boing Boing にのみ適用し、Atlas Obscura には適用しない。
+
 片方のフィードだけ取得に失敗した場合は「取得失敗時の対応」のルールに従いリトライせずスキップし、取得できた側だけでこのセクションを成立させる。
 
 ## 取得失敗時の対応
