@@ -14,6 +14,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | --- | --- | --- | --- | --- |
 | #15 | news-briefing | Reuters RSS の description が空なので記事本文取得の代替手段を追加する | 重複 | 2026-08-20 |
 | #23 | tech-feed | Lobsters のスコアが RSS から取れず全件 `?` になるので JSON API 等で補完する | 重複 | 2026-08-20 |
+| #359 | news-briefing | NHK 記事本文が利用意向確認ゲート（NHK ONE）でブロックされるため、本文取得の代替手段（NEWS WEB EASY の JSON API 等）を追加する | 外部要因 / 重複 | 2026-08-21 |
 
 ## 該当基準
 
