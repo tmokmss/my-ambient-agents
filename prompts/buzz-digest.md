@@ -12,6 +12,24 @@ JSON のパースには jq を使うこと。
 RSSを取得してパース:
 - https://b.hatena.ne.jp/hotentry/general.rss (総合)
 各エントリの title, link, description, bookmarkcount を取得。
+このフィードは RSS 2.0 ではなく **RSS 1.0 (RDF)** 形式で、デフォルト名前空間 rss (http://purl.org/rss/1.0/) の要素を参照すること。
+名前空間を省いた `.//item` は必ず0件になる。また item は channel の子ではなく rdf:RDF 直下にある。
+bookmarkcount は名前空間 hatena (http://www.hatena.ne.jp/info/xmlns#) の要素。
+
+```python
+import xml.etree.ElementTree as ET
+ns = {'rss': 'http://purl.org/rss/1.0/', 'hatena': 'http://www.hatena.ne.jp/info/xmlns#'}
+root = ET.parse('hb.rss').getroot()   # ルートは rdf:RDF
+items = root.findall('rss:item', ns)  # channel の子ではなく RDF 直下
+for it in items:
+    title = it.findtext('rss:title', '', ns)
+    link  = it.findtext('rss:link', '', ns)
+    desc  = it.findtext('rss:description', '', ns)
+    bc    = it.findtext('hatena:bookmarkcount', '', ns)
+```
+
+正規表現でパースする場合、実タグは `<item rdf:about="...">` なので `<item>` ではなく `<item [^>]*>` にマッチさせること。
+パース結果が0件だった場合は「取得失敗」と判断する前に名前空間指定の誤りを疑い、上記の方法で取り直すこと。
 
 ### 2. Togetter (X/Twitterまとめ)
 RSSを取得してパース:
