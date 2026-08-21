@@ -38,9 +38,31 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 - トレンドのモデル・データセット・スペースから注目のものをピックアップ
 - 各モデルのURLは https://huggingface.co/{id} の形式でリンクすること
 
-### 6. LMSYS Chatbot Arena
-- https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard (リーダーボードの変動を確認)
-- もしアクセスできない場合はスキップしてよい
+### 6. LLM リーダーボード（LMArena）
+- https://lmarena.ai/leaderboard (Chatbot Arena の現行公式サイト。Elo レーティングの変動を確認)
+- **https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard は使用しないこと。** LMArena への移管後に更新が止まった静的スナップショットで、HTML は iframe/JS シェルのみのため curl では実データが一切取得できない
+- レスポンスは約5MBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"rank":N,...,"modelDisplayName":...,"rating":...,"votes":...,"modelOrganization":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれているので、以下で上位10件を抽出する:
+
+```bash
+curl -sL --max-time 90 https://lmarena.ai/leaderboard | python3 -c 'import sys,re
+s=sys.stdin.read()
+p=re.compile(r"\\\"rank\\\":(\d+)[^}]*?\\\"modelDisplayName\\\":\\\"(.*?)\\\"[^}]*?\\\"rating\\\":([\d.]+)[^}]*?\\\"votes\\\":(\d+),\\\"modelOrganization\\\":\\\"(.*?)\\\"")
+for m in list(p.finditer(s))[:10]:
+    print(f"{m.group(1):>3} {m.group(2):<32} rating={float(m.group(3)):.0f} votes={m.group(4)} org={m.group(5)}")'
+```
+
+- 補助ソース: https://artificialanalysis.ai/leaderboards/models （Intelligence Index / Coding Index。同様に約4.4MBあるので要パイプ絞り込み）
+
+```bash
+curl -sL --max-time 90 https://artificialanalysis.ai/leaderboards/models | python3 -c 'import sys,re
+s=sys.stdin.read()
+p=re.compile(r"\\\"name\\\":\\\"(.*?)\\\"[^}]*?\\\"releaseDate\\\":\\\"([\d-]+)\\\"[^}]*?\\\"modelCreatorName\\\":\\\"(.*?)\\\"[^}]*?\\\"intelligenceIndex\\\":([\d.]+)")
+r=[(float(m.group(4)),m.group(1),m.group(2),m.group(3)) for m in p.finditer(s)]
+for x in sorted(r,reverse=True)[:10]:
+    print(f"{x[0]:.1f} {x[1]} ({x[3]}, {x[2]})")'
+```
+
+- 上記の抽出が空になる場合はサイト構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
 ## 取得失敗時の対応
 
@@ -81,6 +103,6 @@ Hugging Face のトレンドから注目のモデル・ツールを3-5件ピッ�
 - **[名前](url)** - 何ができるか・なぜ注目かを1-2文で解説
 
 ## ベンチマーク・リーダーボード
-LMSYS やその他ベンチマークの変動があれば報告。なければ省略。
+LMArena やその他ベンチマークの変動があれば報告。なければ省略。
 
 最後に ## 所感 セクションで、全体を通じた AI 分野のトレンドや気づきを2-3文でコメントする。
