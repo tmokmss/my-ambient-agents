@@ -54,6 +54,7 @@ snippet.title, snippet.channelTitle, statistics.viewCount を取得。
 各動画のURLは https://www.youtube.com/watch?v={id} の形式でリンクすること。
 注意: API キーは環境変数 $YOUTUBE_DATA_API_KEY を直接参照すること。キーの値を echo や print で出力してはならない。
 取得後に jq で `statistics.viewCount` が 10000 未満（ライブ配信中・終了直後など視聴数未集計の動画）の動画を除外し、残った動画からピックアップすること。
+US と JP の両方を取得したら、ピックアップ前に「重複排除」の「同一レポート内の重複（YouTube US / JP）」に従い、両リージョンに共通して出現する video ID をチェックすること。
 
 ### 5. 英語圏ネットカルチャー (Boing Boing + Atlas Obscura)
 以下の2つのRSSを両方取得してパースする。どちらも RSS 2.0 で item/title・link・description の構造が同じなので、同じパース処理を流用してよい:
@@ -77,6 +78,8 @@ Boing Boing のエントリのうち、`<category>` に `BoingBoing Shop` また
 
 ## 重複排除
 
+### 過去レポートとの重複
+
 以下のコマンドを実行し、過去レポートに掲載済みのタイトル・URL 一覧を取得する:
 
 ```bash
@@ -88,6 +91,17 @@ node scripts/report-index.mjs ${AGENT_SLUG} 3
 **過去レポートの本文を Read で読み込んではならない。** 重複判定に必要なのはタイトルと URL だけであり、このコマンドの出力のみを参照すること。
 過去に取り上げたネタと同一または非常に類似したトピックは除外すること。
 同じURL、同じ話題の別記事、同一事件の続報、同一YouTube video IDなどは重複とみなす。
+
+### 同一レポート内の重複（YouTube US / JP）
+
+US と JP の `mostPopular` 取得結果を **video ID で突き合わせ**、両方に含まれる ID を検出する。
+K-POP の新曲 M/V など世界同時公開の動画では両リージョンに同じ動画が入ることが定期的に発生する。
+`statistics.viewCount` は地域別ではなく全世界の累計再生数であり US / JP で同じ値になるため、再生数では掲載先の優劣を判定できない。
+両リージョンに出現した動画は **`## YouTube Trending (US)` にのみ掲載し、`## YouTube Trending (JP)` の候補からは機械的に除外する**。
+JP セクションは除外後の残り候補から次点を繰り上げて所定の件数を満たすこと。
+情報を落とさないため、US 側の解説文の末尾に「JP のトレンドにも同時ランクインしている」旨を1文添える。
+除外の結果 JP の候補が3件未満になった場合は、無理に件数を埋めず取得できた件数のみを掲載し、
+セクション末尾に「※ US トレンドとの重複を除いた新規動画が N 件のみだった」旨の注記を1行入れる。
 
 ## レポート形式
 
