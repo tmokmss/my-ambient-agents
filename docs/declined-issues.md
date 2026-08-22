@@ -15,6 +15,8 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #15 | news-briefing | Reuters RSS の description が空なので記事本文取得の代替手段を追加する | 重複 | 2026-08-20 |
 | #23 | tech-feed | Lobsters のスコアが RSS から取れず全件 `?` になるので JSON API 等で補完する | 重複 | 2026-08-20 |
 | #359 | news-briefing | NHK 記事本文が利用意向確認ゲート（NHK ONE）でブロックされるため、本文取得の代替手段（NEWS WEB EASY の JSON API 等）を追加する | 外部要因 / 重複 | 2026-08-21 |
+| #42, #356 | hackernews-top10 | Hacker News の上位10件に最低スコア閾値を設けて低スコアの直近投稿を除外する（上位N件を取得してスコア順に再選出する案を含む） | 効果不確実（オーナー判断: 色々なスコア帯の記事を見たいため導入しない） | 2026-08-23 |
+| #12 | ai-watch | DeepMind ブログの記事 URL / 公開日が取得できないため URL 抽出やフォールバックを強化する | 重複（情報源を `deepmind.google/blog/rss.xml` に切替済みで解消。`discover/blog` の HTML パース禁止も明記済み） | 2026-08-23 |
 
 ## 該当基準
 
