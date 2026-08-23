@@ -27,15 +27,18 @@ export async function loadAgents(): Promise<AgentInfo[]> {
     // Only include workflows with a schedule trigger (i.e., agents)
     if (!doc.on?.schedule) continue;
 
+    // Report-generating agents declare AGENT_SLUG in workflow-level env.
+    // Maintenance workflows (dedupe-issues / triage-issues) don't, so they are excluded here.
+    const env = doc.env as Record<string, string> | undefined;
+    const slug = env?.AGENT_SLUG;
+    if (!slug) continue;
+    const category = env?.AGENT_CATEGORY ?? "summary";
+
     const id = basename(file, ".yml").replace(/\.yaml$/, "");
     const name: string = doc.name ?? id;
     const cron: string = doc.on.schedule[0]?.cron ?? "";
 
     const scheduleLabel = buildScheduleLabel(cron);
-
-    // Extract slug and category from workflow-level env
-    const slug = (doc.env as Record<string, string>)?.AGENT_SLUG ?? id;
-    const category = (doc.env as Record<string, string>)?.AGENT_CATEGORY ?? "summary";
 
     agents.push({ id, name, slug, category, cron, scheduleLabel });
   }
