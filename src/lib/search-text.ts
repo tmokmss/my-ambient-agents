@@ -46,18 +46,3 @@ export function buildSearchText(report: {
 
 /** ブラウザへ配るコーパスの1件 */
 export type SearchDoc = [id: string, head: string, body: string];
-
-/** UTC の YYYY-MM */
-export function monthOf(date: Date): string {
-  return date.toISOString().slice(0, 7);
-}
-
-/**
- * 配信するコーパスの分割単位。ビルド側の生成とブラウザ側の取得が
- * 同じ定義を参照するようにして、片方だけ変えても気づけない状態を防ぐ。
- *   archive … 最新レポートの月より前。月に一度しか変わらないのでキャッシュが効く
- *   current … 最新レポートの月。追加のたびに変わるが小さい
- */
-export const CORPUS_PARTS = ["archive", "current"] as const;
-
-export type CorpusPart = (typeof CORPUS_PARTS)[number];
