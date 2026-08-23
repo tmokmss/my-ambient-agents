@@ -9,9 +9,28 @@ GitHub Actions の scheduled trigger で定期実行される Claude エージ�
 
 ## Git Workflow
 
-- main ブランチに直接 push してよい（PR 不要）
-- ただし triage-issues ワークフロー（Issue 自動実装）は PR を作成する
-- push すると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
+### 開発作業（サイト・ワークフロー・スキルのコード変更）
+
+**main で直接作業しない。ブランチを切って worktree で作業し、終わったら PR を作る。**
+
+1. ブランチ + worktree を用意する
+   - Claude Code なら `EnterWorktree` ツールを使う（`.claude/worktrees/<name>` に作られる）
+   - 手動なら `git worktree add .claude/worktrees/<name> -b <branch> origin/main`
+2. worktree の中で変更する（メインの作業ツリーや他の worktree のファイルは触らない）
+3. `npm run build` が通ることを確認する
+4. commit → `git push -u origin <branch>` → `gh pr create --base main` で PR を作る
+5. マージされると `deploy.yml` が自動で Astro build → GitHub Pages デプロイ
+
+- main への直接 push、force push、main への merge コマンド実行は行わない（マージは PR 上で行う）
+- 作業が複数の関心事にまたがる場合はブランチと PR を分ける
+
+### エージェントの自動実行
+
+- レポート生成エージェント（GitHub Actions）は main に直接コミット・プッシュしてよい（PR 不要）
+- triage-issues ワークフロー（Issue 自動実装）は PR を作成する
+
+### 禁止事項
+
 - `git reset --hard` や `git checkout .` など、ローカルの変更を破棄する操作は絶対に行わないこと（ユーザーが明示的に指示した場合を除く）
 
 ## Dev Server
