@@ -34,9 +34,28 @@ RSSを取得してパース:
 各エントリの title, link, description を取得。
 
 ### 3. Qiita 人気記事
-Atom フィードを取得してパース:
-- https://qiita.com/popular-items/feed.atom
-各エントリの title, link, summary を取得。
+Atom フィードを取得し、Python でパースする（このフィードに `<summary>` は存在せず、概要は `<content>` に入っている。また `<link>` は `href` 属性を持つ自己終端タグでテキストノードに URL がないため、属性から取り出す必要がある）:
+
+```bash
+curl -s --max-time 15 'https://qiita.com/popular-items/feed.atom' | python3 -c "
+import sys, re, html
+d = sys.stdin.read()
+def clean(s):
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', s))).strip()
+for e in re.findall(r'<entry[^>]*>(.*?)</entry>', d, re.S):
+    title = re.search(r'<title[^>]*>(.*?)</title>', e, re.S)
+    link = re.search(r'<link[^>]*href=\"([^\"]+)\"', e)
+    body = re.search(r'<content[^>]*>(.*?)</content>', e, re.S)
+    print('TITLE:', clean(title.group(1)) if title else '')
+    print('URL:', link.group(1).split('?')[0] if link else '')
+    print('DESC:', clean(body.group(1))[:300] if body else '')
+    print('---')
+"
+```
+
+各エントリの title, link, content を全件取得すること。
+`href` には `?utm_campaign=popular_items&utm_medium=feed&utm_source=popular_items` という追跡パラメータが付くので、上のスニペットのように `?` 以降を落としてからレポートのリンクに使うこと。
+`<content>` の中身は記事全文ではなく末尾が「...」で切られた冒頭の抜粋なので、全文の要約と誤解せず「冒頭抜粋」として扱い、解説を書く際も抜粋から読み取れる範囲に留めること。
 
 ### 4. AWS Whats New
 RSSを取得してパース:
@@ -118,6 +137,7 @@ for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
 
 RSS の `<description>` が空に見える場合、多くはパーサが複数行 CDATA に対応していないことが原因（フィード側の問題ではない）。
 上記スニペットのように `re.DOTALL` と CDATA 展開を使ったパースを必ず試し、それでも空のときだけ `<content:encoded>` にフォールバックすること。
+Atom フィード（Qiita 等）では概要が `<summary>` ではなく `<content>` に入っていることがあり、`<summary>` が全件空でもフィード側の問題ではない。その場合は `<content>` を見ること。
 個別記事を WebFetch/curl で取得しに行く必要はない。
 
 ## 重複排除
