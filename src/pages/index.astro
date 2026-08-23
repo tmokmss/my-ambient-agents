@@ -9,8 +9,12 @@ const reports = (await getCollection("reports")).sort(
 
 const categoryIcons: Record<string, any> = { summary: FileText, analysis: Search, alert: AlertTriangle, buzz: Flame };
 
-const allTags = [...new Set(reports.flatMap((r) => [`category:${r.data.category}`, ...(r.data.tags ?? [])]))].sort();
+// 一覧は全件を HTML に焼くと 1600 件で 3.7MB（DOM 3.6万要素）になり、
+// 初回に見える 20 件以外は使われないまま転送・パースされる。
+// ここでは 1ページ目だけを返し、残りのメタデータは /reports-index/*.json を
+// 2ページ目以降や絞り込みが必要になった時点で取りに行く。
 const PAGE_SIZE = 20;
+const firstPage = reports.slice(0, PAGE_SIZE);
 ---
 
 <Layout title="Reports">
@@ -18,17 +22,20 @@ const PAGE_SIZE = 20;
     <div class="flex-1 min-w-[200px] max-sm:min-w-0">
       <input type="search" id="search-input" placeholder="全文検索..." autocomplete="off" class="w-full h-9 px-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)] placeholder:text-[var(--muted)]" />
     </div>
-    {allTags.length > 0 && (
+    {reports.length > 0 && (
       <div class="relative min-w-[200px] flex-1 max-w-xs max-sm:min-w-0 max-sm:max-w-none" id="tag-combo">
         <div class="relative flex items-center">
           <input class="w-full h-9 pr-8 pl-3 text-[0.8rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] outline-none focus:border-[var(--accent)] placeholder:text-[var(--muted)]" id="tag-input" type="text" placeholder="タグで絞り込み..." autocomplete="off" />
           <button class="tag-clear absolute right-1.5 items-center justify-center w-5 h-5 border-none rounded-full bg-[var(--muted)] text-[var(--bg)] text-[0.7rem] leading-none cursor-pointer p-0 hover:bg-[var(--fg)]" id="tag-clear" aria-label="タグをクリア">&times;</button>
         </div>
-        <ul class="tag-dropdown absolute top-full left-0 right-0 max-h-[200px] overflow-y-auto bg-[var(--card-bg)] border border-[var(--border)] border-t-0 rounded-b-lg z-10 list-none" id="tag-dropdown">
-          {allTags.map((tag) => (
-            <li class="tag-option px-3 py-1.5 text-[0.8rem] cursor-pointer text-[var(--fg)] hover:bg-[var(--code-bg)]" data-tag={tag}>{tag}</li>
-          ))}
-        </ul>
+        {/*
+          候補は全件のタグの集合（現状 946 個）で、HTML に焼くと 131KB になる。
+          一覧メタデータから作れる内容なので、開かれた時点で JS が組み立てる。
+        */}
+        <ul class="tag-dropdown absolute top-full left-0 right-0 max-h-[200px] overflow-y-auto bg-[var(--card-bg)] border border-[var(--border)] border-t-0 rounded-b-lg z-10 list-none" id="tag-dropdown"></ul>
+        <template id="tag-option-template">
+          <li class="tag-option px-3 py-1.5 text-[0.8rem] cursor-pointer text-[var(--fg)] hover:bg-[var(--code-bg)]"></li>
+        </template>
       </div>
     )}
     <div class="flex items-center gap-2 max-sm:[&_label]:hidden max-sm:[&_.date-input]:w-full">
@@ -42,10 +49,10 @@ const PAGE_SIZE = 20;
     <p class="text-[var(--muted)]">No reports yet. The agent will generate the first report on its next scheduled run.</p>
   ) : (
     <>
-      <p class="text-[0.8rem] text-[var(--muted)] mb-4" id="result-count"></p>
-      <ul class="list-none flex flex-col gap-4" id="report-list">
-        {reports.map((report) => (
-          <li class="report-card px-5 py-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg flex gap-4 items-start" data-id={report.id} data-tags={JSON.stringify([`category:${report.data.category}`, ...(report.data.tags ?? [])])} data-date={new Date(report.data.date).toISOString().slice(0, 10)}>
+      <p class="text-[0.8rem] text-[var(--muted)] mb-4" id="result-count">{reports.length}件中 {firstPage.length}件表示</p>
+      <ul class="list-none flex flex-col gap-4" id="report-list" data-total={reports.length}>
+        {firstPage.map((report) => (
+          <li class="report-card px-5 py-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg flex gap-4 items-start">
             {() => {
               const Icon = categoryIcons[report.data.category];
               return Icon ? <span class="shrink-0 text-[var(--muted)] mt-0.5 [&_svg]:w-[18px] [&_svg]:h-[18px]"><Icon size={18} /></span> : null;
@@ -68,17 +75,59 @@ const PAGE_SIZE = 20;
           </li>
         ))}
       </ul>
-      <div class="h-10 flex items-center justify-center text-[0.8rem] text-[var(--muted)]" id="load-sentinel" aria-hidden="true">読み込み中...</div>
+      <div class="h-10 flex items-center justify-center text-[0.8rem] text-[var(--muted)]" id="load-sentinel" style={reports.length > PAGE_SIZE ? undefined : "display:none"} aria-hidden="true">読み込み中...</div>
+
+      {/*
+        2ページ目以降と絞り込み結果を JS が組み立てるための雛形。
+        class は上の SSR カードと同じものを並べてあるので、片方を変えたらもう片方も直すこと。
+        中身は textContent で流し込む（レポート本文は外部フィードを元にした値なので innerHTML には渡さない）。
+      */}
+      <template id="card-template">
+        <li class="report-card px-5 py-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg flex gap-4 items-start">
+          <span class="card-icon shrink-0 text-[var(--muted)] mt-0.5 [&_svg]:w-[18px] [&_svg]:h-[18px]"></span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold mb-1"><a class="card-link" href=""></a></h2>
+            <div class="text-[0.8rem] text-[var(--muted)]">
+              <time class="card-time"></time> &middot;
+              <span class="card-category"></span>
+            </div>
+            <p class="card-summary text-sm mt-2"></p>
+            <div class="card-tags flex flex-wrap gap-1 mt-2"></div>
+          </div>
+        </li>
+      </template>
+      <template id="tag-template">
+        <span class="text-[0.7rem] px-2 py-0.5 rounded-full bg-[var(--code-bg)] text-[var(--muted)]"></span>
+      </template>
+      <div hidden id="icon-templates">
+        {Object.entries(categoryIcons).map(([name, Icon]) => (
+          <span data-icon={name}><Icon size={18} /></span>
+        ))}
+      </div>
     </>
   )}
 
   <script>
-    import { CORPUS_PARTS, normalizeForSearch } from '../lib/search-text';
+    import { PARTS } from '../lib/report-parts';
+    import { normalizeForSearch } from '../lib/search-text';
+
+    /** /reports-index/*.json の1件。並びはエンドポイント側と対応している */
+    type Entry = [
+      id: string,
+      title: string,
+      summary: string,
+      date: string,
+      category: string,
+      tags: string[],
+    ];
 
     const PAGE_SIZE = 20;
     const BASE_URL = import.meta.env.BASE_URL;
 
-    const allCards = Array.from(document.querySelectorAll<HTMLElement>('#report-list .report-card'));
+    const list = document.getElementById('report-list');
+    const cardTemplate = document.getElementById('card-template') as HTMLTemplateElement | null;
+    const tagTemplate = document.getElementById('tag-template') as HTMLTemplateElement | null;
+    const iconTemplates = document.getElementById('icon-templates');
     const sentinel = document.getElementById('load-sentinel');
     const resultCount = document.getElementById('result-count');
     const dateInput = document.getElementById('date-until') as HTMLInputElement | null;
@@ -88,7 +137,9 @@ const PAGE_SIZE = 20;
     const selectedTagsEl = document.getElementById('selected-tags');
     const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
 
-    if (allCards.length) {
+    if (list && cardTemplate) {
+      const TOTAL = Number(list.getAttribute('data-total') ?? 0);
+
       // --- URL query string sync ---
       const getParams = () => new URLSearchParams(window.location.search);
 
@@ -110,16 +161,47 @@ const PAGE_SIZE = 20;
       );
       let visibleCount = PAGE_SIZE;
       let searchMatchIds: Set<string> | null = null;
+      // コーパスが後から届いても同じクエリのまま描き直せるように進める世代番号
+      let dataVersion = 0;
 
       // Restore date input
       if (dateInput && initParams.get('date')) {
         dateInput.value = initParams.get('date')!;
       }
-      // Restore search input（コーパス読み込み前に全件表示してしまうのを防ぐ）
+      // Restore search input
       if (searchInput && initParams.get('q')) {
         searchInput.value = initParams.get('q')!;
-        searchMatchIds = new Set();
       }
+
+      // --- 一覧メタデータ（全件）の遅延ロード ---
+      // 初回の HTML には1ページ目しか入っていない。2ページ目以降を出すときと、
+      // 全件を対象にした絞り込みを掛けるときに、ここで初めて取りに行く。
+      let entries: Entry[] | null = null;
+      let indexFailed = false;
+      let indexPromise: Promise<void> | null = null;
+
+      const loadIndex = (): Promise<void> => {
+        if (indexPromise) return indexPromise;
+
+        indexPromise = (async () => {
+          try {
+            const parts = await Promise.all(PARTS.map(async (part) => {
+              const res = await fetch(`${BASE_URL}/reports-index/${part}.json`);
+              if (!res.ok) throw new Error(String(res.status));
+              return (await res.json()) as Entry[];
+            }));
+            // 一部だけ表示するとレポートが黙って消えたように見えるので、揃わなければ諦める。
+            // part をまたぐぶん、結合してから日付の新しい順に揃え直す
+            entries = parts.flat().sort((a, b) => (a[3] < b[3] ? 1 : a[3] > b[3] ? -1 : 0));
+          } catch {
+            indexFailed = true;
+          }
+          refreshTagOptions();
+          render();
+        })();
+
+        return indexPromise;
+      };
 
       // --- Full-text search (zstd 圧縮したコーパスを遅延ロードして部分一致) ---
       // 形態素解析や n-gram では分割の都合で取りこぼしや誤検出が出るため、
@@ -145,7 +227,7 @@ const PAGE_SIZE = 20;
           })();
           let ok = 0;
 
-          await Promise.all(CORPUS_PARTS.map(async (part) => {
+          await Promise.all(PARTS.map(async (part) => {
             try {
               const res = await fetch(`${BASE_URL}/search-corpus/${part}.zst`);
               if (!res.ok) throw new Error(String(res.status));
@@ -167,7 +249,7 @@ const PAGE_SIZE = 20;
           }));
 
           corpusLoading = false;
-          corpusMissing = CORPUS_PARTS.length - ok;
+          corpusMissing = PARTS.length - ok;
           // 読み込み状態が変わったので、注記を出し直すために描き直す
           render();
         })();
@@ -191,6 +273,7 @@ const PAGE_SIZE = 20;
         const matchers = query ? buildMatchers(query) : [];
         if (matchers.length === 0) {
           searchMatchIds = null;
+          dataVersion++;
           return;
         }
         const ids = new Set<string>();
@@ -198,11 +281,12 @@ const PAGE_SIZE = 20;
           if (matchers.every((match) => match(text))) ids.add(id);
         }
         searchMatchIds = ids;
+        dataVersion++;
       };
 
       if (searchInput) {
         // Lazy-load on focus
-        searchInput.addEventListener('focus', () => { loadCorpus(); }, { once: true });
+        searchInput.addEventListener('focus', () => { loadCorpus(); loadIndex(); }, { once: true });
 
         let searchTimer: ReturnType<typeof setTimeout> | null = null;
         searchInput.addEventListener('input', () => {
@@ -221,8 +305,12 @@ const PAGE_SIZE = 20;
       }
 
       // --- Tag combobox ---
+      // 候補は一覧メタデータが届いてから組み立てる。loadIndex の完了時に呼ばれる
+      let refreshTagOptions = () => {};
+
       if (tagInput && dropdown) {
-        const options = Array.from(dropdown.querySelectorAll<HTMLElement>('.tag-option'));
+        const optionTemplate = document.getElementById('tag-option-template') as HTMLTemplateElement | null;
+        const options: HTMLElement[] = [];
 
         const updateDropdown = () => {
           const query = tagInput.value.toLowerCase();
@@ -242,7 +330,7 @@ const PAGE_SIZE = 20;
           for (const tag of activeTags) {
             const btn = document.createElement('button');
             btn.className = 'inline-flex items-center gap-1 text-[0.7rem] py-0.5 px-2 rounded-full bg-[var(--accent)] text-[var(--bg)] cursor-pointer border-none hover:opacity-80';
-            btn.textContent = `${tag} \u00d7`;
+            btn.textContent = `${tag} ×`;
             btn.addEventListener('click', () => {
               activeTags.delete(tag);
               renderSelectedTags();
@@ -254,7 +342,44 @@ const PAGE_SIZE = 20;
           tagClearBtn!.classList.toggle('visible', activeTags.size > 0);
         };
 
-        tagInput.addEventListener('focus', () => updateDropdown());
+        const toggleTag = (tag: string) => {
+          if (activeTags.has(tag)) {
+            activeTags.delete(tag);
+          } else {
+            activeTags.add(tag);
+          }
+          tagInput.value = '';
+          updateDropdown();
+          renderSelectedTags();
+          applyFilters();
+        };
+
+        refreshTagOptions = () => {
+          if (!entries || !optionTemplate || options.length > 0) return;
+          const all = new Set<string>();
+          for (const [, , , , category, tags] of entries) {
+            all.add(`category:${category}`);
+            for (const tag of tags) all.add(tag);
+          }
+          const frag = document.createDocumentFragment();
+          for (const tag of [...all].sort()) {
+            const opt = optionTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+            opt.setAttribute('data-tag', tag);
+            opt.textContent = tag;
+            opt.addEventListener('click', (e) => {
+              e.stopPropagation();
+              toggleTag(tag);
+            });
+            frag.appendChild(opt);
+            options.push(opt);
+          }
+          dropdown.appendChild(frag);
+          // 候補待ちのあいだに開かれていたら、そのまま開いて見せる
+          if (document.activeElement === tagInput) updateDropdown();
+        };
+
+        // 候補も絞り込みも全件のメタデータが要るので、開いた時点で取りに行っておく
+        tagInput.addEventListener('focus', () => { loadIndex(); updateDropdown(); });
         tagInput.addEventListener('input', () => updateDropdown());
 
         document.addEventListener('click', (e) => {
@@ -262,22 +387,6 @@ const PAGE_SIZE = 20;
             dropdown.classList.remove('open');
           }
         });
-
-        for (const opt of options) {
-          opt.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const tag = opt.getAttribute('data-tag')!;
-            if (activeTags.has(tag)) {
-              activeTags.delete(tag);
-            } else {
-              activeTags.add(tag);
-            }
-            tagInput.value = '';
-            updateDropdown();
-            renderSelectedTags();
-            applyFilters();
-          });
-        }
 
         tagClearBtn!.addEventListener('click', () => {
           activeTags.clear();
@@ -294,49 +403,134 @@ const PAGE_SIZE = 20;
 
       // --- Date filter ---
       if (dateInput) {
+        dateInput.addEventListener('focus', () => { loadIndex(); }, { once: true });
         dateInput.addEventListener('change', () => applyFilters());
       }
 
+      // --- カードの組み立て ---
+      const iconByCategory = new Map<string, Element>();
+      for (const holder of Array.from(iconTemplates?.children ?? [])) {
+        const svg = holder.firstElementChild;
+        if (svg) iconByCategory.set(holder.getAttribute('data-icon')!, svg);
+      }
+
+      // SSR 側と同じ「UTC に9時間足して切り出す」表記に揃える
+      const formatJst = (iso: string) =>
+        new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+          .toISOString().slice(0, 16).replace('T', ' ') + ' JST';
+
+      const buildCard = ([id, title, summary, date, category, tags]: Entry): Element => {
+        const card = cardTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+
+        const iconSlot = card.querySelector('.card-icon')!;
+        const icon = iconByCategory.get(category);
+        if (icon) iconSlot.appendChild(icon.cloneNode(true));
+        else iconSlot.remove();
+
+        const link = card.querySelector('.card-link') as HTMLAnchorElement;
+        link.href = `${BASE_URL}/reports/${id}/`;
+        link.textContent = title;
+
+        const time = card.querySelector('.card-time') as HTMLTimeElement;
+        time.dateTime = date;
+        time.textContent = formatJst(date);
+
+        card.querySelector('.card-category')!.textContent = category;
+        card.querySelector('.card-summary')!.textContent = summary;
+
+        const tagsEl = card.querySelector('.card-tags')!;
+        if (tags.length > 0 && tagTemplate) {
+          for (const tag of tags) {
+            const pill = tagTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+            pill.textContent = tag;
+            tagsEl.appendChild(pill);
+          }
+        } else {
+          tagsEl.remove();
+        }
+
+        return card;
+      };
+
       // --- Filtering & pagination ---
-      const getFilteredCards = () => {
+      const filterEntries = (): Entry[] => {
         const dateVal = dateInput?.value ?? '';
-        return allCards.filter(card => {
-          if (searchMatchIds) {
-            if (!searchMatchIds.has(card.getAttribute('data-id')!)) return false;
-          }
+        return entries!.filter(([id, , , date, category, tags]) => {
+          if (searchMatchIds && !searchMatchIds.has(id)) return false;
           if (activeTags.size > 0) {
-            const cardTags: string[] = JSON.parse(card.getAttribute('data-tags') || '[]');
-            if (![...activeTags].some(t => cardTags.includes(t))) return false;
+            const cardTags = [`category:${category}`, ...tags];
+            if (![...activeTags].some((t) => cardTags.includes(t))) return false;
           }
-          if (dateVal) {
-            if (card.getAttribute('data-date')! > dateVal) return false;
-          }
+          if (dateVal && date.slice(0, 10) > dateVal) return false;
           return true;
         });
       };
 
+      const hasFilter = () =>
+        Boolean(searchInput?.value.trim()) || activeTags.size > 0 || Boolean(dateInput?.value);
+
       const applyFilters = () => {
         visibleCount = PAGE_SIZE;
+        loadIndex();
         syncURL();
         render();
       };
 
+      const noteForCount = () => {
+        if (indexFailed) return '（一覧データの読み込みに失敗しました）';
+        if (!entries) return '（読み込み中...）';
+        if (!searchInput?.value.trim()) return '';
+        if (corpusLoading) return '（過去ぶんを読み込み中...）';
+        if (corpusMissing === PARTS.length) return '（検索データの読み込みに失敗しました）';
+        if (corpusMissing > 0) return '（一部の検索データを読み込めなかったため、結果が欠けている可能性があります）';
+        return '';
+      };
+
+      // 同じ絞り込みのまま表示数だけ増えたときは、差分だけ足して積み直しを避ける
+      let renderedKey: string | null = null;
+      let renderedCount = 0;
+
+      const filterKey = () => JSON.stringify([
+        searchInput?.value.trim() ?? '',
+        [...activeTags].sort(),
+        dateInput?.value ?? '',
+        dataVersion,
+      ]);
+
       const render = () => {
-        const filtered = getFilteredCards();
-        for (const c of allCards) c.style.display = 'none';
-        for (let i = 0; i < filtered.length && i < visibleCount; i++) {
-          filtered[i].style.display = '';
-        }
-        if (resultCount) {
-          const total = filtered.length;
-          const shown = Math.min(visibleCount, total);
-          let note = '';
-          if (searchInput?.value.trim()) {
-            if (corpusLoading) note = '（過去ぶんを読み込み中...）';
-            else if (corpusMissing === CORPUS_PARTS.length) note = '（検索データの読み込みに失敗しました）';
-            else if (corpusMissing > 0) note = '（一部の検索データを読み込めなかったため、結果が欠けている可能性があります）';
+        if (!entries) {
+          // メタデータ待ち。絞り込みが掛かっているなら、まだ絞れていない1ページ目は出さない
+          if (hasFilter()) {
+            list.replaceChildren();
+            if (sentinel) sentinel.style.display = 'none';
+            renderedKey = null;
+            renderedCount = 0;
           }
-          resultCount.textContent = `${total}件中 ${shown}件表示${note}`;
+          // 絞り込みも失敗も無い間は、SSR された「N件中 20件表示」をそのまま残す
+          if (resultCount && (hasFilter() || indexFailed)) {
+            const total = hasFilter() ? 0 : TOTAL;
+            const shown = hasFilter() ? 0 : Math.min(PAGE_SIZE, TOTAL);
+            resultCount.textContent = `${total}件中 ${shown}件表示${noteForCount()}`;
+          }
+          return;
+        }
+
+        const filtered = filterEntries();
+        const key = filterKey();
+        const shown = Math.min(visibleCount, filtered.length);
+
+        if (key === renderedKey && shown >= renderedCount) {
+          for (let i = renderedCount; i < shown; i++) list.appendChild(buildCard(filtered[i]));
+        } else {
+          const frag = document.createDocumentFragment();
+          for (let i = 0; i < shown; i++) frag.appendChild(buildCard(filtered[i]));
+          list.replaceChildren(frag);
+        }
+        renderedKey = key;
+        renderedCount = shown;
+
+        if (resultCount) {
+          resultCount.textContent = `${filtered.length}件中 ${shown}件表示${noteForCount()}`;
         }
         if (sentinel) {
           sentinel.style.display = visibleCount < filtered.length ? '' : 'none';
@@ -355,6 +549,14 @@ const PAGE_SIZE = 20;
       const fillViewport = () => {
         if (!sentinel || sentinel.style.display === 'none') return;
         if (sentinel.getBoundingClientRect().top > window.innerHeight + LOAD_MARGIN) return;
+        // 2ページ目からはメタデータが要る。届いたら loadIndex 側が描き直す。
+        // 取得中に何度も呼ばれるので、ページを進めるのは最初の1回だけ
+        if (!entries) {
+          if (indexFailed) return;
+          if (!indexPromise) visibleCount += PAGE_SIZE;
+          loadIndex();
+          return;
+        }
         visibleCount += PAGE_SIZE;
         render();
       };
@@ -370,8 +572,8 @@ const PAGE_SIZE = 20;
 
       if (sentinel && typeof IntersectionObserver !== 'undefined') {
         new IntersectionObserver(
-          (entries) => {
-            if (entries.some((e) => e.isIntersecting)) fillViewport();
+          (records) => {
+            if (records.some((r) => r.isIntersecting)) fillViewport();
           },
           { rootMargin: `${LOAD_MARGIN}px 0px` },
         ).observe(sentinel);
@@ -381,8 +583,12 @@ const PAGE_SIZE = 20;
         window.addEventListener('resize', scheduleFill, { passive: true });
       }
 
-      // Initial render
-      render();
+      // URL から絞り込みが復元された場合だけ、初回にメタデータを取りに行く。
+      // 何も指定が無ければ SSR された1ページ目をそのまま使い、通信もDOM操作もしない
+      if (hasFilter()) {
+        loadIndex();
+        render();
+      }
     }
   </script>
 </Layout>
