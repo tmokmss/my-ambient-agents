@@ -51,12 +51,12 @@ const PAGE_SIZE = 20;
               return Icon ? <span class="shrink-0 text-[var(--muted)] mt-0.5 [&_svg]:w-[18px] [&_svg]:h-[18px]"><Icon size={18} /></span> : null;
             }}
             <div class="min-w-0">
-              <h2 class="text-base font-semibold mb-1"><a href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
+              <h2 class="text-base font-semibold mb-1"><a class="report-title" href={`${import.meta.env.BASE_URL}/reports/${report.id}/`}>{report.data.title}</a></h2>
               <div class="text-[0.8rem] text-[var(--muted)]">
                 <time class="local-time" datetime={new Date(report.data.date).toISOString()}>{new Date(new Date(report.data.date).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ')} JST</time> &middot;
                 <span>{report.data.category}</span>
               </div>
-              <p class="text-sm mt-2">{report.data.summary}</p>
+              <p class="report-summary text-sm mt-2">{report.data.summary}</p>
               {(report.data.tags ?? []).length > 0 && (
                 <div class="flex flex-wrap gap-1 mt-2">
                   {(report.data.tags ?? []).map((tag) => (
@@ -75,7 +75,7 @@ const PAGE_SIZE = 20;
   )}
 
   <script>
-    import { CORPUS_PARTS, normalizeForSearch } from '../lib/search-text';
+    import { CORPUS_PARTS, normalizeForSearch, type SearchDoc } from '../lib/search-text';
 
     const PAGE_SIZE = 20;
     const BASE_URL = import.meta.env.BASE_URL;
@@ -126,9 +126,10 @@ const PAGE_SIZE = 20;
 
       // --- Full-text search (zstd 圧縮したコーパスを遅延ロードして部分一致) ---
       // 形態素解析や n-gram では分割の都合で取りこぼしや誤検出が出るため、
-      // 本文そのものを配って線形に走査する。1600件・946万文字で1クエリ 1-2ms。
+      // 本文そのものを配って線形に走査する。1600件・946万文字で1クエリ 1-3ms。
       // コーパスは archive（月に一度しか変わらない）と current（当月ぶん）の2ファイル。
-      const corpus: Array<[string, string]> = [];
+      // id -> [head（タイトル・概要・タグ）, body（本文）]
+      const corpus = new Map<string, [head: string, body: string]>();
       let corpusLoading = false;
       let corpusMissing = 0;
       let corpusPromise: Promise<void> | null = null;
@@ -155,8 +156,8 @@ const PAGE_SIZE = 20;
               const decoder = await decoderReady;
               // 展開後のサイズは zstd のフレームヘッダから読まれる
               const raw = decoder.decode(new Uint8Array(await res.arrayBuffer()));
-              for (const doc of JSON.parse(new TextDecoder().decode(raw)) as Array<[string, string]>) {
-                corpus.push(doc);
+              for (const [id, head, body] of JSON.parse(new TextDecoder().decode(raw)) as SearchDoc[]) {
+                corpus.set(id, [head, body]);
               }
               ok++;
             } catch {
@@ -180,25 +181,47 @@ const PAGE_SIZE = 20;
 
       // 英数字だけの語は語境界で照合する（"ai" が "said" に当たらないように）。
       // 日本語を含む語は語境界の概念がないので単純な部分一致にする。
-      const LATIN_ONLY = /^[0-9a-zÀ-ɏ]+$/;
-      const buildMatchers = (query: string): Array<(text: string) => boolean> =>
+      // コーパスは原文の大小文字のまま配っている（ヒット箇所をそのまま見せるため）ので、
+      // 大小文字は i フラグで畳む。実測で includes 方式との差は1クエリ 1ms 以内。
+      const LATIN_ONLY = /^[0-9A-Za-zÀ-ɏ]+$/;
+      const buildMatchers = (query: string): RegExp[] =>
         query.split(/\s+/).filter(Boolean).map((term) => {
-          if (!LATIN_ONLY.test(term)) return (text: string) => text.includes(term);
-          const pattern = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
-          return (text: string) => pattern.test(text);
+          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          return new RegExp(LATIN_ONLY.test(term) ? `\\b${escaped}\\b` : escaped, 'gi');
         });
 
-      // 空白区切りの語をすべて含むレポートに絞り込む（AND）
+      // g フラグ付きの正規表現は lastIndex を持ち回るので、使う前に必ず巻き戻す
+      const hasMatch = (re: RegExp, text: string): boolean => {
+        re.lastIndex = 0;
+        return re.test(text);
+      };
+
+      /** text 中で語がヒットする位置 [start, end) を、先頭から最大 limit 個 */
+      const findHits = (re: RegExp, text: string, limit: number): Array<[number, number]> => {
+        re.lastIndex = 0;
+        const hits: Array<[number, number]> = [];
+        let m: RegExpExecArray | null;
+        while (hits.length < limit && (m = re.exec(text)) !== null) {
+          hits.push([m.index, m.index + m[0].length]);
+        }
+        return hits;
+      };
+
+      // 現在のクエリの語。絞り込みとハイライトの両方がこれを見る
+      let searchMatchers: RegExp[] = [];
+
+      // 空白区切りの語をすべて含むレポートに絞り込む（AND）。
+      // 語ごとに head か body のどちらかに出ていればよい
       const runSearch = () => {
         const query = normalizeForSearch(searchInput?.value.trim() ?? '');
-        const matchers = query ? buildMatchers(query) : [];
-        if (matchers.length === 0) {
+        searchMatchers = query ? buildMatchers(query) : [];
+        if (searchMatchers.length === 0) {
           searchMatchIds = null;
           return;
         }
         const ids = new Set<string>();
-        for (const [id, text] of corpus) {
-          if (matchers.every((match) => match(text))) ids.add(id);
+        for (const [id, [head, body]] of corpus) {
+          if (searchMatchers.every((re) => hasMatch(re, head) || hasMatch(re, body))) ids.add(id);
         }
         searchMatchIds = ids;
       };
@@ -300,6 +323,104 @@ const PAGE_SIZE = 20;
         dateInput.addEventListener('change', () => applyFilters());
       }
 
+      // --- ヒット箇所の表示 ---
+      // タイトル・概要は見えているものをそのままハイライトし、
+      // 本文はヒット位置の前後を切り出して見せる（どこに当たったか分かるように）。
+      const SNIPPET_BEFORE = 30;  // ヒット位置の手前に見せる文字数
+      const SNIPPET_AFTER = 90;   // ヒット位置から後ろに見せる文字数
+      const MAX_SNIPPETS = 2;     // 1件あたりに出す抜粋の数
+      const MAX_MARKS = 20;       // 抜粋1つの中で色を付ける上限（同じ語の連打で膨らませない）
+
+      /** text を、語の部分だけ <mark> で包んだノード列にする */
+      const highlight = (text: string, matchers: RegExp[]): DocumentFragment => {
+        const hits: Array<[number, number]> = [];
+        for (const re of matchers) hits.push(...findHits(re, text, MAX_MARKS));
+        hits.sort((a, b) => a[0] - b[0]);
+
+        const frag = document.createDocumentFragment();
+        let cursor = 0;
+        for (const [start, end] of hits) {
+          if (start < cursor) continue; // 語同士が重なったときは先に出たほうを優先する
+          frag.append(text.slice(cursor, start));
+          const mark = document.createElement('mark');
+          mark.className = 'search-hit';
+          mark.textContent = text.slice(start, end);
+          frag.append(mark);
+          cursor = end;
+        }
+        frag.append(text.slice(cursor));
+        return frag;
+      };
+
+      /** 語ごとの最初のヒットから、重ならない抜粋の窓を最大 MAX_SNIPPETS 個作る */
+      const snippetWindows = (body: string, matchers: RegExp[]): Array<[number, number]> => {
+        const anchors = matchers
+          .map((re) => findHits(re, body, 1)[0])
+          .filter((hit): hit is [number, number] => hit !== undefined)
+          .sort((a, b) => a[0] - b[0]);
+
+        const windows: Array<[number, number]> = [];
+        for (const [start] of anchors) {
+          const last = windows[windows.length - 1];
+          if (last && start < last[1]) continue; // 直前の窓に入っているなら足さない
+          if (windows.length >= MAX_SNIPPETS) break;
+          windows.push([
+            Math.max(0, start - SNIPPET_BEFORE),
+            Math.min(body.length, start + SNIPPET_AFTER),
+          ]);
+        }
+        return windows;
+      };
+
+      // ハイライトで書き換える前の原文。クエリが変わるたびにここから描き直す
+      const pristineText = new WeakMap<HTMLElement, string>();
+
+      const paintText = (el: HTMLElement | null, matchers: RegExp[]) => {
+        if (!el) return;
+        let text = pristineText.get(el);
+        if (text === undefined) {
+          text = el.textContent ?? '';
+          pristineText.set(el, text);
+        }
+        if (matchers.length === 0) {
+          el.textContent = text;
+          return;
+        }
+        el.replaceChildren(highlight(text, matchers));
+      };
+
+      // 直前の描画でハイライトを入れたカード。表示から外れたぶんを消して回るために覚えておく
+      const paintedCards = new Set<HTMLElement>();
+
+      /** matchers が空ならハイライトを剥がす。カード1枚ぶんの描き直し */
+      const paintCard = (card: HTMLElement, matchers: RegExp[]) => {
+        if (matchers.length === 0) paintedCards.delete(card);
+        else paintedCards.add(card);
+
+        paintText(card.querySelector<HTMLElement>('.report-title'), matchers);
+        paintText(card.querySelector<HTMLElement>('.report-summary'), matchers);
+
+        const body = matchers.length ? corpus.get(card.dataset.id!)?.[1] : undefined;
+        const windows = body ? snippetWindows(body, matchers) : [];
+        let el = card.querySelector<HTMLElement>('.search-snippet');
+        if (windows.length === 0) {
+          el?.remove(); // 本文に当たっていない（タイトル・概要だけのヒット）
+          return;
+        }
+        if (!el) {
+          el = document.createElement('div');
+          el.className = 'search-snippet flex flex-col gap-1 mt-2 pl-3 border-l-2 border-[var(--border)] text-[0.8rem] text-[var(--muted)]';
+          card.querySelector('.report-summary')!.after(el);
+        }
+        el.replaceChildren(...windows.map(([from, to]) => {
+          const line = document.createElement('p');
+          if (from > 0) line.append('…');
+          line.append(highlight(body!.slice(from, to), matchers));
+          if (to < body!.length) line.append('…');
+          return line;
+        }));
+      };
+
       // --- Filtering & pagination ---
       const getFilteredCards = () => {
         const dateVal = dateInput?.value ?? '';
@@ -327,9 +448,14 @@ const PAGE_SIZE = 20;
       const render = () => {
         const filtered = getFilteredCards();
         for (const c of allCards) c.style.display = 'none';
+        // ハイライトは出すぶんだけ描き、表示から外れたカードからは剥がす
+        const stale = new Set(paintedCards);
         for (let i = 0; i < filtered.length && i < visibleCount; i++) {
           filtered[i].style.display = '';
+          paintCard(filtered[i], searchMatchers);
+          stale.delete(filtered[i]);
         }
+        for (const card of stale) paintCard(card, []);
         if (resultCount) {
           const total = filtered.length;
           const shown = Math.min(visibleCount, total);

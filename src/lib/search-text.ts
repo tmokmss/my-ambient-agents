@@ -3,9 +3,13 @@
  * ビルド時（コーパス生成）とブラウザ側（クエリ解析）で同じ実装を共有する。
  */
 
-/** 全角英数を半角に畳み、小文字化する。インデックスとクエリの両方に適用する */
+/**
+ * 全角英数などの互換文字を畳む。インデックスとクエリの両方に適用する。
+ * 大小文字は畳まない（ヒット箇所を原文のまま見せたいので、照合側を
+ * case-insensitive にして揃える）。
+ */
 export function normalizeForSearch(text: string): string {
-  return text.normalize("NFKC").toLowerCase();
+  return text.normalize("NFKC");
 }
 
 /** Markdown から検索対象のプレーンテキストを取り出す */
@@ -22,17 +26,26 @@ export function stripMarkdown(md: string): string {
     .trim();
 }
 
-/** 1レポート分の検索対象テキスト（タイトル + 概要 + タグ + 本文） */
+/**
+ * 1レポート分の検索対象テキスト。
+ * head（タイトル・概要・タグ）と body（本文）を分けてあるのは、
+ * ヒット箇所のスニペットを本文からだけ切り出すため。
+ * head の内容はカード上に既に見えていて、切り出しても代わり映えしない。
+ */
 export function buildSearchText(report: {
   title: string;
   summary: string;
   tags?: string[];
   body: string;
-}): string {
-  return normalizeForSearch(
-    [report.title, report.summary, (report.tags ?? []).join(" "), stripMarkdown(report.body)].join(" "),
-  );
+}): { head: string; body: string } {
+  return {
+    head: normalizeForSearch([report.title, report.summary, (report.tags ?? []).join(" ")].join(" ")),
+    body: normalizeForSearch(stripMarkdown(report.body)),
+  };
 }
+
+/** ブラウザへ配るコーパスの1件 */
+export type SearchDoc = [id: string, head: string, body: string];
 
 /** UTC の YYYY-MM */
 export function monthOf(date: Date): string {

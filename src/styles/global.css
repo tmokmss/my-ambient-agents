@@ -81,6 +81,14 @@
 .tag-clear { display: none; }
 .tag-clear.visible { display: flex; }
 
+/* 全文検索のヒット箇所 */
+mark.search-hit {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
+
 .tag-option.selected { color: var(--accent); font-weight: 600; }
 
 .copy-md .icon-check { display: none; color: var(--accent); }

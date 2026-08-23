@@ -1,6 +1,6 @@
 import zlib from "node:zlib";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { buildSearchText, CORPUS_PARTS, monthOf, type CorpusPart } from "../../lib/search-text";
+import { buildSearchText, CORPUS_PARTS, monthOf, type CorpusPart, type SearchDoc } from "../../lib/search-text";
 
 /**
  * 全文検索用コーパスを zstd 圧縮して配信する。
@@ -35,15 +35,15 @@ export async function getStaticPaths() {
 
 export function GET({ props }: { props: { list: Report[] } }) {
   // 並び順は使われない（ブラウザ側は id の集合を作り、表示順は DOM の日付順のまま）
-  const docs = props.list.map((r) => [
-    r.id,
-    buildSearchText({
+  const docs: SearchDoc[] = props.list.map((r) => {
+    const { head, body } = buildSearchText({
       title: r.data.title,
       summary: r.data.summary,
       tags: r.data.tags,
       body: r.body ?? "",
-    }),
-  ]);
+    });
+    return [r.id, head, body];
+  });
 
   const compressed = zlib.zstdCompressSync(Buffer.from(JSON.stringify(docs), "utf8"), {
     params: ZSTD_PARAMS,
