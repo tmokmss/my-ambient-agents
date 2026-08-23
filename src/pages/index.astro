@@ -75,7 +75,7 @@ const PAGE_SIZE = 20;
   )}
 
   <script>
-    import { normalizeForSearch } from '../lib/search-text';
+    import { CORPUS_PARTS, normalizeForSearch } from '../lib/search-text';
 
     const PAGE_SIZE = 20;
     const BASE_URL = import.meta.env.BASE_URL;
@@ -128,24 +128,26 @@ const PAGE_SIZE = 20;
       // 形態素解析や n-gram では分割の都合で取りこぼしや誤検出が出るため、
       // 本文そのものを配って線形に走査する。1600件・946万文字で1クエリ 1-2ms。
       // コーパスは archive（月に一度しか変わらない）と current（当月ぶん）の2ファイル。
-      const CORPUS_PARTS = ['current', 'archive'];
       const corpus: Array<[string, string]> = [];
-      let loadedParts = 0;
-      let corpusFailed = false;
+      let corpusLoading = false;
+      let corpusMissing = 0;
       let corpusPromise: Promise<void> | null = null;
 
       const loadCorpus = (): Promise<void> => {
         if (corpusPromise) return corpusPromise;
+        corpusLoading = true;
 
         corpusPromise = (async () => {
-          // fzstd は検索が使われたときだけ読み込む
-          const { decompress } = await import('fzstd');
+          // fzstd は検索が使われたときだけ読み込む。
+          // コーパスの取得と並行させたいので、待つのは復元が要るところまで遅らせる
+          const fzstd = import('fzstd');
           let ok = 0;
 
           await Promise.all(CORPUS_PARTS.map(async (part) => {
             try {
               const res = await fetch(`${BASE_URL}/search-corpus/${part}.zst`);
               if (!res.ok) throw new Error(String(res.status));
+              const { decompress } = await fzstd;
               const raw = decompress(new Uint8Array(await res.arrayBuffer()));
               for (const doc of JSON.parse(new TextDecoder().decode(raw)) as Array<[string, string]>) {
                 corpus.push(doc);
@@ -154,15 +156,16 @@ const PAGE_SIZE = 20;
             } catch {
               // 片方が落ちても、取れたぶんだけで検索を続ける
             }
-            loadedParts++;
-            // 届いたぶんを先に結果へ反映する（current が先に来るので新しい順に出る）
+            // 届いたぶんを先に結果へ反映する（小さい current が先に着く）
             if (searchInput?.value.trim()) {
               runSearch();
               render();
             }
           }));
 
-          corpusFailed = ok === 0;
+          corpusLoading = false;
+          corpusMissing = CORPUS_PARTS.length - ok;
+          // 読み込み状態が変わったので、注記を出し直すために描き直す
           render();
         })();
 
@@ -326,8 +329,9 @@ const PAGE_SIZE = 20;
           const shown = Math.min(visibleCount, total);
           let note = '';
           if (searchInput?.value.trim()) {
-            if (corpusFailed) note = '（検索データの読み込みに失敗しました）';
-            else if (loadedParts < CORPUS_PARTS.length) note = '（過去ぶんを読み込み中...）';
+            if (corpusLoading) note = '（過去ぶんを読み込み中...）';
+            else if (corpusMissing === CORPUS_PARTS.length) note = '（検索データの読み込みに失敗しました）';
+            else if (corpusMissing > 0) note = '（一部の検索データを読み込めなかったため、結果が欠けている可能性があります）';
           }
           resultCount.textContent = `${total}件中 ${shown}件表示${note}`;
         }
