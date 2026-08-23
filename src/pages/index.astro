@@ -75,7 +75,7 @@ const PAGE_SIZE = 20;
   )}
 
   <script>
-    import type MiniSearchType from 'minisearch';
+    import { CORPUS_PARTS, normalizeForSearch } from '../lib/search-text';
 
     const PAGE_SIZE = 20;
     const BASE_URL = import.meta.env.BASE_URL;
@@ -118,100 +118,108 @@ const PAGE_SIZE = 20;
       if (dateInput && initParams.get('date')) {
         dateInput.value = initParams.get('date')!;
       }
-      // Restore search input
+      // Restore search input（コーパス読み込み前に全件表示してしまうのを防ぐ）
       if (searchInput && initParams.get('q')) {
         searchInput.value = initParams.get('q')!;
+        searchMatchIds = new Set();
       }
 
-      // --- Full-text search (MiniSearch + Intl.Segmenter, lazy-loaded) ---
-      const STOP_WORDS = new Set([
-        'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し',
-        'れ', 'さ', 'ある', 'いる', 'も', 'する', 'から', 'な', 'こと',
-        'として', 'い', 'や', 'など', 'なっ', 'ない', 'この', 'ため',
-        'その', 'あっ', 'よう', 'また', 'もの', 'という', 'あり',
-        'まで', 'られ', 'なる', 'へ', 'か', 'だ', 'これ', 'によって',
-        'により', 'おり', 'より', 'による', 'ず', 'なり', 'られる',
-        'において', 'ば', 'なかっ', 'なく', 'しかし', 'について',
-        'せ', 'だっ', 'そう', 'それ', 'ところ', 'よ', 'ね',
-      ]);
+      // --- Full-text search (zstd 圧縮したコーパスを遅延ロードして部分一致) ---
+      // 形態素解析や n-gram では分割の都合で取りこぼしや誤検出が出るため、
+      // 本文そのものを配って線形に走査する。1600件・946万文字で1クエリ 1-2ms。
+      // コーパスは archive（月に一度しか変わらない）と current（当月ぶん）の2ファイル。
+      const corpus: Array<[string, string]> = [];
+      let corpusLoading = false;
+      let corpusMissing = 0;
+      let corpusPromise: Promise<void> | null = null;
 
-      const segmenter = typeof Intl !== 'undefined' && Intl.Segmenter
-        ? new Intl.Segmenter('ja', { granularity: 'word' })
-        : null;
+      const loadCorpus = (): Promise<void> => {
+        if (corpusPromise) return corpusPromise;
+        corpusLoading = true;
 
-      const tokenize = (text: string): string[] => {
-        if (!text) return [];
-        if (segmenter) {
-          const tokens: string[] = [];
-          for (const seg of segmenter.segment(text)) {
-            if (seg.isWordLike && !STOP_WORDS.has(seg.segment)) {
-              tokens.push(seg.segment.toLowerCase());
+        corpusPromise = (async () => {
+          // zstd 復元器は検索が使われたときだけ読み込む。
+          // コーパスの取得と並行させたいので、待つのは復元が要るところまで遅らせる
+          const decoderReady = (async () => {
+            const { ZSTDDecoder } = await import('zstddec');
+            const decoder = new ZSTDDecoder();
+            await decoder.init();
+            return decoder;
+          })();
+          let ok = 0;
+
+          await Promise.all(CORPUS_PARTS.map(async (part) => {
+            try {
+              const res = await fetch(`${BASE_URL}/search-corpus/${part}.zst`);
+              if (!res.ok) throw new Error(String(res.status));
+              const decoder = await decoderReady;
+              // 展開後のサイズは zstd のフレームヘッダから読まれる
+              const raw = decoder.decode(new Uint8Array(await res.arrayBuffer()));
+              for (const doc of JSON.parse(new TextDecoder().decode(raw)) as Array<[string, string]>) {
+                corpus.push(doc);
+              }
+              ok++;
+            } catch {
+              // 片方が落ちても、取れたぶんだけで検索を続ける
             }
-          }
-          return tokens;
-        }
-        return text.toLowerCase().split(/\s+/).filter(w => w && !STOP_WORDS.has(w));
-      };
+            // 届いたぶんを先に結果へ反映する（小さい current が先に着く）
+            if (searchInput?.value.trim()) {
+              runSearch();
+              render();
+            }
+          }));
 
-      let miniSearch: MiniSearchType | null = null;
-      let searchLoadPromise: Promise<void> | null = null;
-
-      const ensureSearchLoaded = (): Promise<void> => {
-        if (miniSearch) return Promise.resolve();
-        if (searchLoadPromise) return searchLoadPromise;
-
-        searchLoadPromise = (async () => {
-          if (searchInput) searchInput.placeholder = '検索インデックスを読み込み中...';
-
-          const [{ default: MiniSearch }, indexRes] = await Promise.all([
-            import('minisearch'),
-            fetch(`${BASE_URL}/search-index.json`),
-          ]);
-          const index = await indexRes.json();
-
-          miniSearch = MiniSearch.loadJSON(JSON.stringify(index), {
-            fields: ['title', 'summary', 'body'],
-            storeFields: ['id'],
-            tokenize,
-            searchOptions: { tokenize, prefix: true },
-          });
-
-          if (searchInput) searchInput.placeholder = '全文検索...';
+          corpusLoading = false;
+          corpusMissing = CORPUS_PARTS.length - ok;
+          // 読み込み状態が変わったので、注記を出し直すために描き直す
+          render();
         })();
 
-        return searchLoadPromise;
+        return corpusPromise;
+      };
+
+      // 英数字だけの語は語境界で照合する（"ai" が "said" に当たらないように）。
+      // 日本語を含む語は語境界の概念がないので単純な部分一致にする。
+      const LATIN_ONLY = /^[0-9a-zÀ-ɏ]+$/;
+      const buildMatchers = (query: string): Array<(text: string) => boolean> =>
+        query.split(/\s+/).filter(Boolean).map((term) => {
+          if (!LATIN_ONLY.test(term)) return (text: string) => text.includes(term);
+          const pattern = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+          return (text: string) => pattern.test(text);
+        });
+
+      // 空白区切りの語をすべて含むレポートに絞り込む（AND）
+      const runSearch = () => {
+        const query = normalizeForSearch(searchInput?.value.trim() ?? '');
+        const matchers = query ? buildMatchers(query) : [];
+        if (matchers.length === 0) {
+          searchMatchIds = null;
+          return;
+        }
+        const ids = new Set<string>();
+        for (const [id, text] of corpus) {
+          if (matchers.every((match) => match(text))) ids.add(id);
+        }
+        searchMatchIds = ids;
       };
 
       if (searchInput) {
         // Lazy-load on focus
-        searchInput.addEventListener('focus', () => { ensureSearchLoaded(); }, { once: true });
+        searchInput.addEventListener('focus', () => { loadCorpus(); }, { once: true });
 
         let searchTimer: ReturnType<typeof setTimeout> | null = null;
         searchInput.addEventListener('input', () => {
           if (searchTimer) clearTimeout(searchTimer);
-          searchTimer = setTimeout(async () => {
-            const query = searchInput.value.trim();
-            if (!query) {
-              searchMatchIds = null;
-            } else {
-              await ensureSearchLoaded();
-              const results = miniSearch!.search(query, { prefix: true });
-              searchMatchIds = new Set(results.map(r => r.id));
-            }
+          searchTimer = setTimeout(() => {
+            loadCorpus();
+            runSearch();
             applyFilters();
-          }, 200);
+          }, 150);
         });
 
         // If query was restored from URL, load immediately
         if (initParams.get('q')) {
-          ensureSearchLoaded().then(() => {
-            const q = searchInput.value.trim();
-            if (q && miniSearch) {
-              const results = miniSearch.search(q, { prefix: true });
-              searchMatchIds = new Set(results.map(r => r.id));
-              render();
-            }
-          });
+          loadCorpus();
         }
       }
 
@@ -325,7 +333,13 @@ const PAGE_SIZE = 20;
         if (resultCount) {
           const total = filtered.length;
           const shown = Math.min(visibleCount, total);
-          resultCount.textContent = `${total}件中 ${shown}件表示`;
+          let note = '';
+          if (searchInput?.value.trim()) {
+            if (corpusLoading) note = '（過去ぶんを読み込み中...）';
+            else if (corpusMissing === CORPUS_PARTS.length) note = '（検索データの読み込みに失敗しました）';
+            else if (corpusMissing > 0) note = '（一部の検索データを読み込めなかったため、結果が欠けている可能性があります）';
+          }
+          resultCount.textContent = `${total}件中 ${shown}件表示${note}`;
         }
         if (loadMoreWrap) {
           loadMoreWrap.style.display = visibleCount < filtered.length ? '' : 'none';
