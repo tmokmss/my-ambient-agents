@@ -138,17 +138,23 @@ const PAGE_SIZE = 20;
         corpusLoading = true;
 
         corpusPromise = (async () => {
-          // fzstd は検索が使われたときだけ読み込む。
+          // zstd 復元器は検索が使われたときだけ読み込む。
           // コーパスの取得と並行させたいので、待つのは復元が要るところまで遅らせる
-          const fzstd = import('fzstd');
+          const decoderReady = (async () => {
+            const { ZSTDDecoder } = await import('zstddec');
+            const decoder = new ZSTDDecoder();
+            await decoder.init();
+            return decoder;
+          })();
           let ok = 0;
 
           await Promise.all(CORPUS_PARTS.map(async (part) => {
             try {
               const res = await fetch(`${BASE_URL}/search-corpus/${part}.zst`);
               if (!res.ok) throw new Error(String(res.status));
-              const { decompress } = await fzstd;
-              const raw = decompress(new Uint8Array(await res.arrayBuffer()));
+              const decoder = await decoderReady;
+              // 展開後のサイズは zstd のフレームヘッダから読まれる
+              const raw = decoder.decode(new Uint8Array(await res.arrayBuffer()));
               for (const doc of JSON.parse(new TextDecoder().decode(raw)) as Array<[string, string]>) {
                 corpus.push(doc);
               }
