@@ -68,9 +68,7 @@ const PAGE_SIZE = 20;
           </li>
         ))}
       </ul>
-      <div class="text-center mt-6" id="load-more-wrap">
-        <button class="px-6 py-2 text-[0.85rem] border border-[var(--border)] rounded-lg bg-[var(--card-bg)] text-[var(--fg)] cursor-pointer transition-[border-color] duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)]" id="load-more">もっと表示</button>
-      </div>
+      <div class="h-10 flex items-center justify-center text-[0.8rem] text-[var(--muted)]" id="load-sentinel" aria-hidden="true">読み込み中...</div>
     </>
   )}
 
@@ -81,8 +79,7 @@ const PAGE_SIZE = 20;
     const BASE_URL = import.meta.env.BASE_URL;
 
     const allCards = Array.from(document.querySelectorAll<HTMLElement>('#report-list .report-card'));
-    const loadMoreBtn = document.getElementById('load-more');
-    const loadMoreWrap = document.getElementById('load-more-wrap');
+    const sentinel = document.getElementById('load-sentinel');
     const resultCount = document.getElementById('result-count');
     const dateInput = document.getElementById('date-until') as HTMLInputElement | null;
     const tagInput = document.getElementById('tag-input') as HTMLInputElement | null;
@@ -341,17 +338,47 @@ const PAGE_SIZE = 20;
           }
           resultCount.textContent = `${total}件中 ${shown}件表示${note}`;
         }
-        if (loadMoreWrap) {
-          loadMoreWrap.style.display = visibleCount < filtered.length ? '' : 'none';
+        if (sentinel) {
+          sentinel.style.display = visibleCount < filtered.length ? '' : 'none';
         }
+        // 絞り込みの変更などで表示が減ったときも、画面が埋まるまで継ぎ足す
+        scheduleFill();
       };
 
-      // --- Load more ---
-      if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-          visibleCount += PAGE_SIZE;
-          render();
+      // --- Infinite scroll ---
+      // 続きが残っている間、番兵が視界（＋先読みマージン）に入ったら次のページを出す。
+      // 出したあとも番兵が視界に残っていることがある（画面が高い・1ページが短い）ので、
+      // IntersectionObserver の再通知を待たずに rAF で埋まるまで繰り返す。
+      const LOAD_MARGIN = 600;
+      let fillScheduled = false;
+
+      const fillViewport = () => {
+        if (!sentinel || sentinel.style.display === 'none') return;
+        if (sentinel.getBoundingClientRect().top > window.innerHeight + LOAD_MARGIN) return;
+        visibleCount += PAGE_SIZE;
+        render();
+      };
+
+      const scheduleFill = () => {
+        if (fillScheduled) return;
+        fillScheduled = true;
+        requestAnimationFrame(() => {
+          fillScheduled = false;
+          fillViewport();
         });
+      };
+
+      if (sentinel && typeof IntersectionObserver !== 'undefined') {
+        new IntersectionObserver(
+          (entries) => {
+            if (entries.some((e) => e.isIntersecting)) fillViewport();
+          },
+          { rootMargin: `${LOAD_MARGIN}px 0px` },
+        ).observe(sentinel);
+      } else {
+        // IntersectionObserver が無い環境向けのフォールバック
+        window.addEventListener('scroll', scheduleFill, { passive: true });
+        window.addEventListener('resize', scheduleFill, { passive: true });
       }
 
       // Initial render
