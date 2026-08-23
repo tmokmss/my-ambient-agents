@@ -1,6 +1,7 @@
 import zlib from "node:zlib";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { buildSearchText, CORPUS_PARTS, monthOf, type CorpusPart, type SearchDoc } from "../../lib/search-text";
+import { PARTS, splitByPart } from "../../lib/report-parts";
+import { buildSearchText, type SearchDoc } from "../../lib/search-text";
 
 /**
  * 全文検索用コーパスを zstd 圧縮して配信する。
@@ -19,22 +20,12 @@ const ZSTD_PARAMS = {
 type Report = CollectionEntry<"reports">;
 
 export async function getStaticPaths() {
-  const reports = await getCollection("reports");
-  // 分割の境界は壁時計ではなく最新レポートの月から決める（ビルドが再現可能になる）
-  const currentMonth = monthOf(
-    reports.reduce((latest, r) => (r.data.date > latest ? r.data.date : latest), new Date(0)),
-  );
-
-  const byPart: Record<CorpusPart, Report[]> = { archive: [], current: [] };
-  for (const r of reports) {
-    byPart[monthOf(r.data.date) === currentMonth ? "current" : "archive"].push(r);
-  }
-
-  return CORPUS_PARTS.map((part) => ({ params: { part }, props: { list: byPart[part] } }));
+  const byPart = splitByPart(await getCollection("reports"));
+  return PARTS.map((part) => ({ params: { part }, props: { list: byPart[part] } }));
 }
 
 export function GET({ props }: { props: { list: Report[] } }) {
-  // 並び順は使われない（ブラウザ側は id の集合を作り、表示順は DOM の日付順のまま）
+  // 並び順は使われない（ブラウザ側は id の集合を作り、表示順は一覧メタデータの日付順のまま）
   const docs: SearchDoc[] = props.list.map((r) => {
     const { head, body } = buildSearchText({
       title: r.data.title,
