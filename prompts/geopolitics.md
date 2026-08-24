@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の18ソースからRSSを取得する。
+以下の19ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -41,9 +41,10 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 | 13 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
 | 14 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
 | 15 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
-| 16 | 環球時報 Global Times | 中国 | 英語 | https://www.globaltimes.cn/rss/outbrain.xml |
-| 17 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
-| 18 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
+| 16 | CGTN | 中国（国営） | 英語 | https://www.cgtn.com/subscribe/rss/section/world.xml |
+| 17 | CGTN Opinion | 中国（国営・論説） | 英語 | https://www.cgtn.com/subscribe/rss/section/opinion.xml |
+| 18 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
+| 19 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 
 ## 引用リンクの扱い
 
@@ -75,6 +76,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
 - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
 - ロシア側のソースは国営（TASS・RIA Novosti）と独立系・亡命メディア（Meduza）を含む。両者の論調は大きく異なるため、同じ出来事について差異があれば「ロシア国内でも報じ方が分かれている」対比材料として扱う。どちらか一方をロシアの唯一の見解として扱わないこと。
+- 中国側のソースは国営メディア（新華網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
 
 ## レポート形式
 
