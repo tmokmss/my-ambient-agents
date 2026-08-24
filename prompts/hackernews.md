@@ -13,11 +13,13 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
 5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
    1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 2. に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用。403 / paywall / 認証必須 / タイムアウト等で失敗した場合は 2. に進む
       - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com
-   2. **アーカイブURLフォールバック**: 取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、以下のドメインを含むURLを抽出して WebFetch を試みる。HN ではペイウォール記事に有志がアーカイブURLをコメントすることが多いため有効
-      - 対象ドメイン: `web.archive.org` / `archive.org` / `archive.is` / `archive.ph` / `archive.today` / `archive.li` / `archive.fo` / `12ft.io` / `freedium.cfd`（Medium向け）
+   2. **代替URLフォールバック**: 取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、記事本文を読める代替URL（一次情報、著者の公式ブログ、論文PDF、プレスリリース、GitHub リポジトリなど）を抽出して WebFetch を試みる。HN ではペイウォール記事に有志が一次ソースをコメントすることが多いため有効
+      - **試行禁止ドメイン**: 以下のドメインは WebFetch がツールレベルでブロックしており（`Claude Code is unable to fetch from ...`）、curl でも 429 / TLS証明書エラー / DNS解決不可のため **試行してはならない**: `web.archive.org` / `archive.org` / `archive.is` / `archive.ph` / `archive.today` / `archive.md` / `archive.li` / `archive.fo` / `12ft.io` / `freedium.cfd`
+        - コメントやストーリー本文にこれらの URL が含まれていても無視すること。他に候補がなければ試行せず直ちに 3. のコメントベース要約に進む
+      - 1. の既知スキップドメインに該当する URL も同様に対象外とする
       - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
-      - 複数ヒットした場合は archive.org / archive.is 系を優先し、最初に成功したものを採用
-   3. **コメントベース要約**: 上記いずれも失敗した場合は、コメント本文から記事内容を推測して要約する
+      - 複数ヒットした場合は最初に成功したものを採用する
+   3. **コメントベース要約**: 元URL・代替URL のいずれも取得できない場合は、コメント本文から記事内容を推測して要約する
 
 ## レポート形式
 
