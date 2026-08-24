@@ -48,13 +48,24 @@ RSSを取得してパース:
 推測でトレンド入りの理由を書いてはならない。
 
 ### 4. YouTube Trending (トレンド動画)
-YouTube Data API を使用して、US と JP の2地域のトレンド動画を取得する:
-- US: curl "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=US&maxResults=20&key=$YOUTUBE_DATA_API_KEY"
-- JP: curl "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=JP&maxResults=20&key=$YOUTUBE_DATA_API_KEY"
-snippet.title, snippet.channelTitle, statistics.viewCount を取得。
+YouTube Data API を使用して、US と JP の2地域のトレンド動画を取得する。
+50件×2リージョンの生 JSON をそのままコンテキストに載せるとトークンを浪費するため、
+必ず以下のように jq で必要なフィールドだけに射影してから読むこと:
+
+```bash
+# US（JP は regionCode=JP に変えるだけ、他は同一）
+curl -s "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=US&maxResults=50&key=$YOUTUBE_DATA_API_KEY" \
+  | jq -r '.items[] | select((.statistics.viewCount // "0" | tonumber) >= 10000) | [.id, .snippet.title, .snippet.channelTitle, .statistics.viewCount] | @tsv'
+```
+
+出力は `video ID<TAB>タイトル<TAB>チャンネル名<TAB>再生数` の TSV になる。description や thumbnails は使わないので射影で落とすこと。
+この jq の `select` が「`statistics.viewCount` が 10000 未満（ライブ配信中・終了直後など視聴数未集計の動画）を除外する」処理を兼ねている。
+viewCount が非公開の動画では `.statistics.viewCount` が null になり `tonumber` がエラーになるため、`// "0"` のガードを外してはならない。
 各動画のURLは https://www.youtube.com/watch?v={id} の形式でリンクすること。
+`maxResults` を API の上限である 50 にしているのは、本エージェントが1日3回実行され、重複排除が直近3日分（最大9レポート）のレポートを参照するため、
+上位20件では過去レポートと重複しない候補が枯渇するからである。`chart=mostPopular` の quota コストは取得件数によらず 1 unit なので、50件取得しても消費は増えない。
+候補はレスポンスの並び順（＝トレンド上位順）に上から見ていき、未既出のものを再生数の多い順に採用する。上位の話題性を優先する方針は変えず、あくまで候補プールを広げるだけである。
 注意: API キーは環境変数 $YOUTUBE_DATA_API_KEY を直接参照すること。キーの値を echo や print で出力してはならない。
-取得後に jq で `statistics.viewCount` が 10000 未満（ライブ配信中・終了直後など視聴数未集計の動画）の動画を除外し、残った動画からピックアップすること。
 US と JP の両方を取得したら、ピックアップ前に「重複排除」の「同一レポート内の重複（YouTube US / JP）」に従い、両リージョンに共通して出現する video ID をチェックすること。
 
 ### 5. 英語圏ネットカルチャー (Boing Boing + Atlas Obscura)
@@ -147,8 +158,16 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 ## YouTube Trending (US)
 - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
 
+過去レポートとの重複を除外した結果、候補が3件未満になった場合は、無理に件数を埋めず取得できた件数のみを掲載し、
+セクション末尾に「※ 過去レポートとの重複を除いた新規動画が N 件のみだった」旨の注記を1行入れる。
+
 ## YouTube Trending (JP)
 - **[タイトル](url)** ({再生数}, {チャンネル名}) - 日本語で内容の解説
+
+過去レポートとの重複を除外した結果、候補が3件未満になった場合は、無理に件数を埋めず取得できた件数のみを掲載し、
+セクション末尾に「※ 過去レポートとの重複を除いた新規動画が N 件のみだった」旨の注記を1行入れる。
+JP は US トレンドとの相互重複（「重複排除」の「同一レポート内の重複（YouTube US / JP）」）による不足と同時に該当することがある。
+その場合は注記を2行に分けず「※ US トレンドおよび過去レポートとの重複を除いた新規動画が N 件のみだった」のように1行にまとめること。
 
 ## 英語圏ネットカルチャー
 - **[タイトル](url)** (Boing Boing) - 日本語で内容の解説
