@@ -21,7 +21,10 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 
 ### 2. OpenAI ブログ (RSS)
 - https://openai.com/blog/rss.xml (RSS をパース。リダイレクトされるので curl -sL でフォローすること)
-- pubDate を確認し、上記の日付ルールに従って選別する
+- 各 `<item>` から `<title>` / `<link>` / `<pubDate>` に加えて **`<description>`（CDATA の 1-2 文サマリー）も必ず取得する**。この description が「企業動向」セクションで OpenAI 記事を解説する際の一次情報源になる
+- `<pubDate>` を確認し、上記の日付ルールに従って選別する
+- **https://openai.com/index/<slug> の個別記事ページは取得しないこと。** Cloudflare のボット対策により curl では常に HTTP 403 が返り、User-Agent を変えても meta / og:description すら取得できないため、本文取得を試みるだけ時間の無駄になる。必要な情報は RSS の `<description>` から得ること
+- 稀に `<description>` を持たない item があるので、その場合は `<title>` と `<category>` から書ける範囲に留め、推測で内容を断定しないこと
 
 ### 3. Google DeepMind ブログ (RSS)
 - https://deepmind.google/blog/rss.xml (curl -sL で取得し、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` を取得)
@@ -93,6 +96,7 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 Anthropic, OpenAI, Google DeepMind のブログから新着があればまとめる。
 新着がない場合はこのセクションを省略する。
 - **[タイトル](url)** ({企業名}, {M/D}) - 日本語で内容の解説・意義
+- OpenAI 記事の解説は RSS の `<description>` を要約・翻訳して書く（記事ページは取得できないため）
 
 ## 注目論文
 arxiv から注目の論文を3-5件ピックアップ。
