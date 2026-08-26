@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の19ソースからRSSを取得する。
+以下の21ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -35,16 +35,18 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 | 7 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/srv/htz---all-articles |
 | 8 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
 | 9 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
-| 10 | Al Arabiya | サウジ/アラブ | 英語 | https://www.alarabiya.net/feed/rss2/english.xml |
-| 11 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
-| 12 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
-| 13 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
-| 14 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
-| 15 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
-| 16 | CGTN | 中国（国営） | 英語 | https://www.cgtn.com/subscribe/rss/section/world.xml |
-| 17 | CGTN Opinion | 中国（国営・論説） | 英語 | https://www.cgtn.com/subscribe/rss/section/opinion.xml |
-| 18 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
-| 19 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
+| 10 | The National | UAE（アブダビ） | 英語 | https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml |
+| 11 | Sky News Arabia | UAE/湾岸 | アラビア語 | https://www.skynewsarabia.com/rss |
+| 12 | Saudi Gazette | サウジ | 英語 | https://saudigazette.com.sa/rssFeed/74 |
+| 13 | BBC Persian | 英国（ペルシャ語） | ペルシャ語 | https://feeds.bbci.co.uk/persian/rss.xml |
+| 14 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
+| 15 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
+| 16 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
+| 17 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
+| 18 | CGTN | 中国（国営） | 英語 | https://www.cgtn.com/subscribe/rss/section/world.xml |
+| 19 | CGTN Opinion | 中国（国営・論説） | 英語 | https://www.cgtn.com/subscribe/rss/section/opinion.xml |
+| 20 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
+| 21 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 
 ## 引用リンクの扱い
 
@@ -76,6 +78,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - 感情的な表現や価値判断を避け、「〜と報じている」「〜と主張している」のような客観的な表現を使う。
 - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
 - ロシア側のソースは国営（TASS・RIA Novosti）と独立系・亡命メディア（Meduza）を含む。両者の論調は大きく異なるため、同じ出来事について差異があれば「ロシア国内でも報じ方が分かれている」対比材料として扱う。どちらか一方をロシアの唯一の見解として扱わないこと。
+- アラブ側のソースは Al Jazeera Arabic（カタール）と The National / Sky News Arabia / Saudi Gazette（UAE・サウジ）を含む。湾岸域内でも対イラン・対カタールの立場が異なるため、同じ出来事について差異があれば「アラブ内でも報じ方が分かれている」対比材料として扱い、どちらか一方をアラブ全体の見解として扱わないこと。
 - 中国側のソースは国営メディア（新華網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
 
 ## レポート形式
