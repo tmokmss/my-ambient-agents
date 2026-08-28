@@ -18,6 +18,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #42, #356 | hackernews-top10 | Hacker News の上位10件に最低スコア閾値を設けて低スコアの直近投稿を除外する（上位N件を取得してスコア順に再選出する案を含む） | 効果不確実（オーナー判断: 色々なスコア帯の記事を見たいため導入しない） | 2026-08-23 |
 | #12 | ai-watch | DeepMind ブログの記事 URL / 公開日が取得できないため URL 抽出やフォールバックを強化する | 重複（情報源を `deepmind.google/blog/rss.xml` に切替済みで解消。`discover/blog` の HTML パース禁止も明記済み） | 2026-08-23 |
 | #501 | ai-watch | DeepMind ブログ記事の公開日が月単位でしか取れず日付フィルタが不正確なため、公開日の取得方法を改善する | 重複（`deepmind.google/blog/rss.xml` への切替済みで `pubDate` から日次精度の公開日が取得可能。HTML スクレイピングへの回帰案は採用しない） | 2026-08-26 |
+| #38 | geopolitics-dual-view | Kyiv Independent が RSS ではなく HTML（Next.js SPA）を返し取得不能なため、取得方法の変更や代替ウクライナ系ソースを追加する | 重複（PR #658 で Kyiv Independent はプロンプトから削除済み。代替として Ukrinform EN `ukrinform.net/rss/block-lastnews` を採用済みで、Ukrainska Pravda RSS ともども疎通確認済み） | 2026-08-28 |
 
 ## 該当基準
 
