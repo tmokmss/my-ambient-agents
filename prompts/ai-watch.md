@@ -16,8 +16,23 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 
 ### 1. Anthropic ブログ / ニュース
-- https://www.anthropic.com/news (HTML をパースして最新記事のタイトル・URL・公開日を取得)
-- 公開日を確認し、上記の日付ルールに従って選別する
+- https://www.anthropic.com/news (一覧ページを1回取得するだけで全記事の公開日・URL・タイトルが取れる)
+- **https://www.anthropic.com/rss.xml は存在しない（HTTP 404）ので探しに行かないこと。**
+- **個別記事ページ（https://www.anthropic.com/news/<slug>）は取得しないこと。** JS レンダリング依存で公開日が取れず、時間の無駄になる。必要な情報はすべて一覧ページから得られる
+- レスポンスは約470KBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"publishedOn":...,"slug":{"current":...},"title":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれているので、`\"` を `"` に戻してから以下で最新15件を抽出する:
+
+```bash
+curl -sL --max-time 90 https://www.anthropic.com/news | python3 -c 'import sys,re
+s=sys.stdin.read().replace("\\\"", "\"")
+p=re.compile(r"\"publishedOn\":\"(\d{4}-\d{2}-\d{2})[^\"]*\".*?\"current\":\"([a-z0-9\-]+)\".*?\"title\":\"(.*?)\"\}", re.S)
+seen={}
+for m in p.finditer(s): seen.setdefault(m.group(2), (m.group(1), m.group(3)))
+for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]:
+    print(f"{d}  https://www.anthropic.com/news/{slug}  {t}")'
+```
+
+- 出力は `公開日  URL  タイトル` の日付降順（200件超の記事から最新15件）なので、上位から順に上記の日付ルールに従って選別する
+- 上記の抽出が空になる場合はサイト構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
 ### 2. OpenAI ブログ (RSS)
 - https://openai.com/blog/rss.xml (RSS をパース。リダイレクトされるので curl -sL でフォローすること)
