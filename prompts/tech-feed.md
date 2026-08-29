@@ -109,9 +109,28 @@ for item in data[:15]:
 各エントリの title, url, score, comment_count, tags を取得。タグ（programming, security, web 等）を品質フィルタとして活用してよい。
 
 ### 6. dev.to
-RSSを取得してパース:
-- https://dev.to/feed
-各エントリの title, link, description を取得。
+JSON API を取得してパース（RSS には言語情報が含まれず、ポルトガル語・スペイン語等の非英語記事が混入するため JSON API を使用する）:
+- https://dev.to/api/articles?per_page=30
+
+```bash
+curl -s --max-time 15 'https://dev.to/api/articles?per_page=30' | python3 -c "
+import sys, json, re
+for a in json.load(sys.stdin):
+    if a.get('language') != 'en': continue
+    desc = re.sub(r'\s+', ' ', (a.get('description') or '')).strip()
+    print('TITLE:', a['title'])
+    print('URL:', a['url'])
+    print('REACTIONS:', a.get('positive_reactions_count'))
+    print('COMMENTS:', a.get('comments_count'))
+    print('TAGS:', ','.join(a.get('tag_list') or []))
+    print('DESC:', desc[:300])
+    print('---')
+"
+```
+
+各エントリの title, url, description を取得。`language` が `"en"` 以外（`null` を含む）のエントリはスキップする。
+併せて取得できる positive_reactions_count と tag_list は、Lobsters の score / tags と同様に品質フィルタとして活用してよい
+（リアクションがほとんど付いていない記事や、技術的な内容を伴わないタグのみの記事は候補から外してよい）。
 
 ### 7. TechCrunch
 RSSを取得し、Python でパースする（`<description>` は複数行の CDATA で出力されるため、`re.DOTALL` と CDATA 展開が必須。単一行の grep/sed では概要が空になる）:
