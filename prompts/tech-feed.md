@@ -29,9 +29,24 @@ for m in re.finditer(r'<item rdf:about=\"([^\"]+)\">(.*?)</item>', data, re.DOTA
 各エントリの title, link, bookmarkcount を全件取得すること。
 
 ### 2. Zenn トレンド
-RSSを取得してパース:
-- https://zenn.dev/feed
-各エントリの title, link, description を取得。
+RSSを取得し、Python でパースする（このフィードは Atom ではなく RSS 2.0 で、`<title>` と `<description>` が複数行の CDATA で出力される。CDATA を展開する前にタグ除去すると `<![CDATA[` から `]]>` までが1つのタグとみなされて消え、タイトルも概要も全件空になる）:
+
+```bash
+curl -s --max-time 15 'https://zenn.dev/feed' | python3 -c "
+import sys, re, html
+d = sys.stdin.read()
+def unwrap(s):
+    m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
+    s = m.group(1) if m else s
+    s = re.sub(r'<[^>]+>', ' ', s)
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:20]:
+    g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
+    print('TITLE:', g('title')); print('URL:', g('link')); print('DESC:', g('description')[:300]); print('---')
+"
+```
+
+各エントリの title, link, description を全件取得すること。
 
 ### 3. Qiita 人気記事
 Atom フィードを取得し、Python でパースする（このフィードに `<summary>` は存在せず、概要は `<content>` に入っている。また `<link>` は `href` 属性を持つ自己終端タグでテキストノードに URL がないため、属性から取り出す必要がある）:
