@@ -5,7 +5,10 @@ Hacker News のトップストーリーを取得し、上位10件をサマライ
 
 Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
 1. GET /topstories.json でトップストーリーIDの配列を取得
-2. 上位10件の各IDについて GET /item/{id}.json でストーリー詳細を取得
+2. 配列の先頭から順に GET /item/{id}.json でアイテム詳細を取得する。以下に該当するものは**レポート対象から除外して次のIDへ進み、有効なストーリーが10件揃うまで11位以降から補充する**（除外候補が続く場合に備え、topstories の上位20件程度までを補充対象として走査してよい）
+   - `type` フィールドが `"story"` 以外のアイテム。YC 系の採用ポスト（例: `Foo (YC W21) Is Hiring ...`）は `type: "job"` として返るため、この判定だけで追加リクエストなしに確実に除外できる
+   - `type` が `"story"` でも、投稿者（`by`）が `whoishiring` のアイテム、またはタイトルが `Ask HN: Who is hiring?` / `Ask HN: Who wants to be hired?` / `Ask HN: Freelancer? Seeking freelancer?` にマッチするもの（毎月自動投稿される求人スレッドでニュース性がないため）
+   - **除外条件は上記のみとし、`score` や `descendants` を条件にしたフィルタ（最低スコア閾値など）は追加してはならない。** 色々なスコア帯の記事を扱う方針のため、スコアによる足切りはオーナー判断で見送り済み（`docs/declined-issues.md` 参照）
 3. 各ストーリーの kids (コメントID) から上位5件について GET /item/{comment_id}.json でコメントを取得
 4. **スコアが150以上のストーリー**については、各トップレベルコメントの kids から上位2〜3件のリプライも GET /item/{reply_id}.json で追加取得する
    - リプライがさらにリプライを持つ場合（孫コメント）は取得不要
