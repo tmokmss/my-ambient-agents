@@ -42,7 +42,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 | 14 | BBC Middle East | 英国 | 英語 | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml |
 | 15 | Tehran Times | イラン | 英語 | https://www.tehrantimes.com/rss |
 | 16 | IRNA | イラン | 英語 | https://en.irna.ir/rss |
-| 17 | 新華網 | 中国 | 中国語 | http://www.news.cn/rss/politics.xml |
+| 17 | 中国新聞網（中新社） | 中国（国営通信） | 中国語 | https://www.chinanews.com.cn/rss/world.xml |
 | 18 | CGTN | 中国（国営） | 英語 | https://www.cgtn.com/subscribe/rss/section/world.xml |
 | 19 | CGTN Opinion | 中国（国営・論説） | 英語 | https://www.cgtn.com/subscribe/rss/section/opinion.xml |
 | 20 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
@@ -79,7 +79,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - 各勢力の呼称は、そのソースが使用している呼称をそのまま紹介する（例: ロシアメディアは「特別軍事作戦」、ウクライナメディアは「戦争」と呼称）。
 - ロシア側のソースは国営（TASS・RIA Novosti）と独立系・亡命メディア（Meduza）を含む。両者の論調は大きく異なるため、同じ出来事について差異があれば「ロシア国内でも報じ方が分かれている」対比材料として扱う。どちらか一方をロシアの唯一の見解として扱わないこと。
 - アラブ側のソースは Al Jazeera Arabic（カタール）と The National / Sky News Arabia / Saudi Gazette（UAE・サウジ）を含む。湾岸域内でも対イラン・対カタールの立場が異なるため、同じ出来事について差異があれば「アラブ内でも報じ方が分かれている」対比材料として扱い、どちらか一方をアラブ全体の見解として扱わないこと。
-- 中国側のソースは国営メディア（新華網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
+- 中国側のソースは国営メディア（中国新聞網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
 
 ## レポート形式
 
