@@ -101,6 +101,37 @@ US と JP の両方を取得したら、ピックアップ前に「重複排除�
 - Atlas Obscura: `curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://www.atlasobscura.com/feeds/latest"` (約27件)
 各エントリの title, link, description, category（複数あり得る）, dc:creator を取得し、どちらのフィード由来かを保持しておく（レポートでソース名を併記するため）。
 
+`description` は両フィードとも **HTML 断片**（`<img>` や `<p>` を含む）なので、必ずタグを除去してからテキストとして扱うこと。
+どちらのフィードも RSS 2.0 の `./channel/item` なので、同じスクリプトで URL だけ差し替えてパースできる:
+
+```bash
+curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://boingboing.net/feed" | python3 -c "
+import sys, re, html, xml.etree.ElementTree as ET
+ns = {'dc': 'http://purl.org/dc/elements/1.1/'}
+def clean(s):
+    s = re.sub(r'<[^>]+>', ' ', s or '')
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in ET.fromstring(sys.stdin.read()).findall('./channel/item'):
+    cats = '/'.join(c.text or '' for c in it.findall('category'))
+    print('TITLE:', clean(it.findtext('title', '')))
+    print('URL:', it.findtext('link', ''))
+    print('CATEGORY:', cats); print('CREATOR:', it.findtext('dc:creator', '', ns))
+    print('DESC:', clean(it.findtext('description', ''))[:600]); print('---')
+"
+```
+
+タグ除去の前提について、以下を守ること:
+
+- Boing Boing の `description` は**先頭が `srcset` 付きの巨大な `<img>` タグ**で1000文字前後埋まっており、
+  raw の先頭だけを見ると「HTML タグしか無く本文が無い」ように見える。**先頭を見て本文の有無を判断してはならない。**
+  上記の `clean()` を通すと `<img>` の後ろに続く `<p>` の本文プレビューが現れ、1記事あたり **350〜600文字程度**のテキストが得られる（全件で得られる）。
+- 解説文はこのタグ除去後の本文プレビューを根拠に書くこと。タイトルからの推測で内容を書いてはならない。
+- 末尾の `— Read the rest` / `The post … appeared first on Boing Boing.` は全記事共通の定型句なので、解説の材料にしない。
+- Boing Boing のフィードに `<content:encoded>` は**存在しない**ので参照しない（全件不在）。
+- 個別記事ページを curl / WebFetch して概要を取り直すフォールバックは**行わない**。
+  上記のとおり `description` だけで十分な本文プレビューが得られるうえ、boingboing.net は Bot 判定のチャレンジページを返すことがあり時間を浪費するため。
+- Atlas Obscura の `description` も同じ `clean()` を通すこと。raw は最大 13KB 超あり、タグ除去でコンテキストも節約できる。
+
 Boing Boing のエントリのうち、`<category>` に `BoingBoing Shop` または `shop` を含むもの、
 あるいは `<dc:creator>` が `Boing Boing's Shop` であるものは、アフィリエイト目的の商品販売・オンラインコース紹介記事
 （スポンサードコンテンツ）であるため、ピックアップ候補から必ず除外する。
