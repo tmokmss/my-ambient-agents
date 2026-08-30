@@ -51,6 +51,53 @@ for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]
 - https://rss.arxiv.org/rss/cs.CL (RSS をパース)
 - タイトル・著者・abstract から注目論文を選出
 
+**空フィードは「取得失敗」ではない。** arxiv の RSS は `<skipDays><day>Saturday</day><day>Sunday</day></skipDays>` を持ち、
+**土日 UTC は HTTP 200 のまま `<item>` 0 件（約900バイト）を返すのが正常な仕様**である。
+このソースだけは「取得失敗時の対応」節のスキップ判断を適用せず、**必ず以下のフォールバックを試すこと**。
+（実際、日曜実行のレポートで「注目論文」セクションが丸ごと欠落する事故が繰り返し起きている）
+
+`<item>` が 0 件だったら、直近の発表バッチ（多くは金曜分）から以下のいずれかで論文を取得する:
+
+**(a) recent 一覧ページ** — https://arxiv.org/list/cs.AI/recent / https://arxiv.org/list/cs.CL/recent
+`<h3>` に発表バッチの日付（例: `Fri, 28 Aug 2026 (showing first 50 of 196 entries)`）が入る。**この日付をレポートに書く発表日として使う。**
+素朴な正規表現では `list-title mathjax` クラスと改行のため 0 件になるので、以下の抽出を使うこと:
+
+```bash
+curl -sL --max-time 90 https://arxiv.org/list/cs.AI/recent | python3 -c 'import sys,re,html
+s=sys.stdin.read()
+d=re.search(r"<h3>(.*?)</h3>", s, re.S)
+print("BATCH:", re.sub(r"\s+"," ",d.group(1)).strip() if d else "unknown")
+p=re.compile(r"arXiv:(\d{4}\.\d{4,5}).*?list-title[^>]*>\s*<span[^>]*>Title:</span>\s*(.*?)\s*</div>.*?list-authors.>(.*?)</div>", re.S)
+for m in list(p.finditer(s))[:20]:
+    t=html.unescape(re.sub(r"\s+"," ",re.sub(r"<[^>]+>","",m.group(2))).strip())
+    a=html.unescape(re.sub(r"\s+"," ",re.sub(r"<[^>]+>","",m.group(3))).strip())
+    print(f"{m.group(1)}  {t}  |  {a[:80]}")'
+```
+
+- **この一覧ページには abstract が含まれない。** abstract を見て選ぶなら (b) を使うか、
+  絞り込んだ数件だけ `https://arxiv.org/abs/<id>` を個別に取得する
+
+**(b) export API（HTML パース不要・abstract 付き）** — 一覧ページの HTML 構造が変わって (a) が 0 件になった場合はこちらを使う:
+
+```bash
+curl -sL --max-time 90 "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=20" | python3 -c 'import sys,re
+s=sys.stdin.read()
+for e in re.findall(r"<entry>(.*?)</entry>", s, re.S):
+    i=re.search(r"<id>(.*?)</id>",e,re.S).group(1)
+    t=re.sub(r"\s+"," ",re.search(r"<title>(.*?)</title>",e,re.S).group(1)).strip()
+    d=re.search(r"<published>(.*?)</published>",e,re.S).group(1)[:10]
+    a=", ".join(re.findall(r"<name>(.*?)</name>",e,re.S)[:3])
+    ab=re.sub(r"\s+"," ",re.search(r"<summary>(.*?)</summary>",e,re.S).group(1)).strip()
+    print(f"{d}  {i}  {t}  |  {a}\n    {ab[:300]}")'
+```
+
+- `cat:cs.CL` に差し替えれば cs.CL も同様に取れる
+- `<published>` は**投稿日**で、arxiv の**発表日**（一覧ページの `<h3>`）とは通常1日ずれる。日付を書くときは混同しないこと
+- **日付ルールの扱い**: 週末フォールバック時は直近の発表バッチ（金曜分）が「最新」なので、
+  4日以上前でない限り通常どおり取り上げてよい。既出の論文は「重複排除」節で直近レポートを読めば自然に除外される
+- **フォールバックを使った回は、レポートの「注目論文」セクション冒頭にその旨を1行明記すること**
+  （例: `arxiv RSS は週末休止のため、list ページより 8/28 発表分から選出。`）
+
 ### 5. Hugging Face トレンド
 - https://huggingface.co/api/trending (JSON)
 - トレンドのモデル・データセット・スペースから注目のものをピックアップ
@@ -87,6 +134,9 @@ for x in sorted(r,reverse=True)[:10]:
 各ソースの取得が失敗した場合（HTTP エラー、パース不能など）は、そのソースをスキップしてレポートに「取得失敗」と明記する。
 最低2ソース以上のデータが取得できればレポートを生成する。全ソース失敗の場合はレポートを生成しない。
 
+ただし **arxiv RSS の空レスポンス（HTTP 200 / `<item>` 0 件）は取得失敗ではなく週末の仕様**なので、
+ここでスキップせず「4. arxiv」節のフォールバックを実行すること。フォールバックも空だった場合に限りスキップ扱いとする。
+
 ## 重複排除
 
 src/content/reports/ ディレクトリ以下を再帰的に検索し、ファイル名に "${AGENT_SLUG}" を含むものをパスの降順でソートし、直近3件を読み込む。
@@ -115,7 +165,8 @@ Anthropic, OpenAI, Google DeepMind のブログから新着があればまとめ
 
 ## 注目論文
 arxiv から注目の論文を3-5件ピックアップ。
-- **[タイトル](url)** ({著者略}) - 何が新しいのか・なぜ重要かを1-2文で解説
+- **[タイトル](url)** ({著者略}, {M/D}) - 何が新しいのか・なぜ重要かを1-2文で解説
+- `{M/D}` は arxiv の発表日。RSS が週末休止でフォールバックした回は、セクション冒頭にその旨を1行添える
 
 ## オープンソース・モデル
 Hugging Face のトレンドから注目のモデル・ツールを3-5件ピックアップ。
