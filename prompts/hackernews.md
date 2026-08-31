@@ -15,7 +15,8 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
    - リプライが存在しない（kids が空）コメントはスキップ
 5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
    1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 3. に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用
-      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com
+      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）
+      - **元URL が `openai.com/index/<slug>` の場合**は、3. に進む前に `curl -sL https://openai.com/blog/rss.xml` を取得し、`<link>` が該当 slug に一致する `<item>` の `<description>`（1-2文のサマリー）を要約の一次情報として使い、取得できたらそれを採用して 3. 以降は行わない。該当 item が見つからなければ通常どおり 3. に進む
       - **403 / paywall / 認証必須 / タイムアウト等で明示的に失敗した場合**は 3. に進む
       - **HTTP 200 で返っても、以下に該当する場合は「取得失敗」として扱い 2. に進む**（SPA がクライアントサイドで本文を描画するため、サーバーが返す HTML が空のシェルのみというケース。取得が「成功」扱いになるので見落としやすい）
         - レスポンスがページタイトルや meta description のみで本文が含まれない
