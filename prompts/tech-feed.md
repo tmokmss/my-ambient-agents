@@ -164,10 +164,14 @@ for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
 各エントリの title, link, pubDate, description を取得。
 
 ### 8. Ars Technica
-RSSを取得し、TechCrunch と同じスクリプトでパースする（URL のみ差し替え。こちらも `<description>` は複数行 CDATA）:
+`index` フィードは全社共通の総合フィードで、健康・自動車・宇宙・カルチャー・ゲームなど非技術カテゴリが大半を占める。
+そのため**カテゴリ別フィードを併用**し、`technology-lab`（IT・セキュリティ中心）→ `gadgets`（ハードウェア）→ `index`（総合）の3本を続けて取得して連結し、まとめてパースする（`<description>` は複数行 CDATA なので `re.DOTALL` と CDATA 展開が必須）:
 
 ```bash
-curl -s --max-time 15 'https://feeds.arstechnica.com/arstechnica/index' | python3 -c "
+curl -s --max-time 15 \
+  'https://feeds.arstechnica.com/arstechnica/technology-lab' \
+  'https://feeds.arstechnica.com/arstechnica/gadgets' \
+  'https://feeds.arstechnica.com/arstechnica/index' | python3 -c "
 import sys, re, html
 d = sys.stdin.read()
 def unwrap(s):
@@ -175,14 +179,30 @@ def unwrap(s):
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
-for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
+seen = set()
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
+    url = g('link')
+    if not url or url in seen: continue
+    seen.add(url)
+    cat = re.sub(r'^https?://[^/]+/', '', url).split('/')[0]
     desc = g('description') or g('content:encoded')[:300]
-    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
+    print('TITLE:', g('title')); print('URL:', url); print('CATEGORY:', cat); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
 "
 ```
 
-各エントリの title, link, pubDate, description を取得。
+各エントリの title, link, pubDate, description を取得する。URL で重複排除しており、3フィード合計で50件前後の候補が得られる（`head` 等で出力を制限してはならない）。
+`CATEGORY` は記事 URL の第1パスセグメント（`security` / `ai` / `gadgets` / `health` など）で、選別のシグナルとして使う。
+なお **RSS のフィードスラッグとして有効なのは `technology-lab` / `gadgets` / `index` のみ**で、`security` や `ai` は記事 URL のパスとしては現れるがフィード URL に使うと 404 になる。上記3本以外を試してはならない。
+
+`index` を含めている以上、非技術カテゴリの記事は必ず混入する。**取得順にそのまま採用せず、取得した全件から次の基準で選ぶ**こと。
+
+- 優先する: `/security/`、`/ai/`、`/information-technology/`、`/gadgets/` 配下のうち、脆弱性・攻撃手法・インフラ・OS・ネットワーク・半導体・AI の技術的な仕組みなど、開発者にとって技術的知見のある記事。`/tech-policy/` 配下は技術規制・プライバシー・著作権・独占禁止・プラットフォーム法制など、技術産業の構造に関わるものに限って対象とする
+- 除外する: `/health/`、`/cars/`、`/culture/`、`/gaming/`、`/science/`、`/space/`、`/staff/` 配下の記事、および `/tech-policy/` 配下でも純粋な政治スキャンダル・選挙・人事に終始する記事
+
+判断は URL パスやキーワードによる機械的な除外ではなく、タイトルと概要から読み取れる主題で行うこと
+（`/science/` でも半導体・計算機科学の要素技術を扱うものは含めてよく、逆に `/gadgets/` でも消費者向けの購入ガイドに終始するものは除外する）。
+上記基準を満たす記事が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
 
 ## 取得失敗時の対応
 
