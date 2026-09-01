@@ -6,23 +6,23 @@
 以下のRSSフィードからニュースを取得する。取得はいずれも `curl -sL --max-time 30` を使い、XMLをパースしてタイトル・リンク・概要を抽出する。
 
 1. **NHK News Web 主要** (国内の主要ニュース)
-   - URL: https://www3.nhk.or.jp/rss/news/cat0.xml （失敗時は https://www.nhk.or.jp/rss/news/cat0.xml を試す）
+   - URL: https://www.nhk.or.jp/rss/news/cat0.xml （失敗時は https://www3.nhk.or.jp/rss/news/cat0.xml を試す）
    - 全件を抽出する。このフィードは構造上7件前後しか配信されないため、件数が少ないことは取得失敗ではない
 
 2. **NHK News Web 国際** (国際ニュース)
-   - URL: https://www3.nhk.or.jp/rss/news/cat6.xml （失敗時は https://www.nhk.or.jp/rss/news/cat6.xml を試す）
+   - URL: https://www.nhk.or.jp/rss/news/cat6.xml （失敗時は https://www3.nhk.or.jp/rss/news/cat6.xml を試す）
    - 最新10件を抽出
 
 3. **NHK News Web 社会** (国内ニュースの補完用)
-   - URL: https://www3.nhk.or.jp/rss/news/cat1.xml （失敗時は https://www.nhk.or.jp/rss/news/cat1.xml を試す）
+   - URL: https://www.nhk.or.jp/rss/news/cat1.xml （失敗時は https://www3.nhk.or.jp/rss/news/cat1.xml を試す）
    - 最新10件を抽出
 
 4. **NHK News Web 政治** (国内ニュースの補完用)
-   - URL: https://www3.nhk.or.jp/rss/news/cat4.xml （失敗時は https://www.nhk.or.jp/rss/news/cat4.xml を試す）
+   - URL: https://www.nhk.or.jp/rss/news/cat4.xml （失敗時は https://www3.nhk.or.jp/rss/news/cat4.xml を試す）
    - 最新10件を抽出
 
 5. **NHK News Web 経済** (国内ニュースの補完用)
-   - URL: https://www3.nhk.or.jp/rss/news/cat5.xml （失敗時は https://www.nhk.or.jp/rss/news/cat5.xml を試す）
+   - URL: https://www.nhk.or.jp/rss/news/cat5.xml （失敗時は https://www3.nhk.or.jp/rss/news/cat5.xml を試す）
    - 最新10件を抽出
 
 6. **Yahoo!ニュース トピックス（国際）**
@@ -42,8 +42,9 @@ Yahoo!ニュース・時事通信・毎日新聞のフィードは item の desc
 ### 取得失敗時の対応
 
 - HTTP ステータスが 200 以外、または item が 0 件のフィードは**取得失敗**と見なす。
+- HTTP ステータスが 200 かつ item が 1 件以上でも、最新記事の `pubDate`（item に無ければ `lastBuildDate`）が実行時刻から 24 時間以上古いフィードは、配信停止または古いキャッシュを返していると判断し**取得失敗**と見なす。閾値を 24 時間にするのは、更新頻度の低いカテゴリ（NHK 政治など）を誤って失敗扱いしないため。
 - item が 1 件以上あり、指定した抽出件数を下回っているだけの場合は取得失敗と見なさない。件数不足を理由に再試行・スキップ・注記のいずれも行わない。
-- 取得失敗したフィードは 1 回だけ再試行し、それでも失敗する場合はそのソースをスキップして残りのソースでレポートを作成する。
+- 取得失敗したフィードは、フォールバック URL が指定されていればそれを試し、無ければ 1 回だけ再試行する。フォールバックの結果も上記の判定で取得失敗となる場合は、そのソースをスキップして残りのソースでレポートを作成する。
 - 1 ソースでも成功していればレポートを生成し、失敗を理由に処理を中断しない。
 - スキップしたソースがある場合は、レポート末尾に `> 取得できなかったソース: {ソース名（理由）}` の形式で1行注記する。
 
