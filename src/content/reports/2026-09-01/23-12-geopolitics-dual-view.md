@@ -42,7 +42,7 @@ tags: ["geopolitics", "iran", "hormuz", "sco", "russia", "germany", "g20", "chin
 
 ### カタールメディアの報道
 
-- **[イラン速報:米攻撃で死傷者、革命防衛隊が「痛烈な報復」を開始](https://www.aljazeera.net/news/liveblog/2026/9/2/%d8%a5%d9%8a%d8%b1%d8%a7%d9%86-%d9%85%d8%a8%d8%a7%d8%b4%d8%b1-%d9%82%d8%aa%d9%84%d9%89-%d9%88%d8%ac%d8%b1%d8%ad%d9%89-%d8%a8%d9%87%d8%ac%d9%85%d8%a7%d8%aa-%d8%a3%d9%85%d8%b1%d9%8a%d9%83%d9%8a%d8%a9?traffic_source=rss)**（Al Jazeera Arabic 🇶🇦, 9/2）— 米中央軍がIRGC関連目標への攻撃は継続中で完了時に発表するとし、IRGCはこの「絶望的な」攻撃がホルムズ海峡を一段と厳しく封鎖することになると強調したと報じた。
+- **[イラン速報:米攻撃で死傷者、革命防衛隊が「痛烈な報復」を開始](https://www.aljazeera.net/news/liveblog/2026/9/2/%d8%a5%d9%8a%d8%b1%d8%a7%d9%86-%d9%85%d8%a8%d8%a7%d8%b4%d8%b1-%d9%82%d8%aa%d9%84%d9%89-%d9%88%d8%ac%d8%b1%d8%ad%d9%89-%d8%a8%d9%87%d8%ac%d9%85%d8%a7%d8%aa-%d8%a3%d9%85%d8%b1%d9%8a%d9%83%d9%8a%d8%a9?traffic_source=rss)**（⚠ ライブブログ・随時更新）（Al Jazeera Arabic 🇶🇦, 9/2）— 米中央軍がIRGC関連目標への攻撃は継続中で完了時に発表するとし、IRGCはこの「絶望的な」攻撃がホルムズ海峡を一段と厳しく封鎖することになると強調したと報じた。
 - **[計算された応酬の応酬は、より広範な米イラン対決に発展するか](https://www.aljazeera.net/politics/2026/9/1/%d9%82%d8%b1%d8%a7%d8%a1%d8%a9-%d8%b9%d8%b3%d9%83%d8%b1%d9%8a%d8%a9-%d9%84%d9%84%d8%aa%d8%b5%d8%b9%d9%8a%d8%af-%d8%a7%d9%84%d8%ac%d8%af%d9%8a%d8%af-%d8%b9%d9%84%d9%89-%d9%85%d8%a7%d8%b0%d8%a7?traffic_source=rss)**（Al Jazeera Arabic 🇶🇦, 9/1）— 米国がホルムズ海峡沿岸・付近のIRGC拠点を攻撃、テヘランは米国の基地・権益への標的攻撃で応戦を開始したと発表したと報じた。
 - **[戦争再燃で原油価格が7月来の高値、ガスは2023年来の高水準に](https://www.aljazeera.net/ebusiness/2026/9/1/oil-gas-peak)**（Al Jazeera Arabic 🇶🇦, 9/1）— 米国の対イラン新たな波状攻撃を受け、欧州の原油・ガス価格が急騰し、ホルムズ海峡経由のエネルギー供給混乱への懸念が再燃したと報じた。
 
