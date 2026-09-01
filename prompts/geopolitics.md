@@ -33,7 +33,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 | 5 | Meduza（英語版） | ロシア（独立系・亡命） | 英語 | https://meduza.io/rss/en/all |
 | 6 | Ynet | イスラエル | ヘブライ語 | https://www.ynet.co.il/Integration/StoryRss2.xml |
 | 7 | Haaretz | イスラエル | ヘブライ語 | https://www.haaretz.co.il/srv/htz---all-articles |
-| 8 | Times of Israel | イスラエル | 英語 | https://www.timesofisrael.com/feed/ |
+| 8 | Jerusalem Post | イスラエル | 英語 | https://www.jpost.com/rss/rssfeedsfrontpage.aspx |
 | 9 | Al Jazeera Arabic | カタール/アラブ | アラビア語 | https://www.aljazeera.net/feed |
 | 10 | The National | UAE（アブダビ） | 英語 | https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml |
 | 11 | Sky News Arabia | UAE/湾岸 | アラビア語 | https://www.skynewsarabia.com/rss |
