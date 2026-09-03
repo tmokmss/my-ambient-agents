@@ -130,6 +130,8 @@ for a in json.load(sys.stdin):
     desc = re.sub(r'\s+', ' ', (a.get('description') or '')).strip()
     print('TITLE:', a['title'])
     print('URL:', a['url'])
+    print('AUTHOR:', (a.get('user') or {}).get('username'))
+    print('ORG:', (a.get('organization') or {}).get('username') or '-')
     print('REACTIONS:', a.get('positive_reactions_count'))
     print('COMMENTS:', a.get('comments_count'))
     print('TAGS:', ','.join(a.get('tag_list') or []))
@@ -141,6 +143,15 @@ for a in json.load(sys.stdin):
 各エントリの title, url, description を取得。`language` が `"en"` 以外（`null` を含む）のエントリはスキップする。
 併せて取得できる positive_reactions_count と tag_list は、Lobsters の score / tags と同様に品質フィルタとして活用してよい
 （リアクションがほとんど付いていない記事や、技術的な内容を伴わないタグのみの記事は候補から外してよい）。
+
+dev.to は個人・組織アカウントが同一テーマの記事を短時間に連投できるため、取得した30件が少数の書き手に偏る（実測で1著者が3-5件、1組織が8-10件を占める）。
+このまま反応数順に選ぶとフィードが特定の書き手の連載で埋まるので、**候補を絞り込む段階で AUTHOR / ORG による分散ルールを適用する**こと。
+
+- **同一 AUTHOR の記事は最大1件**とする。同じ AUTHOR の候補が複数ある場合は positive_reactions_count が最大のものを代表とし（同等ならより技術的知見の深いもの）、残りは候補から外す。
+- **同一 ORG（`organization.username` が同じ）の記事は最大2件**とする。`gde` / `googlecloud` / `googleai` のような組織アカウントは同一テーマの連載を複数の著者名で同時に投下するため、AUTHOR が異なっても実質1クラスタとして枠を消費する。`ORG:` が `-` のものは組織なしとして扱い、この上限の対象外とする。
+- タイトルに「Part 2」「(Part N)」などの連載表記が含まれる場合、**同一シリーズからは最新の1話のみ**を候補とする。
+- 除外の結果 dev.to の候補が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
+- 分散は AUTHOR / ORG の件数上限という一般ルールのみで行い、特定の著者名・組織名を名指しで除外するリストを作ってはならない。
 
 ### 7. TechCrunch
 RSSを取得し、Python でパースする（`<description>` は複数行の CDATA で出力されるため、`re.DOTALL` と CDATA 展開が必須。単一行の grep/sed では概要が空になる）:
