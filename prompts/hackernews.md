@@ -20,14 +20,15 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
       - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）
         - 既知スキップドメインでスキップした場合も、3. の Wayback Machine フォールバックは必ず一度試すこと。ただしペイウォール記事はスナップショットが存在しない（arstechnica.com の記事 URL などで実測済み）か、スナップショット自体がペイウォール状態のことがあるため**ベストエフォート**扱いとし、取得できなければ 4. に進む
       - **元URL が `openai.com/index/<slug>` の場合**は、3. に進む前に `curl -sL https://openai.com/blog/rss.xml` を取得し、`<link>` が該当 slug に一致する `<item>` の `<description>`（1-2文のサマリー）を要約の一次情報として使い、取得できたらそれを採用して 3. 以降は行わない。該当 item が見つからなければ通常どおり 3. に進む
-      - **403 / paywall / 認証必須 / タイムアウト等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
+      - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
+        - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
       - **HTTP 200 で返っても、以下に該当する場合は「取得失敗」として扱い 2. に進む**（SPA がクライアントサイドで本文を描画するため、サーバーが返す HTML が空のシェルのみというケース。取得が「成功」扱いになるので見落としやすい）
         - レスポンスがページタイトルや meta description のみで本文が含まれない
         - 本文相当のテキストが 500 文字未満
         - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
    2. **JS レンダリング後の再取得**: 1. が上記の「HTTP 200 だが実質的なコンテンツなし」に該当した場合のみ、**servo-fetch skill** に従ってページを再取得する。本文が取得できたらそれを使い、失敗したら 3.（Wayback Machine フォールバック）に進む
-      - 403 / ボット検証 / ペイウォールで失敗したケースでは JS レンダリングしても内容は返らないため、**この手順は実行せず 3.（Wayback Machine フォールバック）に進む**
-   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が 403 / ペイウォール / 認証必須 / タイムアウトで失敗した場合、元URL が既知スキップドメインでスキップされた場合、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
+      - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォールで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
+   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウトで失敗した場合、元URL が既知スキップドメインでスキップされた場合、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
       - **WebFetch は使わず、必ず `curl` を使うこと。** `web.archive.org` / `archive.org` は WebFetch がツールレベルでブロックされている（`Claude Code is unable to fetch from ...`）が、curl からは正常にアクセスできる
       - a. スナップショットの有無を確認する
         ```
