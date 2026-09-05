@@ -105,7 +105,7 @@ JSON API を取得してパース（RSS にはスコア情報が含まれない�
 curl -s --max-time 15 'https://lobste.rs/hottest.json' | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-for item in data[:15]:
+for item in data:
     print('TITLE:', item['title'])
     print('URL:', item['url'])
     print('SCORE:', item['score'])
@@ -115,6 +115,12 @@ for item in data[:15]:
     print('---')
 "
 ```
+
+`/hottest.json` は1回の取得で25件を返し、その並び順は hotness 順であってスコア順ではない。
+実測で20位=49pt、22位=27pt、24位=370pt のように、高スコア記事がリスト後半に現れる。
+そのため**上位から順に採用せず、取得した全25件のスコアを見比べて選ぶこと**。
+件数を絞って取得すると高スコア記事を取りこぼす（`head` や `data[:N]` 等で出力を制限してはならない）。
+なお `?page=2` は無視され1ページ目と同じ内容を返すため、25件がこのソースの候補プールの上限である。
 
 各エントリの title, url, score, comment_count, tags を取得。タグ（programming, security, web 等）を品質フィルタとして活用してよい。
 
