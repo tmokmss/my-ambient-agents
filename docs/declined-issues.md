@@ -20,6 +20,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #501 | ai-watch | DeepMind ブログ記事の公開日が月単位でしか取れず日付フィルタが不正確なため、公開日の取得方法を改善する | 重複（`deepmind.google/blog/rss.xml` への切替済みで `pubDate` から日次精度の公開日が取得可能。HTML スクレイピングへの回帰案は採用しない） | 2026-08-26 |
 | #38 | geopolitics-dual-view | Kyiv Independent が RSS ではなく HTML（Next.js SPA）を返し取得不能なため、取得方法の変更や代替ウクライナ系ソースを追加する | 重複（PR #658 で Kyiv Independent はプロンプトから削除済み。代替として Ukrinform EN `ukrinform.net/rss/block-lastnews` を採用済みで、Ukrainska Pravda RSS ともども疎通確認済み） | 2026-08-28 |
 | #140 | geopolitics-dual-view | Tehran Times RSS が数日遅延・停止してイラン政府系視点が欠落するため、Press TV 等の代替イラン系ソースへ差し替える | 外部要因（上流の断続的な配信停止。2026-08-29 時点で `tehrantimes.com/rss` は HTTP 200・最新記事は約8時間前と正常稼働に復帰しており、直近14本のレポートでも取得失敗なし。代替案の Press TV は `/rss` `/rss.xml` `/rss/` すべて TLS 検証失敗で到達不能なため、稼働中のソースを死んだソースに置き換えることになる。IRNA `en.irna.ir/rss` も正常稼働中で政府系視点の欠落は発生していない） | 2026-08-29 |
+| #502 | ai-watch | arxiv が週末（土日）に新規論文なしとなる場合の代替コンテンツ戦略（フォールバック手順）を定義する | 重複（PR #702 / コミット 7b94459 で `prompts/ai-watch.md` に週末フォールバックを実装済み。空フィードが仕様であること、`arxiv.org/list/cs.AI/recent` からの抽出、`export.arxiv.org/api/query` フォールバック、日付ルールの扱い、レポートへの明記義務まで網羅されている。2026-08-31 のレポートで実際にフォールバックが機能して注目論文4件が掲載され、2026-09-05 時点でも両フォールバックの稼働を実測確認済み。「新規論文なしと明記して省略する」案は既存の『必ずフォールバックを試すこと』と矛盾するため採らない） | 2026-09-06 |
 
 ## 該当基準
 
