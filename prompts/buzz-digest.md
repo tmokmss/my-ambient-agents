@@ -37,8 +37,40 @@ for it in items:
 ### 2. Togetter (X/Twitterまとめ)
 RSSを取得してパース:
 - https://togetter.com/rss/hot
-各エントリの title, link, description を取得。
+各エントリの title, link を取得。
 はてなブックマークと Togetter の両方を取得したら、ピックアップ前に「重複排除」の「同一レポート内の重複（はてなブックマーク / Togetter）」に従い、両フィードに共通して出現する URL をチェックすること。
+
+このフィードの `description` は `title` の完全コピー（全10件が一致）であり、内容の手がかりを一切持たない。
+**`description` を解説文の根拠として使ってはならない。** `<content:encoded>` も存在しないので参照しない。
+解説文の材料は、次の手順で個別まとめページの `og:description` から取得する。
+
+重複排除まで終えて**掲載する3〜5件が確定してから**、その確定した件数分だけ `link` にアクセスすること
+（RSS 全10件に対して実行しない）。以下のように1回の Bash 呼び出しでループさせてよい:
+
+```bash
+for url in https://togetter.com/li/XXXXXXX https://togetter.com/li/YYYYYYY; do
+  code=$(curl -sL --max-time 20 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" -o /tmp/tg-page.html -w '%{http_code}' "$url")
+  echo "URL: $url"; echo "HTTP: $code"
+  python3 -c "
+import re, html
+s = open('/tmp/tg-page.html', encoding='utf-8', errors='replace').read()
+m = re.search(r'<meta[^>]+property=\"og:description\"[^>]*content=\"([^\"]*)\"', s)
+print('OGDESC:', html.unescape(m.group(1)) if m else '')
+"
+  echo '---'
+done
+```
+
+`og:description` にはまとめ内のツイート抜粋が 100〜200 文字程度入る。Bot 判定も JS レンダリングも不要で HTTP 200 が返る。
+
+- 解説文はこの `og:description` の内容を根拠に書くこと。**タイトルからの推測で内容を書いてはならない。**
+- `og:description` が空、または `HTTP` が 200 以外だったエントリは候補から外し、次点のまとめを繰り上げる
+  （繰り上げたまとめについても同じ手順で `og:description` を取得する）。取得できない場合に無理に件数を埋めてはならない。
+  **HTTP ステータスの確認は必須**で、まとめが削除されている等の 404 ページでも
+  「いま話題のXポストをエキスパートが独自に編集した…」というサイト共通の紹介文が `og:description` として返るため、
+  中身が空でないことだけでは成功と判断できない。このサイト共通文が返ってきた場合も取得失敗として扱う。
+- `og:description` からまとめのオチ・結論が読み取れた場合はそれを解説文に含め、
+  「続きが気になる」「オチは記事で」といったクリックベイト的な紹介にしないこと。
 
 ### 3. Google Trends (日本の検索トレンド)
 RSSを取得してパース:
