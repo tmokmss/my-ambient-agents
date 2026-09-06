@@ -101,7 +101,32 @@ for e in re.findall(r"<entry>(.*?)</entry>", s, re.S):
 ### 5. Hugging Face トレンド
 - https://huggingface.co/api/trending (JSON)
 - トレンドのモデル・データセット・スペースから注目のものをピックアップ
-- 各モデルのURLは https://huggingface.co/{id} の形式でリンクすること
+- **レスポンスはトップレベルが `{"recentlyTrending": [...]}` で、各要素は `{"repoData": {...}, "repoType": "model"|"dataset"|"space"}` の形**。
+  `id` / `likes` / `downloads` / `author` / `lastModified` / `pipeline_tag`（model のみ）/ `ai_short_description`（space のみ）は
+  **すべて `repoData` の配下**にあり、要素直下には存在しない（`item["id"]` は常に None になる）。
+  `modelId` / `repoId` / `likesCount` といったキーは存在しない。`downloads` は space で null になるため `or 0` でガードすること。
+  フラットな配列だと推測してパーサを書くと空を掴むので、以下をそのまま使う:
+
+```bash
+curl -sL --max-time 60 https://huggingface.co/api/trending | python3 -c '
+import sys, json
+d = json.load(sys.stdin)
+prefix = {"model": "", "dataset": "datasets/", "space": "spaces/"}
+for it in d.get("recentlyTrending", [])[:15]:
+    r = it.get("repoData", {})
+    t = it.get("repoType") or r.get("repoType") or "model"
+    rid = r.get("id", "?")
+    likes = r.get("likes") or 0
+    dl = r.get("downloads") or 0
+    tag = r.get("pipeline_tag") or r.get("ai_short_description") or ""
+    url = "https://huggingface.co/" + prefix.get(t, "") + rid
+    print(f"{t:<7} likes={likes:<6} dl={dl:<9} {rid}\n        {url}  {tag}")'
+```
+
+- **URL は種別ごとにプレフィックスが異なる**。model は `https://huggingface.co/{id}`、dataset は `https://huggingface.co/datasets/{id}`、
+  space は `https://huggingface.co/spaces/{id}`。トレンド上位にはデータセットも多く含まれるため、
+  一律に `https://huggingface.co/{id}` と書くと 404 リンクになる（上のスニペットが出力する URL をそのまま使えばよい）
+- 上記の抽出が空になる場合は API 構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
 ### 6. LLM リーダーボード（LMArena）
 - https://lmarena.ai/leaderboard (Chatbot Arena の現行公式サイト。Elo レーティングの変動を確認)
