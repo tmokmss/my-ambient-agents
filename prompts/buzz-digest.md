@@ -11,22 +11,35 @@ JSON のパースには jq を使うこと。
 ### 1. はてなブックマーク (日本のホットエントリ)
 RSSを取得してパース:
 - https://b.hatena.ne.jp/hotentry/general.rss (総合)
-各エントリの title, link, description, bookmarkcount を取得。
+
+このフィードは約 320KB・1200行あり、1エントリあたり `<content:encoded>` に大量の HTML が埋め込まれている。
+そのため `head` / `tail` で行数を制限すると後半エントリの `hatena:bookmarkcount` が欠落する
+（実測: `head -200` では 40 件中 5 件分の `hatena:bookmarkcount` しか取れない）。**`head` 等で出力を制限してはならない。**
+一方で raw XML をそのまま標準出力に流すと Bash の出力上限に達して切り詰められるため、
+必ず `-o /tmp/hb.rss` でファイルに保存し、Python でパースした集計結果だけを標準出力に出すこと（`cat /tmp/hb.rss` もしない）。
+
 このフィードは RSS 2.0 ではなく **RSS 1.0 (RDF)** 形式で、デフォルト名前空間 rss (http://purl.org/rss/1.0/) の要素を参照すること。
 名前空間を省いた `.//item` は必ず0件になる。また item は channel の子ではなく rdf:RDF 直下にある。
 bookmarkcount は名前空間 hatena (http://www.hatena.ne.jp/info/xmlns#) の要素。
 
-```python
+```bash
+curl -s --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" \
+  "https://b.hatena.ne.jp/hotentry/general.rss" -o /tmp/hb.rss
+python3 -c "
 import xml.etree.ElementTree as ET
 ns = {'rss': 'http://purl.org/rss/1.0/', 'hatena': 'http://www.hatena.ne.jp/info/xmlns#'}
-root = ET.parse('hb.rss').getroot()   # ルートは rdf:RDF
-items = root.findall('rss:item', ns)  # channel の子ではなく RDF 直下
+root = ET.parse('/tmp/hb.rss').getroot()   # ルートは rdf:RDF
+items = root.findall('rss:item', ns)       # channel の子ではなく RDF 直下
+print('COUNT:', len(items))
 for it in items:
-    title = it.findtext('rss:title', '', ns)
-    link  = it.findtext('rss:link', '', ns)
-    desc  = it.findtext('rss:description', '', ns)
-    bc    = it.findtext('hatena:bookmarkcount', '', ns)
+    print('[%s]' % it.findtext('hatena:bookmarkcount', '', ns), it.findtext('rss:title', '', ns))
+    print('  URL:', it.findtext('rss:link', '', ns))
+    print('  DESC:', (it.findtext('rss:description', '', ns) or '').strip()[:200])
+"
 ```
+
+各エントリの title, link, description, bookmarkcount を**全件**取得すること。
+`COUNT:` は 40 前後になるはずで、これを大きく下回る場合はパースに失敗している。
 
 正規表現でパースする場合、実タグは `<item rdf:about="...">` なので `<item>` ではなく `<item [^>]*>` にマッチさせること。
 パース結果が0件だった場合は「取得失敗」と判断する前に名前空間指定の誤りを疑い、上記の方法で取り直すこと。
