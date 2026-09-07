@@ -23,15 +23,18 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
         - この場合は既知スキップドメインと異なり、**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行しない**。サーバーは正しく PDF を返しているだけなので JS レンダリングしても得られるものはなく、Wayback のスナップショットも同じ PDF だからである。直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する
         - **例外: arXiv は先に URL を正規化する。** 元URL が `arxiv.org/pdf/<id>`（末尾に `v<N>` や `.pdf` が付く形を含む）の場合は `arxiv.org/abs/<id>` に書き換えたうえで、通常どおり WebFetch 以降のフロー（2. / 3. を含む）を実行する。`arxiv.org/abs/` は HTML を HTTP 200 で返すため、アブストラクトを要約の材料にできる（`arxiv.org/pdf/` は `application/pdf`）
       - **元URL が `openai.com/index/<slug>` の場合**は、3. に進む前に `curl -sL https://openai.com/blog/rss.xml` を取得し、`<link>` が該当 slug に一致する `<item>` の `<description>`（1-2文のサマリー）を要約の一次情報として使い、取得できたらそれを採用して 3. 以降は行わない。該当 item が見つからなければ通常どおり 3. に進む
-      - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
+      - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
+        - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
+          - **証明書検証を無効化する回避策（`curl -k` / `--insecure` / `NODE_TLS_REJECT_UNAUTHORIZED=0` 等）は使用禁止。** 検証を切って取得を試みてはならない。証明書が壊れているサイトの本文は 3. 以降のフォールバックで代替する
       - **HTTP 200 で返っても、以下に該当する場合は「取得失敗」として扱い 2. に進む**（SPA がクライアントサイドで本文を描画するため、サーバーが返す HTML が空のシェルのみというケース。取得が「成功」扱いになるので見落としやすい）
         - レスポンスがページタイトルや meta description のみで本文が含まれない
         - 本文相当のテキストが 500 文字未満
         - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
    2. **JS レンダリング後の再取得**: 1. が上記の「HTTP 200 だが実質的なコンテンツなし」に該当した場合のみ、**servo-fetch skill** に従ってページを再取得する。本文が取得できたらそれを使い、失敗したら 3.（Wayback Machine フォールバック）に進む
-      - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォールで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
-   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウトで失敗した場合、元URL が既知スキップドメインでスキップされた場合、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
+      - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォール / SSL・TLS 接続エラーで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない（TLS 失敗は「HTTP 200 だが実質的なコンテンツなし」にも該当しないので、そもそも 2. の対象外である）。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
+   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
+      - スナップショットの取得先は `web.archive.org` であり、その正規証明書で TLS 接続する。**元サイトの証明書エラーはここでは再現しないため、SSL/TLS エラーで失敗したときこそ 5.（コメントベース要約）に飛ばさず必ずこの手順を試すこと**
       - **WebFetch は使わず、必ず `curl` を使うこと。** `web.archive.org` / `archive.org` は WebFetch がツールレベルでブロックされている（`Claude Code is unable to fetch from ...`）が、curl からは正常にアクセスできる
       - a. スナップショットの有無を確認する
         ```
@@ -55,6 +58,7 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
       - **パスが `.pdf` で終わる代替URL も 1. と同じ理由（WebFetch がテキストを抽出できない）で対象外とする。** ただし `arxiv.org/pdf/<id>` は 1. と同様に `arxiv.org/abs/<id>` に書き換えれば試行してよい
       - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
       - 複数ヒットした場合は最初に成功したものを採用する
+      - 代替URL が SSL/TLS 証明書エラーで失敗した場合も、証明書検証を無効化して再試行することはせず、次の候補 URL に進む（候補が尽きたら 5. に進む）
       - 代替URL の取得結果も 1. と同じ基準で判定し、「HTTP 200 だが実質的なコンテンツなし」なら servo-fetch skill での再取得を試みてよい
    5. **コメントベース要約**: 元URL・Wayback スナップショット・代替URL のいずれも取得できない場合は、コメント本文から記事内容を推測して要約する
 
