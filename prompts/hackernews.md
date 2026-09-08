@@ -23,6 +23,15 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
         - この場合は既知スキップドメインと異なり、**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行しない**。サーバーは正しく PDF を返しているだけなので JS レンダリングしても得られるものはなく、Wayback のスナップショットも同じ PDF だからである。直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する
         - **例外: arXiv は先に URL を正規化する。** 元URL が `arxiv.org/pdf/<id>`（末尾に `v<N>` や `.pdf` が付く形を含む）の場合は `arxiv.org/abs/<id>` に書き換えたうえで、通常どおり WebFetch 以降のフロー（2. / 3. を含む）を実行する。`arxiv.org/abs/` は HTML を HTTP 200 で返すため、アブストラクトを要約の材料にできる（`arxiv.org/pdf/` は `application/pdf`）
       - **元URL が `openai.com/index/<slug>` の場合**は、3. に進む前に `curl -sL https://openai.com/blog/rss.xml` を取得し、`<link>` が該当 slug に一致する `<item>` の `<description>`（1-2文のサマリー）を要約の一次情報として使い、取得できたらそれを採用して 3. 以降は行わない。該当 item が見つからなければ通常どおり 3. に進む
+      - **元URL のパス（クエリ文字列・フラグメントを除く）が `/@<ユーザー名>/<数字のみのID>` 形式の場合は、ドメインを問わず Mastodon/fediverse の投稿ページとみなし、WebFetch を試行しない。** 例: `grapheneos.social/@GrapheneOS/117057099753905023`, `mathstodon.xyz/@mjd/115096720350507897`, `beige.party/@intransitivelie/117057396732763183`
+        - 代わりに公開 REST API を curl で叩き、返却 JSON の `content` フィールド（HTML）からタグを除去したテキストを要約の一次情報として使う。認証は不要で、投稿本文が完全な形で返る（grapheneos.social / mathstodon.xyz / beige.party で実測済み）
+          ```
+          curl -sS --max-time 30 "https://<ホスト名>/api/v1/statuses/<数字ID>"
+          ```
+        - `spoiler_text` が空文字列でない場合は CW（内容警告）として要約に併記してよい
+        - HTTP 200 かつ `content` が非空なら**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**Mastodon の投稿は短文であることが多いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
+        - HTTP 404 / `{"error": ...}` 形式の JSON（削除済み投稿など）/ `content` が空、のいずれかの場合は、`.pdf` と同様に **2. も 3. も実行せず**直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。Mastodon の投稿ページはクライアントサイド描画のため、servo-fetch で JS レンダリングしてもインスタンスの About ページしか得られず、Wayback のスナップショットも "To use the Mastodon web application, please enable JavaScript" しか含まないことを実測済みだからである
+        - インスタンスは多数存在し列挙では追随できないため、**この判定は既知スキップドメインリストではなく上記の URL パターンで行う**（リスト自体には追加しない）
       - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
@@ -56,6 +65,7 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
       - **`web.archive.org` / `archive.org` は WebFetch 経由のみ禁止**（ツールレベルでブロックされているため）。これらへのアクセスは 3. と同じ curl 手順で行うこと。コメント中に `https://web.archive.org/web/<timestamp>/<url>` 形式の URL があった場合は、`<timestamp>` の直後に `if_` を挿入した URL を `curl -sSL --max-time 60` で取得する
       - 1. の既知スキップドメインに該当する URL も同様に対象外とする
       - **パスが `.pdf` で終わる代替URL も 1. と同じ理由（WebFetch がテキストを抽出できない）で対象外とする。** ただし `arxiv.org/pdf/<id>` は 1. と同様に `arxiv.org/abs/<id>` に書き換えれば試行してよい
+      - **代替URL のパスが `/@<ユーザー名>/<数字のみのID>` 形式（Mastodon/fediverse の投稿）だった場合は、WebFetch ではなく 1. と同じ `https://<ホスト名>/api/v1/statuses/<数字ID>` の curl 手順で本文を取得する**
       - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
       - 複数ヒットした場合は最初に成功したものを採用する
       - 代替URL が SSL/TLS 証明書エラーで失敗した場合も、証明書検証を無効化して再試行することはせず、次の候補 URL に進む（候補が尽きたら 5. に進む）
