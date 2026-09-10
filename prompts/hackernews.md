@@ -24,7 +24,7 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
    - 取得したリプライにも手順3と同じ除外条件を適用し、該当するものはレポートに含めない。除外した結果リプライが0件になったコメントは、kids が空の場合と同様に「リプライなし」として扱う
 5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
    1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 3.（Wayback Machine フォールバック）に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用
-      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）
+      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）, science.org（サブドメイン含む）
         - 既知スキップドメインでスキップした場合も、3. の Wayback Machine フォールバックは必ず一度試すこと。ただしペイウォール記事はスナップショットが存在しない（arstechnica.com の記事 URL などで実測済み）か、スナップショット自体がペイウォール状態のことがあるため**ベストエフォート**扱いとし、取得できなければ 4. に進む
       - **元URL のパス（クエリ文字列・フラグメントを除く）が `.pdf` で終わる場合（大文字小文字を問わない）は WebFetch を試行しない。** PDF は HTTP 200 / `Content-Type: application/pdf` で正常に返るため下記の 4xx/5xx 失敗分岐に乗らず、それでいて WebFetch は圧縮ストリーム（FlateDecode / ASCII85 等）のまま返すため本文を抽出できない。usenix.org / gwern.net / web.mit.edu / github.com などドメインを問わず発生する
         - この場合は既知スキップドメインと異なり、**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行しない**。サーバーは正しく PDF を返しているだけなので JS レンダリングしても得られるものはなく、Wayback のスナップショットも同じ PDF だからである。直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する
