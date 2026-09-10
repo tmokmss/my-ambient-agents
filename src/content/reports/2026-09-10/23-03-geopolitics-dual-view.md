@@ -16,8 +16,8 @@ tags: ["geopolitics", "yemen", "houthi", "hormuz", "red-sea", "lebanon", "iran",
 
 ### 湾岸(UAE)メディアの報道
 
-- **[イエメン政府筋:フーシ派がモカを制圧](https://www.skynewsarabia.com/middle-east/1891137)**（Sky News Arabia 🇦🇪, 9/10）— イエメン政府当局者3人の情報として、イラン同盟下のフーシ派がバブ・エル・マンデブ海峡に面するモカ市を制圧したと報じた。
-- **[モカで大規模な避難、政府軍はアデンへ撤退](https://www.skynewsarabia.com/middle-east/1891076)**（Sky News Arabia 🇦🇪, 9/10）— 政府軍がホデイダ州ハイス・ホカ両管区、及びタイズ州モカ市から撤退し、住民のアデンへの大規模避難が起きていると報じた。
+- **[イエメン政府筋:フーシ派がモカを制圧](https://www.skynewsarabia.com/middle-east/1891137-%D9%85%D8%B5%D8%A7%D8%AF%D8%B1-%D8%A7%D9%84%D8%AD%D9%88%D8%AB%D9%8A%D9%88%D9%86-%D9%8A%D8%B3%D9%8A%D8%B7%D8%B1%D9%88%D9%86-%D8%A7%D9%84%D9%85%D8%AE%D8%A7)**（Sky News Arabia 🇦🇪, 9/10）— イエメン政府当局者3人の情報として、イラン同盟下のフーシ派がバブ・エル・マンデブ海峡に面するモカ市を制圧したと報じた。
+- **[モカで大規模な避難、政府軍はアデンへ撤退](https://www.skynewsarabia.com/middle-east/1891076-%D8%A7%D9%84%D9%8A%D9%85%D9%86-%D8%A7%D9%84%D9%85%D8%AE%D8%A7-%D8%AA%D8%B4%D9%87%D8%AF-%D8%AD%D8%B1%D9%83%D8%A9-%D9%86%D8%B2%D9%88%D8%AD-%D9%88%D8%A7%D8%B3%D8%B9%D8%A9-%D8%B9%D8%AF%D9%86)**（Sky News Arabia 🇦🇪, 9/10）— 政府軍がホデイダ州ハイス・ホカ両管区、及びタイズ州モカ市から撤退し、住民のアデンへの大規模避難が起きていると報じた。
 - **[フーシ派がイエメンの紅海の要衝モカ港を制圧、サウジへの攻撃も激化](https://www.thenationalnews.com/news/mena/2026/09/10/houthis-yemen-mokha-port-red-sea/)**（The National 🇦🇪, 9/10）— サウジアラビアへの攻撃激化と並行してモカ港制圧が起きたと報じた。
 - **[歴史的なコーヒー港モカの陥落が持つ意味](https://www.thenationalnews.com/news/gulf/2026/09/10/why-fall-of-yemens-historic-coffee-port-mokha-matters/)**（The National 🇦🇪, 9/10）— モカ陥落の戦略的・歴史的な含意を分析した。
 - **[イエメン戦争とより広い米・イラン対立の核心にある2つの火山島](https://www.thenationalnews.com/news/mena/2026/09/10/the-two-volcanic-islands-at-heart-of-yemens-war-and-wider-us-iran-conflict/)**（The National 🇦🇪, 9/10）— ペリム島など火山島がバブ・エル・マンデブの制海権を左右する要衝だと分析した。
@@ -26,7 +26,7 @@ tags: ["geopolitics", "yemen", "houthi", "hormuz", "red-sea", "lebanon", "iran",
 
 ### サウジメディアの報道
 
-- **[アルアリミ議長、バブ・エル・マンデブを"第二のホルムズ"にすることに警告](https://saudigazette.com.sa/article/664474/saudi-arabia/al-alimi-warns-against-turning-bab-al-mandab-into-another-hormu)**（Saudi Gazette 🇸🇦, 9/10）— イエメン大統領指導評議会議長アルアリミ氏が、国家機構回復と全土への統治拡大の目標から後退しないと述べ、同海峡を「第二のホルムズ」にする試みに警告したと報じた。
+- **[アルアリミ議長、バブ・エル・マンデブを"第二のホルムズ"にすることに警告](https://saudigazette.com.sa/article/664474/saudi-arabia/al-alimi-warns-against-turning-bab-al-mandab-into-another-hormuz)**（Saudi Gazette 🇸🇦, 9/10）— イエメン大統領指導評議会議長アルアリミ氏が、国家機構回復と全土への統治拡大の目標から後退しないと述べ、同海峡を「第二のホルムズ」にする試みに警告したと報じた。
 - **[連合軍、フーシ派の攻撃継続に断固対応を約束](https://saudigazette.com.sa/article/664449/saudi-arabia/coalitionvows-decisive-responseto-persistent-houthiattacks-on-saudiarabia)**（Saudi Gazette 🇸🇦, 9/9）— 連合軍報道官が、フーシ派によるサウジの国家資産・インフラへの攻撃継続を非難したと報じた。
 
 ### カタールメディアの報道
@@ -80,7 +80,7 @@ tags: ["geopolitics", "yemen", "houthi", "hormuz", "red-sea", "lebanon", "iran",
 
 ### 湾岸(UAE)メディアの報道
 
-- **[ホルムズから紅海へ ― 対イラン対立はどこへ向かうのか](https://www.skynewsarabia.com/world/1891093)**（Sky News Arabia 🇦🇪, 9/10）— 米・イラン間の軍事的エスカレーションの兆候がホルムズ海峡から紅海まで拡大しており、交渉路線の停滞とイランの地下核施設強化・地域代理勢力の動員が並行していると分析した。
+- **[ホルムズから紅海へ ― 対イラン対立はどこへ向かうのか](https://www.skynewsarabia.com/world/1891093-%D9%87%D8%B1%D9%85%D8%B2-%D8%A7%D9%84%D8%A8%D8%AD%D8%B1-%D8%A7%D9%84%D8%A3%D8%AD%D9%85%D8%B1-%D8%A5%D9%84%D9%89-%D8%AA%D8%AA%D8%AC%D9%87-%D8%A7%D9%84%D9%85%D9%88%D8%A7%D8%AC%D9%87%D8%A9-%D8%A5%D9%8A%D8%B1%D8%A7%D9%86)**（Sky News Arabia 🇦🇪, 9/10）— 米・イラン間の軍事的エスカレーションの兆候がホルムズ海峡から紅海まで拡大しており、交渉路線の停滞とイランの地下核施設強化・地域代理勢力の動員が並行していると分析した。
 
 ### 視点の対比
 
@@ -93,15 +93,15 @@ tags: ["geopolitics", "yemen", "houthi", "hormuz", "red-sea", "lebanon", "iran",
 ### イスラエルメディアの報道
 
 - **[IDF、ヒズボラのトンネル破壊後アリターヘル安全地帯の完成を発表](https://www.jpost.com/israel-news/defense-news/article-908338)**（Jerusalem Post 🇮🇱, 9/10）— イスラエル軍がアリターヘル高地でのヒズボラのトンネル破壊を経て、安全地帯の作戦統制を完成させたと発表したと報じた。
-- **[IDF、アリターヘル高地のヒズボラのトンネルを破壊 ― イランに「反応すれば痛手を負う」と警告](https://www.ynet.co.il/news/article/sj4q5no01ce)**（Ynet 🇮🇱, 9/10）— イスラエル軍がアリターヘル高地のヒズボラのトンネルを破壊したと発表し、イランに対し「反応すれば痛手を負う」と警告したと報じた。
-- **[指揮所・発電機・キッチンまで備えたトンネル網 ― アリターヘル高地で破壊されたテロ拠点](https://www.ynet.co.il/news/article/hjcxi11q1x)**（Ynet 🇮🇱, 9/10）— 指揮所・発電機・厨房まで備えたヒズボラのトンネル網が、破壊された「テロ拠点」の実態だったと報じた。
-- **[IDF、レバノン南部アリターヘル高地のヒズボラ拠点を破壊](https://www.haaretz.co.il/news/politics/2026-09-10/ty-article/.premium/000001a0-8c1a-d1f5-a1bb-fc1a5d0f0000)**（Haaretz 🇮🇱, 9/10）— イスラエル軍がレバノン南部アリターヘル高地のヒズボラ拠点を破壊したと報じた。
+- **[IDF、アリターヘル高地のヒズボラのトンネルを破壊 ― イランに「反応すれば痛手を負う」と警告](https://www.ynet.co.il/news/article/skph9iefml)**（Ynet 🇮🇱, 9/10）— イスラエル軍がアリターヘル高地のヒズボラのトンネルを破壊したと発表し、イランに対し「反応すれば痛手を負う」と警告したと報じた。
+- **[指揮所・発電機・キッチンまで備えたトンネル網 ― アリターヘル高地で破壊されたテロ拠点](https://www.ynet.co.il/news/article/rjrb6dlfge)**（Ynet 🇮🇱, 9/10）— 指揮所・発電機・厨房まで備えたヒズボラのトンネル網が、破壊された「テロ拠点」の実態だったと報じた。
+- **[IDF、レバノン南部アリターヘル高地のヒズボラ拠点を破壊](https://www.haaretz.co.il/news/politics/2026-09-10/ty-article/000001a0-8c36-d9dc-a9a9-8cf6bb4c0000)**（Haaretz 🇮🇱, 9/10）— イスラエル軍がレバノン南部アリターヘル高地のヒズボラ拠点を破壊したと報じた。
 
 ### 湾岸(UAE)メディアの報道
 
-- **[イスラエル、アリターヘル高地のヒズボラの地下インフラを破壊](https://www.skynewsarabia.com/middle-east/1891259)**（Sky News Arabia 🇦🇪, 9/10）— ネタニヤフ首相が、イスラエル軍がレバノン南部アリターヘル高地のヒズボラの地下インフラを破壊していると述べたと報じた。
-- **[南レバノンで地震 ― イスラエルのアリターヘル爆破と同時発生](https://www.skynewsarabia.com/middle-east/1891265)**（Sky News Arabia 🇦🇪, 9/10）— 米地質調査所(USGS)が南レバノンでマグニチュード4.1の地震を記録したと確認し、イスラエル軍によるアリターヘル高地の作戦統制完成発表と時期が一致したと報じた。
-- **[アリターヘル爆破 ― 米当局者がワシントンの立場を明かす](https://www.skynewsarabia.com/middle-east/1891267)**（Sky News Arabia 🇦🇪, 9/10）— イスラエル軍がアリターヘル高地の地下インフラ破壊を発表する一方、米国は対話継続を確認し、次回の協議はローマで開かれる見通しだと報じた。
+- **[イスラエル、アリターヘル高地のヒズボラの地下インフラを破壊](https://www.skynewsarabia.com/middle-east/1891259-%D8%A5%D8%B3%D8%B1%D8%A7%D8%A6%D9%8A%D9%84-%D8%AA%D8%AF%D9%85%D8%B1-%D8%A8%D9%86%D9%8A%D8%A9-%D8%AA%D8%AD%D8%AA%D9%8A%D8%A9-%D9%84%D8%AD%D8%B2%D8%A8-%D8%A7%D9%84%D9%84%D9%87-%D9%85%D8%B1%D8%AA%D9%81%D8%B9-%D8%B9%D9%84%D9%8A-%D8%A7%D9%84%D8%B7%D8%A7%D9%87%D8%B1)**（Sky News Arabia 🇦🇪, 9/10）— ネタニヤフ首相が、イスラエル軍がレバノン南部アリターヘル高地のヒズボラの地下インフラを破壊していると述べたと報じた。
+- **[南レバノンで地震 ― イスラエルのアリターヘル爆破と同時発生](https://www.skynewsarabia.com/middle-east/1891265-%D9%87%D8%B2%D8%A9-%D8%AC%D9%86%D9%88%D8%A8-%D9%84%D8%A8%D9%86%D8%A7%D9%86-%D8%AA%D8%B2%D8%A7%D9%85%D9%86%D8%A7-%D8%AA%D9%81%D8%AC%D9%8A%D8%B1%D8%A7%D8%AA-%D8%A5%D8%B3%D8%B1%D8%A7%D8%A6%D9%8A%D9%84-%D8%B9%D9%84%D9%8A-%D8%A7%D9%84%D8%B7%D8%A7%D9%87%D8%B1)**（Sky News Arabia 🇦🇪, 9/10）— 米地質調査所(USGS)が南レバノンでマグニチュード4.1の地震を記録したと確認し、イスラエル軍によるアリターヘル高地の作戦統制完成発表と時期が一致したと報じた。
+- **[アリターヘル爆破 ― 米当局者がワシントンの立場を明かす](https://www.skynewsarabia.com/middle-east/1891267-%D8%AA%D9%81%D8%AC%D9%8A%D8%B1%D8%A7%D8%AA-%D8%B9%D9%84%D9%8A-%D8%A7%D9%84%D8%B7%D8%A7%D9%87%D8%B1-%D9%85%D8%B3%D8%A4%D9%88%D9%84-%D8%A3%D9%85%D9%8A%D8%B1%D9%83%D9%8A-%D9%8A%D9%83%D8%B4%D9%81-%D9%85%D9%88%D9%82%D9%81-%D9%88%D8%A7%D8%B4%D9%86%D8%B7%D9%86)**（Sky News Arabia 🇦🇪, 9/10）— イスラエル軍がアリターヘル高地の地下インフラ破壊を発表する一方、米国は対話継続を確認し、次回の協議はローマで開かれる見通しだと報じた。
 
 ### カタールメディアの報道
 
@@ -141,7 +141,7 @@ tags: ["geopolitics", "yemen", "houthi", "hormuz", "red-sea", "lebanon", "iran",
 ### 湾岸(UAE)メディアの報道
 
 - **[UAE、アルジェリアの断交に反応](https://www.thenationalnews.com/news/uae/2026/09/10/uae-responds-to-algeria-severing-diplomatic-ties/)**（The National 🇦🇪, 9/10）— UAE側の反応を報じた。
-- **[UAE外務省、全ての国との関係を重視すると表明](https://www.skynewsarabia.com/middle-east/1891252)**（Sky News Arabia 🇦🇪, 9/10）— UAE外務省が声明で、全ての国との関係への評価と発展への意欲を強調したと報じた。
+- **[UAE外務省、全ての国との関係を重視すると表明](https://www.skynewsarabia.com/middle-east/1891252-%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA-%D8%AA%D8%A4%D9%83%D8%AF-%D8%AD%D8%B1%D8%B5%D9%87%D8%A7-%D8%B9%D9%84%D8%A7%D9%82%D8%A7%D8%AA%D9%87%D8%A7-%D9%85%D8%B9-%D8%A7%D9%84%D8%AF%D9%88%D9%84-%D9%84%D9%85%D8%B5%D9%84%D8%AD%D8%A9-%D8%A7%D9%84%D8%B4%D8%B9%D9%88%D8%A8)**（Sky News Arabia 🇦🇪, 9/10）— UAE外務省が声明で、全ての国との関係への評価と発展への意欲を強調したと報じた。
 
 ### 視点の対比
 
