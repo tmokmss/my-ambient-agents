@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の21ソースからRSSを取得する。
+以下の22ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -47,6 +47,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 | 19 | CGTN Opinion | 中国（国営・論説） | 英語 | https://www.cgtn.com/subscribe/rss/section/opinion.xml |
 | 20 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
 | 21 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
+| 22 | Dawn | パキスタン（主要英字紙） | 英語 | https://www.dawn.com/feeds/home |
 
 ## 引用リンクの扱い
 
@@ -57,6 +58,13 @@ BBC 系フィード（BBC Persian / BBC Middle East / BBC Chinese）は、URL �
 - ライブブログ URL しか存在しない場合は引用してよい（重要速報が欠落するのを避けるため、単純にスキップはしない）。ただしリンクの直後に `（⚠ ライブブログ・随時更新）` と明記する。
   - 例: `- **[記事タイトル日本語訳](元記事URL)**（⚠ ライブブログ・随時更新）（BBC Persian 🇬🇧, M/D）— 要約`
 - ライブブログ項目は `pubDate` が空のことがある。その場合は「日付の扱い」の 24時間 / 2-3日フィルタを適用できないため、ライブブログ本文の最新エントリから日付を確認する。確認できない場合は取り上げない。
+
+## Dawn（パキスタン）フィードの扱い
+
+Dawn のフィードは各アイテムの `description` に記事本文がほぼ全文入るため、1フィードで 300-400KB に達する。
+curl の生出力をそのまま読まず、title / link / pubDate を抽出し、`description` は先頭300文字程度に切り詰めてから扱うこと。
+また Dawn は Cloudflare 配下にあり、短時間に連続リクエストすると HTTP 429（error code: 1015）を返す。
+1回の実行につきリクエストは1回に留め、429 が返った場合はリトライせずスキップする。
 
 ## 取得失敗時の対応
 
