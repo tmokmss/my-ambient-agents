@@ -93,9 +93,29 @@ popular-items はビュー数・いいね数ベースのランキングであり
 上記基準を満たす記事が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
 
 ### 4. AWS Whats New
-RSSを取得してパース:
-- https://aws.amazon.com/about-aws/whats-new/recent/feed/
+RSSを取得し、Python でパースする（`<description>` は複数行の CDATA の中で HTML エスケープされた `<p>` タグを含むため、CDATA 展開 → `html.unescape` → タグ除去 の順で処理する。タグ除去を先に行うとエスケープが解けた `<p>` が本文に残る）:
+
+```bash
+curl -s --max-time 15 'https://aws.amazon.com/about-aws/whats-new/recent/feed/' | python3 -c "
+import sys, re, html
+d = sys.stdin.read()
+def unwrap(s):
+    m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
+    s = m.group(1) if m else s
+    s = html.unescape(s)
+    s = re.sub(r'<[^>]+>', ' ', s)
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
+    g = lambda t: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (t, t), it, re.S))
+    print('TITLE:', g('title')); print('URL:', g('link').strip()); print('DATE:', g('pubDate')); print('DESC:', g('description')[:200]); print('---')
+" > /tmp/aws-whatsnew.txt
+```
+
 各エントリの title, link, pubDate, description を取得。
+
+- 出力は全件で 40KB 前後になり、標準出力にそのまま流すと Bash の出力上限に達して先頭が切り詰められる（persisted-output truncation）。上記のように必ず `/tmp/aws-whatsnew.txt` へリダイレクトすること。
+- リダイレクト後、**中身は Read ツールで `/tmp/aws-whatsnew.txt` を直接読む**。`cat` でファイル全体を標準出力に出し直すと同じ truncation が起きる。
+- `head` や `[:N]` で取得件数を絞ってはならない。後述の通り選別は取得した全件から行うため、件数を絞ると機能アップデート系の候補を取りこぼす。出力量は `description` を 200 文字に切り詰めることで抑えており、件数を減らす必要はない。
 
 このフィードは1回の取得で100件前後を返し、そのうち相当数が既存サービスの提供範囲拡大のみの告知（既存機能・既存インスタンスタイプが新しいリージョンで使えるようになった、という内容）で占められる。
 これらは利用可能な場所が増えただけで開発者の実装や設計判断を変えないため、**新着順にそのまま採用せず、取得した全件から次の基準で選ぶ**こと。
