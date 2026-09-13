@@ -24,6 +24,41 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 **User-Agent（`-A`）を省略すると TASS 等が 403 を返すため必ず付与すること。**
 各ソースから title, link, pubDate, description を抽出し、地政学・紛争・安全保障に関連する記事をピックアップする。
 
+### RSS 取得の実行方法
+
+取得はシェルのバックグラウンド実行（`&` + `wait`）で並列化せず、for ループで**逐次**実行すること。
+バックグラウンドジョブからの書き込みは実行環境によって失われることがあり、
+`-w "%{http_code}"` が 200 を返しているのに出力ファイルが存在しない、という事象が起きる。
+
+- **1回の Bash ツール呼び出しの中で、取得から確認までを完結させる。**
+  別の呼び出しで `/tmp` の中身を参照しない（呼び出しをまたぐとファイルや作業ディレクトリが保持されない場合がある）。
+- **`&` による並列実行と `wait` は使わない。** for ループで1ソースずつ完了を待ってから次へ進む。
+- **`cd` に依存せず、`-o` には必ず絶対パス**（`/tmp/rss/<ソース名>.xml`）を指定する。
+  `cd` はバックグラウンドジョブや別の呼び出しには伝播しない。
+- 取得直後に同じ呼び出しの中で `ls -la /tmp/rss/` を実行し、
+  **HTTP ステータスだけでなくファイルサイズで成功を判定する。**
+  サイズが 0 または極端に小さいファイルは取得失敗として扱う。
+
+```bash
+mkdir -p /tmp/rss
+UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の22ソースを列挙する）
+while read -r name url; do
+  [ -z "$name" ] && continue
+  code=$(curl -sL --connect-timeout 10 --max-time 30 -A "$UA" \
+    -o "/tmp/rss/${name}.xml" -w "%{http_code}" "$url" < /dev/null)
+  echo "$name $code"
+done <<'EOF'
+pravda https://www.pravda.com.ua/rss/
+ukrinform https://www.ukrinform.net/rss/block-lastnews
+tass https://tass.com/rss/v2.xml
+EOF
+ls -la /tmp/rss/
+```
+
+逐次実行のため全ソースの取得に数十秒かかるが、ワークフローの実行時間には十分収まる。
+各ソースへのリクエストは1回だけで、失敗してもリトライはしない（「取得失敗時の対応」を参照）。
+
 | # | ソース名 | 国/立場 | 言語 | RSS URL |
 |---|----------|---------|------|---------|
 | 1 | Ukrainska Pravda | ウクライナ | ウクライナ語 | https://www.pravda.com.ua/rss/ |
