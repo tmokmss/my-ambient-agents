@@ -128,6 +128,67 @@ for it in d.get("recentlyTrending", [])[:15]:
   一律に `https://huggingface.co/{id}` と書くと 404 リンクになる（上のスニペットが出力する URL をそのまま使えばよい）
 - 上記の抽出が空になる場合は API 構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
+#### 説明文の補完（必須）
+
+**trending API の `repoData` に `description` キーは存在しない**（空文字ではなく不在）。
+上のスニペットから得られるのは `pipeline_tag` 程度で、「何ができるモデルか」は一切分からない。
+補完せずに書くと「詳細は非公開」「詳細不明」といった中身のないレポートになるため、以下を必ず行うこと。
+
+- **`https://huggingface.co/api/models/{id}` は叩かないこと。** レスポンスに `description` は含まれず、
+  `cardData` も `library_name` / `license` / `pipeline_tag` / `tags` 程度しか持たない。
+  `https://huggingface.co/api/models/{id}/readme` は HTTP 404 なので使わないこと
+- **個別モデルページ（`https://huggingface.co/{id}`）の HTML を取得して `og:description` を読むのは禁止。**
+  全ページ共通の「We're on a journey to advance and democratize artificial intelligence...」しか返らず、説明として無価値
+- **レポートに載せる 3-5 件を先に絞り込んでから、その件数分だけ実行する。** トレンド30件すべてに実行しないこと
+
+**model の場合** — model card（`raw/main/README.md`）を取得する。フロントマター・HTML・コードブロック・バッジ画像を
+除去した先頭2000字を表示するので、それを読んで**自分の言葉で1-2文に要約する**:
+
+````bash
+curl -sL --max-time 40 -w "\n__HTTP__%{http_code}" "https://huggingface.co/{id}/raw/main/README.md" | python3 -c '
+import sys, re
+raw = sys.stdin.read().replace("\r\n", "\n")
+code = raw.rsplit("__HTTP__", 1)[-1].strip()
+s = raw.rsplit("\n__HTTP__", 1)[0]
+if code != "200":
+    print(f"SKIP: README 取得不可 (HTTP {code})"); sys.exit()
+s = re.sub(r"\A\s*---\n.*?\n---\n", "", s, flags=re.S)
+for p in (r"<!--.*?-->", r"<style.*?</style>", r"<script.*?</script>", r"```.*?```"):
+    s = re.sub(p, "", s, flags=re.S)
+s = re.sub(r"<[^>]+>", "", s)
+s = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", s)
+s = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", s)
+s = s.replace("&nbsp;", " ")
+s = re.sub(r"[ \t]+\n", "\n", s)
+s = re.sub(r"\n{3,}", "\n\n", s)
+print(s.strip()[:2000])'
+````
+
+- `{id}` にはトレンド出力の id（例: `Qwen/Qwen3.8-27B`）をそのまま入れる
+- **README が CRLF 改行のリポジトリがあるため、`\r\n` の正規化（3行目）を省かないこと**（Qwen 系で実測）。
+  省くとステータスコードの判定に失敗する
+- 先頭の YAML フロントマターと、README 冒頭のバッジ/リンク行（`🤗 Demo · GitHub · Paper` のような羅列）は
+  説明文ではないので使わない。`## Introduction` / `## Highlights` や最初の散文段落を探して要約の材料にする
+- 出力をそのまま貼り付けず、必ず日本語に要約して書くこと
+
+**dataset の場合** — README を取りに行くより `https://huggingface.co/api/datasets/{id}` の `description`
+（README のプレーンテキスト化）が安価で確実。**model 用の `/api/models/{id}` には `description` が無いが、
+dataset 側にはある**という非対称に注意:
+
+```bash
+curl -sL --max-time 30 "https://huggingface.co/api/datasets/{id}" | python3 -c '
+import sys, json, re
+d = json.load(sys.stdin)
+t = re.sub(r"\s+", " ", d.get("description") or "").strip()
+print(t[:1000] if t else "SKIP: description なし")'
+```
+
+**space の場合** — trending API の `repoData.ai_short_description` に既に1行説明が入っているため、追加フェッチは不要。
+
+**取得できなかった場合** — HTTP 401（gated リポジトリ）や 404（削除・非公開化）が返ったら、
+その項目は**別のトレンド項目に差し替える**。
+`pipeline_tag` / `likes` / `downloads` / `numParameters` だけから用途を推測して断定的に書いてはならない。
+
 ### 6. LLM リーダーボード（LMArena）
 - https://lmarena.ai/leaderboard (Chatbot Arena の現行公式サイト。Elo レーティングの変動を確認)
 - **https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard は使用しないこと。** LMArena への移管後に更新が止まった静的スナップショットで、HTML は iframe/JS シェルのみのため curl では実データが一切取得できない
@@ -196,6 +257,7 @@ arxiv から注目の論文を3-5件ピックアップ。
 ## オープンソース・モデル
 Hugging Face のトレンドから注目のモデル・ツールを3-5件ピックアップ。
 - **[名前](url)** - 何ができるか・なぜ注目かを1-2文で解説
+- 解説は README（dataset は API の `description`、space は `ai_short_description`）の記述に基づいて書く。取得できなかった項目は推測で埋めず、別のトレンド項目に差し替えること
 
 ## ベンチマーク・リーダーボード
 LMArena やその他ベンチマークの変動があれば報告。なければ省略。
