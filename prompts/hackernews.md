@@ -24,8 +24,9 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
    - 取得したリプライにも手順3と同じ除外条件を適用し、該当するものはレポートに含めない。除外した結果リプライが0件になったコメントは、kids が空の場合と同様に「リプライなし」として扱う
 5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
    1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 3.（Wayback Machine フォールバック）に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用
-      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）, science.org（サブドメイン含む）, reuters.com（サブドメイン含む）, economist.com（サブドメイン含む）
+      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）, science.org（サブドメイン含む）, reuters.com（サブドメイン含む）, economist.com（サブドメイン含む）, youtube.com（サブドメイン含む。www / m も対象）, youtu.be
         - 既知スキップドメインでスキップした場合も、3. の Wayback Machine フォールバックは必ず一度試すこと。ただしペイウォール記事やボット保護のかかったサイトはスナップショットが存在しない（arstechnica.com / reuters.com の記事 URL などで実測済み）か、スナップショット自体がペイウォール状態のことがあるため**ベストエフォート**扱いとし、取得できなければ 4. に進む
+        - **例外: youtube.com / youtu.be はこの Wayback フォールバックも行わない。** 他の既知スキップドメインと異なり**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行せず**、直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。動画ページはそもそも要約に使える本文テキストを持たず（`<title>` が空で定型の meta description しか返らない）、Wayback のスナップショットは status 200 で存在するもののタグ除去後の本文が約270文字（動画タイトルとフッターナビのみ）しかなく、上記「本文相当のテキストが 500 文字未満」の失敗判定に必ず該当するためである（実測済み）
       - **元URL のパス（クエリ文字列・フラグメントを除く）が `.pdf` で終わる場合（大文字小文字を問わない）は WebFetch を試行しない。** PDF は HTTP 200 / `Content-Type: application/pdf` で正常に返るため下記の 4xx/5xx 失敗分岐に乗らず、それでいて WebFetch は圧縮ストリーム（FlateDecode / ASCII85 等）のまま返すため本文を抽出できない。usenix.org / gwern.net / web.mit.edu / github.com などドメインを問わず発生する
         - この場合は既知スキップドメインと異なり、**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行しない**。サーバーは正しく PDF を返しているだけなので JS レンダリングしても得られるものはなく、Wayback のスナップショットも同じ PDF だからである。直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する
         - **例外: arXiv は先に URL を正規化する。** 元URL が `arxiv.org/pdf/<id>`（末尾に `v<N>` や `.pdf` が付く形を含む）の場合は `arxiv.org/abs/<id>` に書き換えたうえで、通常どおり WebFetch 以降のフロー（2. / 3. を含む）を実行する。`arxiv.org/abs/` は HTML を HTTP 200 で返すため、アブストラクトを要約の材料にできる（`arxiv.org/pdf/` は `application/pdf`）
@@ -49,7 +50,7 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
         - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
    2. **JS レンダリング後の再取得**: 1. が上記の「HTTP 200 だが実質的なコンテンツなし」に該当した場合のみ、**servo-fetch skill** に従ってページを再取得する。本文が取得できたらそれを使い、失敗したら 3.（Wayback Machine フォールバック）に進む
       - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォール / SSL・TLS 接続エラーで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない（TLS 失敗は「HTTP 200 だが実質的なコンテンツなし」にも該当しないので、そもそも 2. の対象外である）。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
-   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
+   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合（**youtube.com / youtu.be は 1. に記載の例外で、この手順は実行せず 4. に進む**）、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
       - スナップショットの取得先は `web.archive.org` であり、その正規証明書で TLS 接続する。**元サイトの証明書エラーはここでは再現しないため、SSL/TLS エラーで失敗したときこそ 5.（コメントベース要約）に飛ばさず必ずこの手順を試すこと**
       - **WebFetch は使わず、必ず `curl` を使うこと。** `web.archive.org` / `archive.org` は WebFetch がツールレベルでブロックされている（`Claude Code is unable to fetch from ...`）が、curl からは正常にアクセスできる
       - a. スナップショットの有無を確認する
