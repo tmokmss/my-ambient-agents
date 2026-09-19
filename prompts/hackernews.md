@@ -67,10 +67,13 @@ Hacker News API (https://hacker-news.firebaseio.com/v0/) を使用:
       - **`<timestamp>` 直後の `if_` サフィックスは必須**（Wayback のバナーや注入 JS を除いた、アーカイブ時点の原本 HTML が返る）。`https://web.archive.org/web/latest/<元URL>` は Wayback のトップページにリダイレクトされ、`https://web.archive.org/web/2/<元URL>` は Cloudflare のブロックページのスナップショットに解決されることがあるため、**どちらの形式も使ってはならない**
       - 取得結果が Cloudflare の「Attention Required」「Just a moment...」「Enable JavaScript and cookies to continue」などのブロックページを保存したものだった場合、または 1. と同じ基準（本文相当のテキストが 500 文字未満、タイトルのみ 等）で実質的なコンテンツがないと判断される場合は、**失敗扱いとして 4. に進む**
       - 本文が取得できた場合は、それが**アーカイブ時点のスナップショット**であり最新の内容と異なる可能性がある点に注意して要約する
-   4. **代替URLフォールバック**: 取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、記事本文を読める代替URL（一次情報、著者の公式ブログ、論文のアブストラクトページ、プレスリリース、GitHub リポジトリなど）を抽出して WebFetch を試みる。HN ではペイウォール記事に有志が一次ソースをコメントすることが多いため有効
+   4. **代替URLフォールバック**: **ストーリー自身の `text` フィールド**と取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、記事本文を読める代替URL（一次情報、著者の公式ブログ、論文のアブストラクトページ、プレスリリース、GitHub リポジトリなど）を抽出して WebFetch を試みる。HN ではペイウォール記事に有志が一次ソースをコメントすることが多いため有効
+      - **試行順は「ストーリーの `text` に含まれる URL」→「コメント由来の候補」とする。** HN で `url` と `text` が併用されている場合、投稿者自身が元記事のブロックを回避できる一次情報（公式ブログ、`xunroll.com` などのスレッド展開サービス、`web.archive.org` スナップショット等）を `text` に添えていることが多く、コメント由来の候補より確度が高いため
+      - **`text` 中の `news.ycombinator.com/item?id=...`（関連スレッドへの参照。実測で頻出）は記事本文ではないため候補から除外する**
+      - **以下の制約は、抽出元がストーリーの `text` でもコメントでも同じように適用する**
       - **試行禁止ドメイン**: 以下のドメインは WebFetch がツールレベルでブロックしており（`Claude Code is unable to fetch from ...`）、curl での代替手段も確認できていないため **試行してはならない**: `archive.is` / `archive.ph` / `archive.today` / `archive.md` / `archive.li` / `archive.fo` / `12ft.io` / `freedium.cfd`
         - コメントやストーリー本文にこれらの URL が含まれていても無視すること。他に候補がなければ試行せず直ちに 5. のコメントベース要約に進む
-      - **`web.archive.org` / `archive.org` は WebFetch 経由のみ禁止**（ツールレベルでブロックされているため）。これらへのアクセスは 3. と同じ curl 手順で行うこと。コメント中に `https://web.archive.org/web/<timestamp>/<url>` 形式の URL があった場合は、`<timestamp>` の直後に `if_` を挿入した URL を `curl -sSL --max-time 60` で取得する
+      - **`web.archive.org` / `archive.org` は WebFetch 経由のみ禁止**（ツールレベルでブロックされているため）。これらへのアクセスは 3. と同じ curl 手順で行うこと。ストーリーやコメントの `text` 中に `https://web.archive.org/web/<timestamp>/<url>` 形式の URL があった場合は、`<timestamp>` の直後に `if_` を挿入した URL を `curl -sSL --max-time 60` で取得する
       - 1. の既知スキップドメインに該当する URL も同様に対象外とする
       - **パスが `.pdf` で終わる代替URL も 1. と同じ理由（WebFetch がテキストを抽出できない）で対象外とする。** ただし `arxiv.org/pdf/<id>` は 1. と同様に `arxiv.org/abs/<id>` に書き換えれば試行してよい
       - **代替URL のパスが `/@<ユーザー名>/<数字のみのID>` 形式（Mastodon/fediverse の投稿）だった場合は、WebFetch ではなく 1. と同じ `https://<ホスト名>/api/v1/statuses/<数字ID>` の curl 手順で本文を取得する**
