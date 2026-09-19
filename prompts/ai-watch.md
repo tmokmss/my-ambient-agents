@@ -99,39 +99,140 @@ for e in re.findall(r"<entry>(.*?)</entry>", s, re.S):
   （例: `arxiv RSS は週末休止のため、list ページより 8/28 発表分から選出。`）
 
 ### 5. Hugging Face トレンド
-- https://huggingface.co/api/trending (JSON)
-- トレンドのモデル・データセット・スペースから注目のものをピックアップ
+
+トレンドのモデル・データセット・スペースから注目のものをピックアップする。
+**取得は model / dataset / space の3本立てで行うこと。**
+`https://huggingface.co/api/trending` 単発では上位30件が数日間ほとんど入れ替わらず、
+毎日同じ顔ぶれを掲載してしまうため、model と dataset は `sort=trendingScore` のランキング API から
+より深い順位まで取り、下の「選定ルール」で新しいものに絞り込む。
+
+#### 5-1. model（`sort=trendingScore`）
+
+フラットな配列が返り、`id` / `likes` / `downloads` / `pipeline_tag` / `trendingScore` / `createdAt` を
+**要素直下**に持つ（`/api/trending` と違って `repoData` のネストは無い）。
+`createdAt` から公開後の経過日数を `age=Nd` として出力する:
+
+```bash
+curl -sL --max-time 60 "https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50" | python3 -c '
+import sys, json
+from datetime import datetime, timezone
+now = datetime.now(timezone.utc)
+def age(s):
+    try:
+        return (now - datetime.strptime((s or "")[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)).days
+    except Exception:
+        return -1
+d = json.load(sys.stdin)
+if not isinstance(d, list) or not d:
+    print("EMPTY: /api/trending にフォールバックすること"); sys.exit()
+for r in d[:30]:
+    rid = r.get("id") or "?"
+    a = age(r.get("createdAt"))
+    ts = r.get("trendingScore") or 0
+    likes = r.get("likes") or 0
+    dl = r.get("downloads") or 0
+    tag = r.get("pipeline_tag") or ""
+    print(f"model   age={a:>5}d ts={ts:<6} likes={likes:<6} dl={dl:<9} {rid}")
+    print(f"        https://huggingface.co/{rid}  {tag}")'
+```
+
+#### 5-2. dataset（`sort=trendingScore`）
+
+model 版に加えて `description`（README のプレーンテキスト化）と `author` を含むため、
+**説明文の補完のための追加フェッチが不要**になる:
+
+```bash
+curl -sL --max-time 60 "https://huggingface.co/api/datasets?sort=trendingScore&direction=-1&limit=20" | python3 -c '
+import sys, json, re
+from datetime import datetime, timezone
+now = datetime.now(timezone.utc)
+def age(s):
+    try:
+        return (now - datetime.strptime((s or "")[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)).days
+    except Exception:
+        return -1
+d = json.load(sys.stdin)
+if not isinstance(d, list) or not d:
+    print("EMPTY: /api/trending にフォールバックすること"); sys.exit()
+for r in d:
+    rid = r.get("id") or "?"
+    a = age(r.get("createdAt"))
+    ts = r.get("trendingScore") or 0
+    likes = r.get("likes") or 0
+    dl = r.get("downloads") or 0
+    desc = re.sub(r"\s+", " ", r.get("description") or "").strip()[:300] or "(description なし)"
+    print(f"dataset age={a:>5}d ts={ts:<6} likes={likes:<6} dl={dl:<9} {rid}")
+    print(f"        https://huggingface.co/datasets/{rid}")
+    print(f"        {desc}")'
+```
+
+#### 5-3. space（`/api/trending`）
+
+**space の1行説明 `ai_short_description` を持つのは `/api/trending` だけ**なので、space はこちらから拾う。
+model / dataset のエンドポイントが HTTP 400 や空配列を返したときの**フォールバック先**も兼ねる。
+
 - **レスポンスはトップレベルが `{"recentlyTrending": [...]}` で、各要素は `{"repoData": {...}, "repoType": "model"|"dataset"|"space"}` の形**。
   `id` / `likes` / `downloads` / `author` / `lastModified` / `pipeline_tag`（model のみ）/ `ai_short_description`（space のみ）は
   **すべて `repoData` の配下**にあり、要素直下には存在しない（`item["id"]` は常に None になる）。
   `modelId` / `repoId` / `likesCount` といったキーは存在しない。`downloads` は space で null になるため `or 0` でガードすること。
   フラットな配列だと推測してパーサを書くと空を掴むので、以下をそのまま使う:
+- **クエリ無しのデフォルトは model / dataset / space 各10件の計30件**。`?limit=N` は
+  **種別ごとの件数**を指定するもので上限は 20（`?limit=50` は HTTP 400）、`?type=space` で種別を絞れる。
+  下のスニペットは3種別まとめて取るため素の URL を使う。space の候補が足りないときだけ
+  `https://huggingface.co/api/trending?type=space&limit=20` に差し替えてよい
+- `repoData.createdAt` は **space にだけ存在する**（model / dataset の `repoData` には無い）。
+  下のスニペットは取れた場合だけ `age` を表示するので、フォールバックで model / dataset を拾ったときは
+  `age` が `-1` になる。その場合は `lastModified` と「重複排除」節の直近3件レポートとの突き合わせで代用する
 
 ```bash
 curl -sL --max-time 60 https://huggingface.co/api/trending | python3 -c '
 import sys, json
+from datetime import datetime, timezone
+now = datetime.now(timezone.utc)
+def age(s):
+    try:
+        return (now - datetime.strptime((s or "")[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)).days
+    except Exception:
+        return -1
 d = json.load(sys.stdin)
 prefix = {"model": "", "dataset": "datasets/", "space": "spaces/"}
-for it in d.get("recentlyTrending", [])[:15]:
+for it in d.get("recentlyTrending", []):
     r = it.get("repoData", {})
     t = it.get("repoType") or r.get("repoType") or "model"
     rid = r.get("id", "?")
+    a = age(r.get("createdAt"))
     likes = r.get("likes") or 0
     dl = r.get("downloads") or 0
     tag = r.get("pipeline_tag") or r.get("ai_short_description") or ""
     url = "https://huggingface.co/" + prefix.get(t, "") + rid
-    print(f"{t:<7} likes={likes:<6} dl={dl:<9} {rid}\n        {url}  {tag}")'
+    print(f"{t:<7} age={a:>5}d likes={likes:<6} dl={dl:<9} {rid}\n        {url}  {tag}")'
 ```
 
 - **URL は種別ごとにプレフィックスが異なる**。model は `https://huggingface.co/{id}`、dataset は `https://huggingface.co/datasets/{id}`、
   space は `https://huggingface.co/spaces/{id}`。トレンド上位にはデータセットも多く含まれるため、
   一律に `https://huggingface.co/{id}` と書くと 404 リンクになる（上のスニペットが出力する URL をそのまま使えばよい）
-- 上記の抽出が空になる場合は API 構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
+- 上記の抽出が（5-1 / 5-2 のフォールバックを試したうえで）すべて空になる場合は
+  API 構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
+
+#### 選定ルール（同じ顔ぶれの繰り返しを防ぐため必須）
+
+HF のトレンドは「その時点の累積人気」なので、**数か月〜数年前に公開された定番リポジトリが上位に居座り続ける**。
+上位から機械的に拾うと複数日連続で同一リストになるため、出力の `age`（公開からの経過日数）で必ず足切りすること。
+
+- **`age <= 7d` を最優先候補とする。** レポートに載せる 3-5 件は原則ここから埋める
+- **`age > 30d` は原則採用しない。** `nyu-mll/glue` / `stanfordnlp/imdb` / `rajpurkar/squad` / `wikimedia/wikipedia` /
+  `gpt2` / `Llama-3.1-8B-Instruct` のような定番リポジトリが該当し、**これが「毎日同じ顔ぶれ」になる主因**である。
+  新バージョン公開・大型アップデートなど明確なニュース性がある場合に限り、その理由を本文に書いたうえで例外的に採用してよい
+- **`age 8〜30d` は補充枠。** `age <= 7d` の候補だけで3件に届かない場合のみ、
+  「重複排除」節の直近3件レポートとの重複チェックを通過したものを使う
+- **同一ベースモデルの派生（量子化 GGUF / AWQ、uncensored 派生など）は1レポートにつき1件まで。**
+  同じベースモデルの本家と派生で2枠を使わないこと
+- 出力は trendingScore 降順のままなので、上記を満たす候補の中では上位のものを優先する
 
 #### 説明文の補完（必須）
 
-**trending API の `repoData` に `description` キーは存在しない**（空文字ではなく不在）。
-上のスニペットから得られるのは `pipeline_tag` 程度で、「何ができるモデルか」は一切分からない。
+**model のトレンド出力（5-1 / `/api/trending` の `repoData` の双方）に `description` キーは存在しない**（空文字ではなく不在）。
+得られるのは `pipeline_tag` 程度で、「何ができるモデルか」は一切分からない。
 補完せずに書くと「詳細は非公開」「詳細不明」といった中身のないレポートになるため、以下を必ず行うこと。
 
 - **`https://huggingface.co/api/models/{id}` は叩かないこと。** レスポンスに `description` は含まれず、
@@ -139,7 +240,7 @@ for it in d.get("recentlyTrending", [])[:15]:
   `https://huggingface.co/api/models/{id}/readme` は HTTP 404 なので使わないこと
 - **個別モデルページ（`https://huggingface.co/{id}`）の HTML を取得して `og:description` を読むのは禁止。**
   全ページ共通の「We're on a journey to advance and democratize artificial intelligence...」しか返らず、説明として無価値
-- **レポートに載せる 3-5 件を先に絞り込んでから、その件数分だけ実行する。** トレンド30件すべてに実行しないこと
+- **レポートに載せる 3-5 件を先に絞り込んでから、その件数分だけ実行する。** トレンド一覧すべてに実行しないこと
 
 **model の場合** — model card（`raw/main/README.md`）を取得する。フロントマター・HTML・コードブロック・バッジ画像を
 除去した先頭2000字を表示するので、それを読んで**自分の言葉で1-2文に要約する**:
@@ -171,9 +272,10 @@ print(s.strip()[:2000])'
   説明文ではないので使わない。`## Introduction` / `## Highlights` や最初の散文段落を探して要約の材料にする
 - 出力をそのまま貼り付けず、必ず日本語に要約して書くこと
 
-**dataset の場合** — README を取りに行くより `https://huggingface.co/api/datasets/{id}` の `description`
-（README のプレーンテキスト化）が安価で確実。**model 用の `/api/models/{id}` には `description` が無いが、
-dataset 側にはある**という非対称に注意:
+**dataset の場合** — **5-2 のスニペットが出力する `description` をそのまま要約材料に使う。追加フェッチは不要。**
+候補が `sort=trendingScore` の上位20件に入っておらず（= 5-3 のフォールバックから拾った）説明文が手元に無い場合だけ、
+`https://huggingface.co/api/datasets/{id}` を個別に叩く。
+**model 用の `/api/models/{id}` には `description` が無いが、dataset 側にはある**という非対称に注意:
 
 ```bash
 curl -sL --max-time 30 "https://huggingface.co/api/datasets/{id}" | python3 -c '
@@ -186,7 +288,7 @@ print(t[:1000] if t else "SKIP: description なし")'
 **space の場合** — trending API の `repoData.ai_short_description` に既に1行説明が入っているため、追加フェッチは不要。
 
 **取得できなかった場合** — HTTP 401（gated リポジトリ）や 404（削除・非公開化）が返ったら、
-その項目は**別のトレンド項目に差し替える**。
+その項目は**別のトレンド項目に差し替える**（差し替え先も上の選定ルールを満たすものから選ぶ）。
 `pipeline_tag` / `likes` / `downloads` / `numParameters` だけから用途を推測して断定的に書いてはならない。
 
 ### 6. LLM リーダーボード（LMArena）
@@ -258,6 +360,7 @@ arxiv から注目の論文を3-5件ピックアップ。
 Hugging Face のトレンドから注目のモデル・ツールを3-5件ピックアップ。
 - **[名前](url)** - 何ができるか・なぜ注目かを1-2文で解説
 - 解説は README（dataset は API の `description`、space は `ai_short_description`）の記述に基づいて書く。取得できなかった項目は推測で埋めず、別のトレンド項目に差し替えること
+- 選定は「5. Hugging Face トレンド」の選定ルール（`age` による足切り）に従い、前日までのレポートと同じ定番リポジトリを繰り返し載せないこと
 
 ## ベンチマーク・リーダーボード
 LMArena やその他ベンチマークの変動があれば報告。なければ省略。
