@@ -70,15 +70,17 @@ def clean(s):
 for e in re.findall(r'<entry[^>]*>(.*?)</entry>', d, re.S):
     title = re.search(r'<title[^>]*>(.*?)</title>', e, re.S)
     link = re.search(r'<link[^>]*href=\"([^\"]+)\"', e)
+    author = re.search(r'<author>\s*<name>(.*?)</name>', e, re.S)
     body = re.search(r'<content[^>]*>(.*?)</content>', e, re.S)
     print('TITLE:', clean(title.group(1)) if title else '')
     print('URL:', link.group(1).split('?')[0] if link else '')
+    print('AUTHOR:', clean(author.group(1)) if author else '')
     print('DESC:', clean(body.group(1))[:300] if body else '')
     print('---')
 "
 ```
 
-各エントリの title, link, content を全件取得すること。
+各エントリの title, link, author, content を全件取得すること。
 `href` には `?utm_campaign=popular_items&utm_medium=feed&utm_source=popular_items` という追跡パラメータが付くので、上のスニペットのように `?` 以降を落としてからレポートのリンクに使うこと。
 `<content>` の中身は記事全文ではなく末尾が「...」で切られた冒頭の抜粋なので、全文の要約と誤解せず「冒頭抜粋」として扱い、解説を書く際も抜粋から読み取れる範囲に留めること。
 
@@ -90,7 +92,15 @@ popular-items はビュー数・いいね数ベースのランキングであり
 
 判断はタイトルのキーワードによる機械的な除外ではなく、タイトルと冒頭抜粋から読み取れる内容で行うこと
 （「Rust 入門」「新卒研修で作った社内基盤」のように、初学者向けの語を含んでいても技術的知見のある記事は対象に含める）。
-上記基準を満たす記事が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
+
+popular-items は Qiita 全体のビュー数・いいね数ランキングであるため、短期間に大量投稿する精力的な書き手が上位を占めやすく、取得した記事が少数の著者に偏ることがある（実測で1著者が同日に6件以上を占めた日がある）。
+このまま上位順に選ぶとレポートが特定の書き手の視点・スタイルだけで埋まるので、**候補を絞り込む段階で AUTHOR による分散ルールを適用する**こと。
+適用順序は、まず上記の品質基準で技術記事の候補を選び、その**後に**次の分散ルールで候補を間引く。
+
+- **同一 AUTHOR の記事は最大1件**とする。同じ AUTHOR の候補が複数ある場合はより技術的知見の深いものを代表とし、残りは候補から外す。Qiita の Atom フィードには dev.to の positive_reactions_count に相当する反応数が存在しないため、甲乙つけがたい場合のタイブレークはフィード内の掲載順が上位のものとし、それ以外のスコアを推測で持ち込まないこと。
+- タイトルに「Part N」「ステップN」「その N」「（前編／後編）」などの連載表記が含まれる場合、**同一シリーズからは最新の1話のみ**を候補とする。
+- 品質基準と分散ルールを適用した結果 Qiita の候補が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
+- 分散は AUTHOR の件数上限という一般ルールのみで行い、特定の著者名を名指しで除外するリストを作ってはならない。
 
 ### 4. AWS Whats New
 RSSを取得し、Python でパースする（`<description>` は複数行の CDATA の中で HTML エスケープされた `<p>` タグを含むため、CDATA 展開 → `html.unescape` → タグ除去 の順で処理する。タグ除去を先に行うとエスケープが解けた `<p>` が本文に残る）:
