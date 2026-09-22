@@ -307,14 +307,21 @@ for m in list(p.finditer(s))[:10]:
 - 補助ソース: https://artificialanalysis.ai/leaderboards/models （Intelligence Index / Coding Index。同様に約4.4MBあるので要パイプ絞り込み）
 
 ```bash
-curl -sL --max-time 90 https://artificialanalysis.ai/leaderboards/models | python3 -c 'import sys,re
+curl -sL --max-time 90 https://artificialanalysis.ai/leaderboards/models | timeout 60 python3 -c 'import sys,re
 s=sys.stdin.read()
-p=re.compile(r"\\\"name\\\":\\\"(.*?)\\\"[^}]*?\\\"releaseDate\\\":\\\"([\d-]+)\\\"[^}]*?\\\"modelCreatorName\\\":\\\"(.*?)\\\"[^}]*?\\\"intelligenceIndex\\\":([\d.]+)")
-r=[(float(m.group(4)),m.group(1),m.group(2),m.group(3)) for m in p.finditer(s)]
+r=[]
+for c in s.split("{\\\"slug\\\":\\\"")[1:]:
+    m=re.match(r"(.{0,80}?)\\\",\\\"name\\\":\\\"(.{0,120}?)\\\"",c)
+    if not m: continue
+    cr=re.search(r"\\\"modelCreatorName\\\":\\\"(.{0,80}?)\\\"",c)
+    ii=re.search(r"\\\"intelligenceIndex\\\":([\d.]+)[,}]",c)
+    if cr and ii: r.append((float(ii.group(1)),m.group(2),cr.group(1)))
 for x in sorted(r,reverse=True)[:10]:
-    print(f"{x[0]:.1f} {x[1]} ({x[3]}, {x[2]})")'
+    print(f"{x[0]:.1f} {x[1]} ({x[2]})")'
 ```
 
+- 出力は `スコア モデル名 (提供元)` 形式。リリース日は Intelligence Index を持つオブジェクトには含まれない（別配列にある）ので出力しない
+- **モデルオブジェクト単位（`{"slug":`）に分割してからチャンク内だけを検索する方式を維持すること。** ページ全文に対して `"name":"(.*?)"[^}]*?"intelligenceIndex":...` のように複数フィールドをまたぐ単一の正規表現を使うと、想定したフィールド順序を満たすオブジェクトが1つも無かった場合に非貪欲マッチが数千文字先まで延伸してバックトラックが爆発し、ハングしたり別モデルの生 JSON 断片を name として拾ったりする（実際に発生した）
 - 上記の抽出が空になる場合はサイト構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
 ## 取得失敗時の対応
