@@ -18,6 +18,18 @@ Servo ブラウザエンジンを単一バイナリにしたフェッチャ。Ja
 - 本文相当のテキストが 500 文字未満
 - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
 
+## 初回実行前の準備（Linux）
+
+セッション内で servo-fetch を**最初に実行する前に 1 回だけ**、以下を実行する。
+
+```bash
+ldconfig -p | grep -q 'libEGL.so.1' || (sudo apt-get update && sudo apt-get install -y libegl1 libfontconfig1 libfreetype6)
+```
+
+GitHub Actions の ubuntu ランナーには libEGL がプリインストールされておらず、未導入のまま実行すると
+`Unable to load the libEGL shared object` で必ず失敗するため。libEGL が既にあれば何もしないので、
+2 回目以降の servo-fetch 実行前には不要。
+
 ## 使い方
 
 ```bash
@@ -48,9 +60,10 @@ npx --yes servo-fetch@0.14.2 "<URL1>" "<URL2>" "<URL3>" --settle 2000 -t 20 --ou
 
 これらは既知スキップドメインリストの運用対象であり、servo-fetch では解決しない。
 
-## Linux で共有ライブラリ不足のエラーが出た場合
+## 事前準備をしても共有ライブラリ不足で起動に失敗した場合
 
-`libEGL.so` 等が見つからないというエラーで起動に失敗したときだけ、以下を実行して 1 度だけ再試行する。
+上記「初回実行前の準備」を行ったにもかかわらず `libEGL.so` 等が見つからないというエラーで起動に
+失敗したときだけ、以下を実行して 1 度だけ再試行する。
 
 ```bash
 sudo apt-get update && sudo apt-get install -y libegl1 libfontconfig1 libfreetype6
@@ -58,6 +71,9 @@ sudo apt-get update && sudo apt-get install -y libegl1 libfontconfig1 libfreetyp
 
 それでも失敗する場合は `xvfb-run --auto-servernum` を前置して再試行する（GitHub Actions の
 ubuntu ランナーには xvfb がプリインストール済み）。2 回失敗したら諦めて次の手段へ進むこと。
+
+libEGL 等の共有ライブラリ不足はランナー環境の問題であってサイト側の問題ではないため、このエラーで
+失敗したドメインを既知スキップドメインの判断材料にしてはならない。
 
 ## セキュリティ
 
