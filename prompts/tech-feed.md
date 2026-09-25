@@ -220,14 +220,25 @@ def unwrap(s):
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
-for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:10]:
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
     desc = g('description') or g('content:encoded')[:300]
-    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
+    cats = [unwrap(c) for c in re.findall(r'<category[^>]*>(.*?)</category>', it, re.S)]
+    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('CATEGORIES:', ', '.join(cats)); print('DESC:', desc); print('---')
 "
 ```
 
-各エントリの title, link, pubDate, description を取得。
+各エントリの title, link, pubDate, category, description を全件取得する（1回の取得で20件前後。`head` や `[:N]` で出力を制限してはならない）。
+
+TechCrunch はスタートアップ全般を扱う媒体で、食品・フィットネス・生活サービス・エンタメなど IT 以外の消費者ブランドの資金調達記事や、イベントの告知記事が新着上位に混入する。
+そのため**新着順にそのまま採用せず、取得した全件から次の基準で選ぶ**こと。
+
+- 優先する: AI/LLM の技術・製品、セキュリティインシデント・脆弱性、クラウド・インフラ、半導体・ハードウェア、開発者ツール・OSS、プラットフォーム／API の仕様変更、技術規制など、開発者にとって技術的知見のある記事
+- 除外する: (a) IT 以外の消費者ブランド・ライフスタイル系スタートアップ（食品・飲料・フィットネス・生活サービス・エンタメ等）の資金調達・事業ニュース、(b) 資金調達・M&A・IPO・人事・法廷闘争を報じるのみで技術的な中身のない記事、(c) TechCrunch Disrupt 等のイベントのチケット販売・登壇者告知、(d) 消費者トレンドや話題便乗の記事
+
+判断は CATEGORIES やタイトルのキーワードによる機械的な除外ではなく、タイトルと DESC から読み取れる主題で行うこと
+（AI 企業の資金調達記事でも、モデル・製品・技術的アプローチの説明を伴うものは含めてよく、逆に `AI` カテゴリが付いていても主題が消費者向けサービスの事業ニュースに終始するものは除外する）。
+上記基準を満たす記事が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
 
 ### 8. Ars Technica
 `index` フィードは全社共通の総合フィードで、健康・自動車・宇宙・カルチャー・ゲームなど非技術カテゴリが大半を占める。
