@@ -24,6 +24,11 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 **User-Agent（`-A`）を省略すると TASS 等が 403 を返すため必ず付与すること。**
 各ソースから title, link, pubDate, description を抽出し、地政学・紛争・安全保障に関連する記事をピックアップする。
 
+**`<item>` タグは属性付き（例: `<item xmlns:...="...">`）のことがあるため、属性を許容してパースすること。**
+正規表現なら `<item(\s[^>]*)?>(.*?)</item>`（`<items>` 等の別要素に誤マッチしない形）、または XML パーサ（Python なら `ElementTree` の `findall('.//item')`）を使う。
+`<item>(.*?)</item>` や `grep -c '<item>'` のような完全一致では0件になる。
+ファイルサイズが十分あるのに item が0件の場合は、まずパース方法を見直し、それでも0件なら取得失敗として扱う。
+
 ### RSS 取得の実行方法
 
 取得はシェルのバックグラウンド実行（`&` + `wait`）で並列化せず、for ループで**逐次**実行すること。
@@ -98,6 +103,7 @@ BBC 系フィード（BBC Persian / BBC Middle East / BBC Chinese）は、URL �
 
 Dawn のフィードは各アイテムの `description` に記事本文がほぼ全文入るため、1フィードで 300-400KB に達する。
 curl の生出力をそのまま読まず、title / link / pubDate を抽出し、`description` は先頭300文字程度に切り詰めてから扱うこと。
+Dawn の item タグはすべて `<item xmlns:default="http://purl.org/rss/1.0/modules/content/">` のように名前空間属性付きのため、`<item>` 完全一致では0件になる（実測: 属性許容で27件、完全一致で0件）。「データソース」節のとおり属性を許容してパースすること。
 また Dawn は Cloudflare 配下にあり、短時間に連続リクエストすると HTTP 429（error code: 1015）を返す。
 1回の実行につきリクエストは1回に留め、429 が返った場合はリトライせずスキップする。
 
