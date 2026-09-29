@@ -29,7 +29,7 @@ for m in re.finditer(r'<item rdf:about=\"([^\"]+)\">(.*?)</item>', data, re.DOTA
 各エントリの title, link, bookmarkcount を全件取得すること。
 
 はてブの「テクノロジー」カテゴリは IT 全般を広く扱うカテゴリで、家電・ガジェットのレビュー、医療・健康、税務・資格・就活、政治・行政・芸能・事件のニュース、生活 tips や SNS のバズまとめが高いブックマーク数で混入する。
-ブックマーク数は話題性の指標であって技術的価値のシグナルではないため、**ブックマーク数順にそのまま採用せず、取得した全件から次の基準で技術記事を選ぶ**こと。
+ブックマーク数は話題性の指標であって技術的価値のシグナルではないため、**ブックマーク数順にそのまま採用せず、取得した全件（最大60件）から次の基準で技術記事を選ぶ**こと。
 
 - 優先する: 実装・コード、ライブラリ／フレームワーク、インフラ・クラウド、セキュリティ、設計・アーキテクチャ、パフォーマンス、AI/LLM の開発利用、OSS・開発ツール、障害レポート／ポストモーテム、標準仕様・プロトコルなど、開発者にとって技術的知見のある記事
 - 除外する: 一般消費者向けの家電・ガジェット・製品レビュー、医療・健康・脳科学、税務・控除・資格試験・就活／転職のマインド論、政治・行政・芸能・事件事故のニュース、技術的知見を伴わない生活 tips・SNS バズまとめ
@@ -166,31 +166,50 @@ for item in data:
 各エントリの title, url, score, comment_count, tags を取得。タグ（programming, security, web 等）を品質フィルタとして活用してよい。
 
 ### 6. dev.to
-JSON API を取得してパース（RSS には言語情報が含まれず、ポルトガル語・スペイン語等の非英語記事が混入するため JSON API を使用する）:
-- https://dev.to/api/articles?per_page=30
+JSON API を取得してパース（RSS には言語情報が含まれず、ポルトガル語・スペイン語等の非英語記事が混入するため JSON API を使用する）。
+次の2本を取得して結合し、`url` で重複を除去してから処理する:
+- https://dev.to/api/articles?per_page=30 （デフォルト順）
+- https://dev.to/api/articles?top=1&per_page=30 （過去24時間のトップ）
+
+デフォルト順はランキングの入れ替わりが遅く、1日複数回の実行では過去レポートとの重複でほぼ枯渇するため、過去24時間のトップ（`top=1`）を併用する。
 
 ```bash
-curl -s --max-time 15 'https://dev.to/api/articles?per_page=30' | python3 -c "
+TMP=$(mktemp -d)
+curl -s --max-time 15 'https://dev.to/api/articles?per_page=30' -o "$TMP/default.json"
+curl -s --max-time 15 'https://dev.to/api/articles?top=1&per_page=30' -o "$TMP/top.json"
+python3 - "$TMP/default.json" "$TMP/top.json" <<'PY'
 import sys, json, re
-for a in json.load(sys.stdin):
-    if a.get('language') != 'en': continue
-    desc = re.sub(r'\s+', ' ', (a.get('description') or '')).strip()
-    print('TITLE:', a['title'])
-    print('URL:', a['url'])
-    print('AUTHOR:', (a.get('user') or {}).get('username'))
-    print('ORG:', (a.get('organization') or {}).get('username') or '-')
-    print('REACTIONS:', a.get('positive_reactions_count'))
-    print('COMMENTS:', a.get('comments_count'))
-    print('TAGS:', ','.join(a.get('tag_list') or []))
-    print('DESC:', desc[:300])
-    print('---')
-"
+seen = set()
+for path in sys.argv[1:]:
+    try:
+        with open(path) as f:
+            items = json.load(f)
+    except Exception:
+        continue
+    if not isinstance(items, list): continue
+    for a in items:
+        url = a.get('url')
+        if not url or url in seen: continue
+        seen.add(url)
+        if a.get('language') != 'en': continue
+        desc = re.sub(r'\s+', ' ', (a.get('description') or '')).strip()
+        print('TITLE:', a['title'])
+        print('URL:', url)
+        print('AUTHOR:', (a.get('user') or {}).get('username'))
+        print('ORG:', (a.get('organization') or {}).get('username') or '-')
+        print('REACTIONS:', a.get('positive_reactions_count'))
+        print('COMMENTS:', a.get('comments_count'))
+        print('TAGS:', ','.join(a.get('tag_list') or []))
+        print('DESC:', desc[:300])
+        print('---')
+PY
+rm -rf "$TMP"
 ```
 
 各エントリの title, url, description を取得。`language` が `"en"` 以外（`null` を含む）のエントリはスキップする。
 
 dev.to のリアクション数は技術的価値の指標ではなく、雑談・運営告知・共感系の投稿ほど高くなる（実測で雑談系 50-150rx に対し技術記事は 5-20rx 程度）。
-そのため**リアクション数順にそのまま採用せず、取得した全件から次の基準で技術記事を選ぶ**こと。
+そのため**リアクション数順にそのまま採用せず、取得した全件（最大60件）から次の基準で技術記事を選ぶ**こと。
 
 - 優先する: 実装・コード、ライブラリ／フレームワーク、インフラ・クラウド、セキュリティ、設計・アーキテクチャ、パフォーマンス、AI/LLM の開発利用、OSS・開発ツール、トラブルシューティングなど、具体的な技術名・ツール名・概念名を伴い技術的知見のある記事
 - 除外する: (a) 雑談・アンケート・週次スレッドなど DEV 運営／コミュニティのメタ投稿（`discuss` / `welcome` / `weeklyretro` / `devchallenge` / `top7` などのタグが主体で技術的中身がないもの）、(b) マインドセット・モチベーション・キャリア論・人間関係／職場マナーの記事、(c) 自社プロダクト・SaaS・API の告知やサインアップ誘導が主目的で技術的な解説を伴わない宣伝記事、(d) 技術と無関係な釣りタイトル記事
@@ -198,7 +217,7 @@ dev.to のリアクション数は技術的価値の指標ではなく、雑談�
 判断はタイトルのキーワードによる機械的な除外ではなく、タイトル・DESC・tag_list から読み取れる主題で行うこと
 （`beginners` タグでも具体的な実装・検証を伴うものは含めてよく、逆に技術タグが付いていても中身が製品告知に終始するものは除外する）。
 
-dev.to は個人・組織アカウントが同一テーマの記事を短時間に連投できるため、取得した30件が少数の書き手に偏る（実測で1著者が3-5件、1組織が8-10件を占める）。
+dev.to は個人・組織アカウントが同一テーマの記事を短時間に連投できるため、取得した全件（最大60件）が少数の書き手に偏る（実測で1著者が3-5件、1組織が8-10件を占める）。
 このまま反応数順に選ぶとフィードが特定の書き手の連載で埋まるので、**候補を絞り込む段階で AUTHOR / ORG による分散ルールを適用する**こと。
 適用順序は、まず上記の品質基準で技術記事の候補を選び、その**後に**次の分散ルールで候補を間引く。
 
