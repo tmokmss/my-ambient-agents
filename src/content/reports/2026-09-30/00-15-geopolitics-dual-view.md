@@ -63,7 +63,7 @@ Axiosの報道として、カタールなどの仲介による米イラン協議
 - **[特習会談の成果：関税休戦、AI対話、台湾への言及なし、日本を示唆](https://www.bbc.com/zhongwen/articles/cqdr78l1x1mjo/trad?at_medium=RSS&at_campaign=rss)**（BBC Chinese 🇬🇧, 9/27）— 両国が示した成果と外部の解釈を整理している。
 - **[中国のアナリストは米中首脳会談をどう見たか](https://thediplomat.com/2026/09/what-did-chinese-analysts-think-of-the-trump-xi-summit/)**（The Diplomat 🇺🇸, 9/29）— 「歴史的」との評価と、思惑を指摘する見方に分かれると伝えている。
 - **[米共和党議員、トランプ氏の習氏歓待に不満](https://thediplomat.com/2026/09/us-republicans-werent-happy-with-trumps-hosting-of-xi/)**（The Diplomat 🇺🇸, 9/29）— 複数の共和党上院議員が反発したと報じている。
-- **[元首外交が中米関係の動的安定を支える](https://www.cgtn.com/subscribe/rss/section/world.xml)**（CGTN 🇨🇳, 9/26）— 習主席の訪米を評価する論調の記事（フィード上のタイトルに基づく。個別記事リンクの確認は未実施）。
+- **元首外交が中米関係の動的安定を支える**（CGTN 🇨🇳, 9/26）— 習主席の訪米を評価する論調の記事（フィード上のタイトルに基づく。個別記事リンクは未確認のため省略）。
 
 **視点の対比:** 中国側は関係の安定を強調し、BBC Chinese と The Diplomat は台湾への言及の有無や米国内の批判など、成果の評価が分かれる点を伝えている。
 
