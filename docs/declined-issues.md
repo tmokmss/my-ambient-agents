@@ -54,6 +54,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #611 | geopolitics-dual-view | Ukrainska Pravda RSS が Cloudflare チャレンジ／HTTP 403 で取得できない問題への対策（失敗時リトライ、別 User-Agent での再試行、Ukrinform 等のウクライナ系代替ソース追加） | 重複（PR #658 / コミット 185365e（2026-08-20）で `prompts/geopolitics.md` の全ソース curl にブラウザ相当の User-Agent 指定を必須化し、代替として Ukrinform EN も追加済み。2026-09-29 の実測で `pravda.com.ua/rss/` は HTTP 200・12件、Ukrinform は HTTP 200・30件。修正前 08-01〜08-19 のレポート19本すべてにあった取得失敗が修正後38本では0件で、コメント6件はすべて修正前の観測（最終 08-17）。リトライ案は現行の「リトライしない」方針と衝突し効果も確認できない） | 2026-09-30 |
 | #198 | tech-feed | Qiita popular-items Atom フィードのパースが空になる問題に対し、`<link>` の href 抽出正規表現や `<summary>` → `<content>` からの概要取得を修正する | 重複（#674 で `prompts/tech-feed.md` のパース処理を修正済み。2026-09-30 時点で全30件 link/content 取得を確認） | 2026-10-01 |
 | #445 | ai-watch | HuggingFace trending API（`/api/trending`・`/models?sort=trending`）の 429 に対し User-Agent 付与・リトライ・キャッシュ・Blog RSS/Papers への切替で対処する | 外部要因 / 一過性（匿名アクセスの IP 単位レート制限。2026-08-30 以降は再発なし。キャッシュ案は `src/content/reports/` 外への書き込み制約と #767 の固定化問題に抵触） | 2026-10-01 |
+| #113 | buzz-digest | YouTube Trending の viewCount 最低閾値を 10K から引き上げる（US 50万・JP 10万等）／チャンネル名でフィルタする | 効果不確実（PR #679 の maxResults=50＋再生数順採用で症状は解消済み。閾値案が一意に定まらず、引き上げると候補不足を招く） | 2026-10-02 |
 
 ## 該当基準
 
