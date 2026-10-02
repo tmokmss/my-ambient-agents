@@ -294,13 +294,18 @@ print(t[:1000] if t else "SKIP: description なし")'
 ### 6. LLM リーダーボード（LMArena）
 - https://lmarena.ai/leaderboard (Chatbot Arena の現行公式サイト。Elo レーティングの変動を確認)
 - **https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard は使用しないこと。** LMArena への移管後に更新が止まった静的スナップショットで、HTML は iframe/JS シェルのみのため curl では実データが一切取得できない
-- レスポンスは約5MBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"rank":N,...,"modelDisplayName":...,"rating":...,"votes":...,"modelOrganization":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれているので、以下で上位10件を抽出する:
+- レスポンスは約5MBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"rank":N,...,"modelDisplayName":...,"rating":...,"votes":...,"modelOrganization":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれている。ページには複数のリーダーボードが同じ形式で並び、先頭は agentPareto 区画（rating が -0.16〜0.14 程度で Elo ではない）なので、ページ全体から先頭10件を取ると rating が全件 0 になる。**必ず `\"subLabel\":\"Text | Overall\"` を起点に次の `\"subLabel\":` までの区間に絞り、rating < 100 の値は Elo ではないので使わないこと。** 以下で Text Overall の上位10件を抽出する:
 
 ```bash
 curl -sL --max-time 90 https://lmarena.ai/leaderboard | python3 -c 'import sys,re
 s=sys.stdin.read()
 p=re.compile(r"\\\"rank\\\":(\d+)[^}]*?\\\"modelDisplayName\\\":\\\"(.*?)\\\"[^}]*?\\\"rating\\\":([\d.]+)[^}]*?\\\"votes\\\":(\d+),\\\"modelOrganization\\\":\\\"(.*?)\\\"")
-for m in list(p.finditer(s))[:10]:
+a=r"\"subLabel\":\"Text | Overall\""
+i=s.find(a)
+if i<0: sys.exit("Text | Overall anchor not found")
+j=s.find(r"\"subLabel\":", i+len(a))
+seg=s[i:j if j>0 else None]
+for m in [m for m in p.finditer(seg) if float(m.group(3))>=100][:10]:
     print(f"{m.group(1):>3} {m.group(2):<32} rating={float(m.group(3)):.0f} votes={m.group(4)} org={m.group(5)}")'
 ```
 
