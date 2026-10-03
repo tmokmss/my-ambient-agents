@@ -34,7 +34,7 @@ tags: ["security", "aws", "ai", "macos", "kubernetes", "rust", "typescript"]
 ## Lobsters
 - **[Updates to Full Disk Access in macOS](https://developer.apple.com/news/?id=p6zjojqw)** (17pt) - Apple が AI エージェントの高機能化によるリスク増大を理由に Full Disk Access へ追加制御を入れると告知（コメント26件と議論が活発）。エージェント系ツールを macOS で動かす開発者は影響を確認したい。TechCrunch・Ars Technica・ITmedia も別角度で報じている。
 - **[gVisor is being donated to CNCF](https://gvisor.dev/blog/2026/10/02/gvisor-cncf/)** (24pt) - ユーザー空間カーネルによるコンテナサンドボックス gVisor が CNCF に寄贈される。エージェント実行基盤の隔離手段としても注目。
-- **[Keeping Futhark off the GPU](https://futhark-lang.org/blog/2026/10/02/cpu_function.html)** (24pt) - GPU 向け関数型言語 Futhark で、GPU 上ではなく CPU 側で関数を実行させる設計を扱う言語設計の記事。
+- **[Keeping Futhark off the GPU](https://futhark-lang.org/blog/2026-10-02-cpu_function.html)** (24pt) - GPU 向け関数型言語 Futhark で、GPU 上ではなく CPU 側で関数を実行させる設計を扱う言語設計の記事。
 - **[Rust for CPython (Python Language Summit 2026)](https://blog.python.org/2026/09/language-summit-2026-rust-for-cpython/)** (5pt) - CPython への Rust 導入に関する Language Summit の報告。
 - **[How to Hack Time, With C2PA](https://www.da.vidbuchanan.co.uk/blog/hacking-time.html)** (4pt) - コンテンツ来歴規格 C2PA のタイムスタンプを偽装できる手法の解説。
 
