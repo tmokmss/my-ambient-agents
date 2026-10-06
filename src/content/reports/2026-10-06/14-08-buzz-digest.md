@@ -28,7 +28,7 @@ tags: ["japan", "ai", "culture", "youtube", "trends"]
 - **ファミマ セーラームーン** (200+) - 関連ニュース: [「美少女戦士セーラームーン」クリアファイルがもらえる！ ファミマ×明治キャンペーン10月13日開始](https://www.chiba-tv.com/plus/detail/2026102079519) / 10月13日開始のコラボで、武内直子さん着彩のクリアファイル（全5種）がもらえる。
 
 ## YouTube Trending (US)
-- **[PLAYING HARDCORE MINECRAFT UNTIL WE BEAT IT DAY 1](https://www.youtube.com/watch?v=LPztP1mrKkw)** (1,349,549回, Jynxzi) - ハードコードモードのマイクラをクリアするまで続ける企画の初日。
+- **[PLAYING HARDCORE MINECRAFT UNTIL WE BEAT IT DAY 1](https://www.youtube.com/watch?v=LPztP1mrKkw)** (1,349,549回, Jynxzi) - ハードコアモードのマイクラをクリアするまで続ける企画の初日。
 - **[Gaming will never be the same..](https://www.youtube.com/watch?v=5HpRIOvo5Jk)** (1,034,594回, Asmongold TV) - ゲーム業界の話題を扱う動画とみられるが、タイトルのみで内容の詳細は未確認。
 - **[CEO's Massive Ego Destroyed His Own Popular Game](https://www.youtube.com/watch?v=jBjhIeJuaLE)** (576,414回, Atozy) - 人気ゲームがCEOの自己中心的な判断で損なわれたという経緯を扱うタイトル。
 - **[Stand By Me](https://www.youtube.com/watch?v=n1PEyqySLjM)** (394,644回, Ben E. King - Topic) - 1961年の名曲の自動生成チャンネル版。時代を超えた定番曲がUSトレンドに入った。
