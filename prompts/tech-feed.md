@@ -228,26 +228,42 @@ dev.to は個人・組織アカウントが同一テーマの記事を短時間�
 - 分散は AUTHOR / ORG の件数上限という一般ルールのみで行い、特定の著者名・組織名を名指しで除外するリストを作ってはならない。
 
 ### 7. TechCrunch
-RSSを取得し、Python でパースする（`<description>` は複数行の CDATA で出力されるため、`re.DOTALL` と CDATA 展開が必須。単一行の grep/sed では概要が空になる）:
+本体フィード（`/feed/`）は20件で数時間分しかなく、その大半が資金調達・イベント告知で技術記事の母数が足りない。
+そのため**カテゴリ別フィードを併用**し、`artificial-intelligence`（AI）→ `security`（セキュリティ）→ 本体（総合）の3本を続けて取得して連結し、まとめてパースする（`<description>` は複数行の CDATA で出力されるため、`re.DOTALL` と CDATA 展開が必須。単一行の grep/sed では概要が空になる）:
 
 ```bash
-curl -s --max-time 15 'https://techcrunch.com/feed/' | python3 -c "
+curl -s --max-time 15 \
+  'https://techcrunch.com/category/artificial-intelligence/feed/' \
+  'https://techcrunch.com/category/security/feed/' \
+  'https://techcrunch.com/feed/' | python3 -c "
 import sys, re, html
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 d = sys.stdin.read()
 def unwrap(s):
     m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+now = datetime.now(timezone.utc)
+seen = set()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
+    url = g('link')
+    if not url or url in seen: continue
+    seen.add(url)
+    date = g('pubDate')
+    try: age = '%.0f' % ((now - parsedate_to_datetime(date)).total_seconds() / 3600)
+    except Exception: age = '?'
     desc = g('description') or g('content:encoded')[:300]
     cats = [unwrap(c) for c in re.findall(r'<category[^>]*>(.*?)</category>', it, re.S)]
-    print('TITLE:', g('title')); print('URL:', g('link')); print('DATE:', g('pubDate')); print('CATEGORIES:', ', '.join(cats)); print('DESC:', desc); print('---')
+    print('TITLE:', g('title')); print('URL:', url); print('DATE:', date); print('AGE_H:', age); print('CATEGORIES:', ', '.join(cats)); print('DESC:', desc); print('---')
 "
 ```
 
-各エントリの title, link, pubDate, category, description を全件取得する（1回の取得で20件前後。`head` や `[:N]` で出力を制限してはならない）。
+各エントリの title, link, pubDate, category, description を全件取得する。URL で重複排除しており、3フィード合計で40-50件前後の候補が得られる（`head` や `[:N]` で出力を制限してはならない）。
+`AGE_H` は pubDate から実行時点までの経過時間（時間単位）。`security` フィードは数日〜数週間前の古い記事を含むため、**`AGE_H` が72以下（pubDate が実行時点から72時間以内）の記事のみ候補とする**（`AGE_H` が `?` の場合は DATE を見て判断する）。
+なお **RSS のフィードとして有効なのは `category/artificial-intelligence/feed/` / `category/security/feed/` / 本体 `feed/` の3本のみ**で、`cloud-computing` や `developer` などの他のカテゴリスラッグはフィード URL に使うと 404 になる。上記3本以外を試してはならない。
 
 TechCrunch はスタートアップ全般を扱う媒体で、食品・フィットネス・生活サービス・エンタメなど IT 以外の消費者ブランドの資金調達記事や、イベントの告知記事が新着上位に混入する。
 そのため**新着順にそのまま採用せず、取得した全件から次の基準で選ぶ**こと。
