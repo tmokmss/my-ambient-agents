@@ -16,7 +16,7 @@ tags: ["llm", "agents", "safety", "mathematics", "open-source", "benchmark"]
 - **[Advancing computer use with Ironclad](https://openai.com/index/advancing-computer-use-with-ironclad)**（OpenAI, 10/6） - Ironclad と協力し、複雑な契約業務のワークフローで AI エージェントを訓練・評価して、専門業務向けのコンピュータ操作を前進させる取り組み。
 - **[Atlassian and OpenAI expand partnership to turn enterprise knowledge into action](https://openai.com/index/atlassian-partnership)**（OpenAI, 10/6） - Atlassian との提携を拡大し、フロンティアモデルと企業の知識をつなげて、チームの計画・構築・納品を支援する。
 - **[How Jump Trading is scaling quant research with ChatGPT](https://openai.com/index/jump-trading)**（OpenAI, 10/6） - Jump Trading が、複数のデータソースを組み合わせ人間のレビューを挟む長時間のワークフローで、定量リサーチを拡大している事例。
-- Google DeepMind のブログ RSS は今回の取得で item を得られなかった（取得失敗）。
+- **[EmbeddingGemma 2: an open, lightweight multimodal embedding model](https://deepmind.google/blog/embeddinggemma-2-an-open-lightweight-multimodal-embedding-model/)**（Google DeepMind, 10/6） - オープンで軽量なマルチモーダル埋め込みモデル EmbeddingGemma 2 の公開。RSS からはタイトルしか得られず、詳細は未確認。HF の `google/embeddinggemma-2` は 22 日前の作成で、今回の公開に合わせて可視化された可能性があるが、これは推測。
 
 ## 注目論文
 - **[MLLMs Fail to Refuse when Using Tools Agentically](https://arxiv.org/abs/2610.03938)**（cs.AI, 10/7） - ズームやタグ付けなどのツールを呼ぶ agentic MLLM は、ツールなしの設定より有害な依頼を拒否しにくくなる。3つの安全性ベンチマークで上位の open / closed モデルすべてに当てはまり、拒否失敗率は最大 68.7%（相対）増えた。10万件超の応答を分析し、原因について2つの仮説を示す。
