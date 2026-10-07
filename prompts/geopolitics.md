@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の22ソースからRSSを取得する。
+以下の24ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -47,7 +47,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 ```bash
 mkdir -p /tmp/rss
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の22ソースを列挙する）
+# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の24ソースを列挙する）
 while read -r name url; do
   [ -z "$name" ] && continue
   code=$(curl -sL --connect-timeout 10 --max-time 30 -A "$UA" \
@@ -88,6 +88,8 @@ ls -la /tmp/rss/
 | 20 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
 | 21 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 | 22 | Dawn | パキスタン（主要英字紙） | 英語 | https://www.dawn.com/feeds/home |
+| 23 | AllAfrica（紛争・安全保障） | アフリカ（各国紙集約） | 英語 | https://allafrica.com/tools/headlines/rdf/conflict/headlines.rdf |
+| 24 | Africanews | アフリカ（汎アフリカ専門） | 英語 | https://www.africanews.com/feed/rss |
 
 ## 引用リンクの扱い
 
@@ -179,6 +181,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - ロシア側のソースは国営（TASS・RIA Novosti）と独立系・亡命メディア（Meduza）を含む。両者の論調は大きく異なるため、同じ出来事について差異があれば「ロシア国内でも報じ方が分かれている」対比材料として扱う。どちらか一方をロシアの唯一の見解として扱わないこと。
 - アラブ側のソースは Al Jazeera Arabic（カタール）と The National / Sky News Arabia / Saudi Gazette（UAE・サウジ）を含む。湾岸域内でも対イラン・対カタールの立場が異なるため、同じ出来事について差異があれば「アラブ内でも報じ方が分かれている」対比材料として扱い、どちらか一方をアラブ全体の見解として扱わないこと。
 - 中国側のソースは国営メディア（中国新聞網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
+- アフリカ側のソースは AllAfrica（紛争・安全保障）と Africanews を含む。AllAfrica はアフリカ各国紙の記事を集約したフィードのため、description 冒頭の `[媒体名]`（例: `[Capital FM]`、`[Shabelle]`）で原典を確認し、出典は「AllAfrica 経由の〇〇紙」のように原典媒体名を明記すること。スーダン・サヘル・ソマリア・コンゴ東部などアフリカの紛争について、Al Jazeera・TASS/RIA・ウクライナ側報道など域外メディアの報じ方と対比する材料として使ってよい。
 
 ## レポート形式
 
