@@ -53,6 +53,16 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ `content` が非空なら**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**Mastodon の投稿は短文であることが多いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
         - HTTP 404 / `{"error": ...}` 形式の JSON（削除済み投稿など）/ `content` が空、のいずれかの場合は、`.pdf` と同様に **2. も 3. も実行せず**直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。Mastodon の投稿ページはクライアントサイド描画のため、servo-fetch で JS レンダリングしてもインスタンスの About ページしか得られず、Wayback のスナップショットも "To use the Mastodon web application, please enable JavaScript" しか含まないことを実測済みだからである
         - インスタンスは多数存在し列挙では追随できないため、**この判定は既知スキップドメインリストではなく上記の URL パターンで行う**（リスト自体には追加しない）
+      - **元URL が GitHub リポジトリのトップページ相当の場合は、WebFetch より先に README の原文を curl で取得する。** 対象はホストが `github.com`（`www.` を含む）で、パス（クエリ文字列・フラグメントを除く）が `/<owner>/<repo>`、またはその後ろに `/` や `/tree/<branch>` が付くだけの形（`#readme` 等のフラグメント付きも含む）。WebFetch はリポジトリページのナビゲーション・ファイル一覧などに埋もれて README 本文が十分に反映されないため
+        - `/pull/`・`/issues/`・`/blob/`・`/releases/`・`/discussions/` 等のサブページや、`.pdf` で終わるパスは対象外とし、従来どおりのフローで処理する
+        - まず GitHub API で README を取得する（ファイル名やデフォルトブランチは API 側が解決する）。失敗した場合（HTTP 200 以外、または本文が空）は raw.githubusercontent.com を試す
+          ```
+          curl -sS --max-time 30 -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/<owner>/<repo>/readme"
+          curl -sSL --max-time 30 "https://raw.githubusercontent.com/<owner>/<repo>/HEAD/README.md"
+          ```
+        - HTTP 200 かつ本文が空でなければ**取得成功**として扱い、冒頭約3000文字を要約の材料に使って 2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップする。**README は短いこともあるため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
+        - どちらも失敗した場合（リポジトリ削除・非公開等）は、通常どおり元URL への WebFetch 以降のフローで処理する
+        - gh CLI はワークフロー上で認証されていないため使わないこと
       - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
@@ -90,6 +100,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
       - 1. の既知スキップドメインに該当する URL も同様に対象外とする
       - **パスが `.pdf` で終わる代替URL も 1. と同じ理由（WebFetch がテキストを抽出できない）で対象外とする。** ただし `arxiv.org/pdf/<id>` は 1. と同様に `arxiv.org/abs/<id>` に書き換えれば試行してよい
       - **代替URL のパスが `/@<ユーザー名>/<数字のみのID>` 形式（Mastodon/fediverse の投稿）だった場合は、WebFetch ではなく 1. と同じ `https://<ホスト名>/api/v1/statuses/<数字ID>` の curl 手順で本文を取得する**
+      - **代替URL が GitHub リポジトリのトップページ相当の URL だった場合も、WebFetch ではなく 1. と同じ README 取得手順（GitHub API → raw.githubusercontent.com の curl）で本文を取得する**
       - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
       - 複数ヒットした場合は最初に成功したものを採用する
       - 代替URL が SSL/TLS 証明書エラーで失敗した場合も、証明書検証を無効化して再試行することはせず、次の候補 URL に進む（候補が尽きたら 5. に進む）
