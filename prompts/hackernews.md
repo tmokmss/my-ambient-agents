@@ -63,6 +63,14 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ本文が空でなければ**取得成功**として扱い、冒頭約3000文字を要約の材料に使って 2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップする。**README は短いこともあるため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
         - どちらも失敗した場合（リポジトリ削除・非公開等）は、通常どおり元URL への WebFetch 以降のフローで処理する
         - gh CLI はワークフロー上で認証されていないため使わないこと
+      - **元URL が nature.com の記事ページの場合は、WebFetch を試行せず cookie を保持する curl で取得する。** 対象はホストが `nature.com` またはそのサブドメイン（`www.` を含む）で、パスが `/articles/` で始まる URL。nature.com は初回アクセス時に `idp.nature.com/authorize?response_type=cookie...` へ 303 リダイレクトするが、これは cookie 発行のためであり、cookie を保持して追従すれば元記事に戻って HTTP 200 で本文 HTML が返る（`d41586-...` のニュース記事、`s41586-...` の論文記事の両方で実測済み）。WebFetch は cookie を保持しないため、この 303 を「認証必須」と誤認して失敗する
+        ```
+        curl -sSL --max-time 30 -c /tmp/nature_cookies.txt -b /tmp/nature_cookies.txt -w "%{http_code}\n" "<元URL>" -o /tmp/nature.html
+        ```
+        - 取得した HTML から `<script>` / `<style>` 要素とタグを除去し、`og:description`（`<meta property="og:description" content="...">`）、論文なら Abstract 節（`id="Abs1-content"` 等）、ニュース記事ならリード段落を要約の材料にする（冒頭約3000文字）。本文の大部分はサブスクリプション限定のため、アブストラクト／リードに基づく要約である旨を注記してよい
+        - HTTP 200 かつ `og:description` または Abstract が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**ニュース記事は無料部分が短いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
+        - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`og:description` と Abstract がともに空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する
+        - nature.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため）
       - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
