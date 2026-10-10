@@ -47,6 +47,36 @@ for it in items:
 候補が揃ったら、ピックアップ前に「重複排除」の「同一レポート内の重複（はてなブックマークの同一事件）」に従い、
 はてブ候補の全件を同一の出来事ごとにグループ化すること。
 
+#### 解説文の材料が不足するエントリの本文補完
+
+ピックアップ候補のうち、次のいずれかに当たるエントリは元記事から概要を補完する
+（特定のドメインや語で決め打ちせず、`description` の質で判定すること）:
+
+- (a) `description` が空
+- (b) `description` がタイトルと無関係な文字列（求人・広告など）
+- (c) `description` が連載・サイト共通の定型紹介文で、記事固有の内容がない
+- (d) タイトルと `description` だけでは対象が特定できない（姓のみ・略称のみの速報など）、
+  または高いブックマーク数を集めている理由が説明できない
+
+補完は**条件に当たる候補だけ**に行い、全件一律には行わない。Togetter 節と同じ UA で1件ずつ取得する:
+
+```bash
+curl -sL --max-time 20 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" -o /tmp/hb-page.html -w 'HTTP:%{http_code}\n' "$url"
+python3 -c "
+import re, html
+s = open('/tmp/hb-page.html', encoding='utf-8', errors='replace').read()
+m = re.search(r'<meta[^>]+property=\"og:description\"[^>]*content=\"([^\"]*)\"', s)
+print('OGDESC:', html.unescape(m.group(1)) if m else '')
+ps = [re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', p))).strip() for p in re.findall(r'<p[^>]*>(.*?)</p>', s, re.S)]
+print('P:', ' '.join(p for p in ps if p)[:500])
+"
+```
+
+- `OGDESC` が空、または RSS の `description` と同じサイト共通文・定型文だった場合は、`P`（`<p>` テキストの先頭）を材料にする。
+- 解説文は補完したテキストを根拠に書くこと。**タイトルからの推測で固有名詞や話題の理由を書いてはならない。**
+- `HTTP` が 200 以外、または補完しても内容が分からなかったエントリは候補から外し、次点を繰り上げる
+  （繰り上げたエントリが条件に当たる場合は同じ手順で補完する）。取得できない場合に無理に件数を埋めてはならない。
+
 ### 2. Togetter (X/Twitterまとめ)
 RSSを取得してパース:
 - https://togetter.com/rss/hot
