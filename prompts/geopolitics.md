@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の24ソースからRSSを取得する。
+以下の25ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -47,7 +47,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 ```bash
 mkdir -p /tmp/rss
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の24ソースを列挙する）
+# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の25ソースを列挙する）
 while read -r name url; do
   [ -z "$name" ] && continue
   code=$(curl -sL --connect-timeout 10 --max-time 30 -A "$UA" \
@@ -88,8 +88,9 @@ ls -la /tmp/rss/
 | 20 | BBC Chinese | 英国（中国語） | 中国語 | https://feeds.bbci.co.uk/zhongwen/simp/rss.xml |
 | 21 | The Diplomat | 米国（アジア太平洋） | 英語 | https://thediplomat.com/feed/ |
 | 22 | Dawn | パキスタン（主要英字紙） | 英語 | https://www.dawn.com/feeds/home |
-| 23 | AllAfrica（紛争・安全保障） | アフリカ（各国紙集約） | 英語 | https://allafrica.com/tools/headlines/rdf/conflict/headlines.rdf |
-| 24 | Africanews | アフリカ（汎アフリカ専門） | 英語 | https://www.africanews.com/feed/rss |
+| 23 | The Hindu | インド（主要英字紙） | 英語 | https://www.thehindu.com/news/international/feeder/default.rss |
+| 24 | AllAfrica（紛争・安全保障） | アフリカ（各国紙集約） | 英語 | https://allafrica.com/tools/headlines/rdf/conflict/headlines.rdf |
+| 25 | Africanews | アフリカ（汎アフリカ専門） | 英語 | https://www.africanews.com/feed/rss |
 
 ## 引用リンクの扱い
 
@@ -108,6 +109,11 @@ curl の生出力をそのまま読まず、title / link / pubDate を抽出し�
 Dawn の item タグはすべて `<item xmlns:default="http://purl.org/rss/1.0/modules/content/">` のように名前空間属性付きのため、`<item>` 完全一致では0件になる（実測: 属性許容で27件、完全一致で0件）。「データソース」節のとおり属性を許容してパースすること。
 また Dawn は Cloudflare 配下にあり、短時間に連続リクエストすると HTTP 429（error code: 1015）を返す。
 1回の実行につきリクエストは1回に留め、429 が返った場合はリトライせずスキップする。
+
+## The Hindu（インド）フィードの扱い
+
+The Hindu のフィードは title / description / link / pubDate がすべて `<![CDATA[...]]>` で包まれている。抽出時は CDATA を外してから値を読むこと（外さないとタイトルや URL に `<![CDATA[` が混入する）。
+`pubDate` は `+0530`（IST）表記のため、「日付の扱い」の 24時間 / 2-3日フィルタは JST に換算してから適用すること。
 
 ## description が空・実質空のソースの補完取得
 
