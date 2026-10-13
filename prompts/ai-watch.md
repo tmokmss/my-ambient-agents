@@ -46,6 +46,51 @@ for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]
 - `<pubDate>` は RFC 2822 形式（例: `Thu, 13 Aug 2026 17:04:18 +0000`）。これを確認し、上記の日付ルールに従って選別する
 - https://deepmind.google/discover/blog/ は JS レンダリング依存で静的 HTML から記事一覧・公開日を取得できないため、フォールバック先として使わないこと
 
+### 3-2. Tier 2 企業ソース（条件付き）
+
+**1〜3（Tier 1: Anthropic / OpenAI / Google DeepMind）で、日付ルール上掲載対象となり、かつ重複排除を通過した新着が合計1件以下の場合のみ参照する。**
+Tier 1 に十分な新着がある日は取得しないこと（毎回は取得しない）。Tier 1 の取得失敗で件数が足りない場合も参照してよい。
+Tier 2 の記事にも上記の日付ルールと「重複排除」節のルールをそのまま適用する。
+Tier 2 は補助ソースなので、取得失敗しても「取得失敗時の対応」節の「取得失敗」明記は不要（黙ってスキップしてよい）。
+
+**(a) Mistral AI (RSS)** — https://mistral.ai/rss.xml（curl -sL で取得。`<pubDate>` は RFC 2822 形式で降順）:
+
+```bash
+curl -sL --max-time 60 https://mistral.ai/rss.xml | python3 -c 'import sys,re,html
+s=sys.stdin.read()
+def g(it,k):
+    m=re.search(r"<"+k+r">(.*?)</"+k+r">",it,re.S)
+    return html.unescape(re.sub(r"<!\[CDATA\[|\]\]>","",m.group(1)).strip()) if m else ""
+for it in re.findall(r"<item>(.*?)</item>", s, re.S)[:10]:
+    print(g(it,"pubDate")[:16], " ", g(it,"link"), " ", g(it,"title"))'
+```
+
+**(b) Hugging Face Blog (RSS)** — https://huggingface.co/blog/feed.xml
+- フィードは 800件超と巨大なので、**そのまま読み込まず必ず以下のパイプで上位20件に絞ること**
+- リンクが `https://huggingface.co/blog/<org>/<slug>` 形式の記事は `<org>`（例: `nvidia`, `allenai`, `microsoft`）が執筆企業・機関なので、それを企業名として扱う。
+  `https://huggingface.co/blog/<slug>` 形式は Hugging Face 自身の記事（`org=huggingface` と出力される）
+- **企業・研究機関の公式 org による記事（モデル・データセット・研究成果の発表）を優先する。** 個人ユーザーの org による記事やチュートリアル的な記事は優先度を下げる
+
+```bash
+curl -sL --max-time 60 https://huggingface.co/blog/feed.xml | python3 -c 'import sys,re,html
+s=sys.stdin.read()
+def g(it,k):
+    m=re.search(r"<"+k+r">(.*?)</"+k+r">",it,re.S)
+    return html.unescape(re.sub(r"<!\[CDATA\[|\]\]>","",m.group(1)).strip()) if m else ""
+for it in re.findall(r"<item>(.*?)</item>", s, re.S)[:20]:
+    l=g(it,"link")
+    m=re.match(r"https://huggingface\.co/blog/([^/]+)/[^/]+$", l)
+    org=m.group(1) if m else "huggingface"
+    print(g(it,"pubDate")[:16], " org="+org, " ", l, " ", g(it,"title"))'
+```
+
+**以下は使用しないこと（探索しない）:**
+- `https://x.ai/news` — curl では HTTP 403
+- `https://ai.meta.com/blog/rss/` / `https://ai.meta.com/feed/` — HTTP 404（Meta AI ブログに RSS は無い）
+- `https://mistral.ai/news/rss.xml` — HTTP 404（正しくは上記の `https://mistral.ai/rss.xml`）
+- DeepSeek — 公式サイトは静的 HTML から記事一覧を取得できず RSS も無い。新モデルは「5. Hugging Face トレンド」で拾える
+- `https://qwenlm.github.io/blog/index.xml` — 2025-09 で更新が停止している
+
 ### 4. arxiv (AI/ML 新着論文)
 - https://rss.arxiv.org/rss/cs.AI (RSS をパース)
 - https://rss.arxiv.org/rss/cs.CL (RSS をパース)
@@ -358,10 +403,11 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 次にソース別セクション:
 
 ## 企業動向
-Anthropic, OpenAI, Google DeepMind のブログから新着があればまとめる。
+Anthropic, OpenAI, Google DeepMind（新着が少ない日は Tier 2 の Mistral AI・Hugging Face Blog）のブログから新着があればまとめる。
 新着がない場合はこのセクションを省略する。
 - **[タイトル](url)** ({企業名}, {M/D}) - 日本語で内容の解説・意義
 - OpenAI 記事の解説は RSS の `<description>` を要約・翻訳して書く（記事ページは取得できないため）
+- Hugging Face Blog の記事は `{企業名}` に執筆 org（例: NVIDIA、Ai2）を書く。Hugging Face 自身の記事なら `Hugging Face`
 
 ## 注目論文
 arxiv から注目の論文を3-5件ピックアップ。
