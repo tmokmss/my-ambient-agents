@@ -13,7 +13,7 @@
 
 ## データソース
 
-以下の25ソースからRSSを取得する。
+以下の27ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -47,7 +47,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 ```bash
 mkdir -p /tmp/rss
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の25ソースを列挙する）
+# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の27ソースを列挙する）
 while read -r name url; do
   [ -z "$name" ] && continue
   code=$(curl -sL --connect-timeout 10 --max-time 30 -A "$UA" \
@@ -91,6 +91,8 @@ ls -la /tmp/rss/
 | 23 | The Hindu | インド（主要英字紙） | 英語 | https://www.thehindu.com/news/international/feeder/default.rss |
 | 24 | AllAfrica（紛争・安全保障） | アフリカ（各国紙集約） | 英語 | https://allafrica.com/tools/headlines/rdf/conflict/headlines.rdf |
 | 25 | Africanews | アフリカ（汎アフリカ専門） | 英語 | https://www.africanews.com/feed/rss |
+| 26 | 聯合ニュース（北朝鮮セクション） | 韓国（通信社） | 英語 | https://en.yna.co.kr/RSS/nk.xml |
+| 27 | The Japan Times | 日本（主要英字紙） | 英語 | https://www.japantimes.co.jp/feed/ |
 
 ## 引用リンクの扱い
 
@@ -116,6 +118,11 @@ Dawn の item タグはすべて `<item xmlns:default="http://purl.org/rss/1.0/m
 
 The Hindu のフィードは title / description / link / pubDate がすべて `<![CDATA[...]]>` で包まれている。抽出時は CDATA を外してから値を読むこと（外さないとタイトルや URL に `<![CDATA[` が混入する）。
 `pubDate` は `+0530`（IST）表記のため、「日付の扱い」の 24時間 / 2-3日フィルタは JST に換算してから適用すること。
+
+## 聯合ニュース（韓国）・The Japan Times（日本）フィードの扱い
+
+両フィードとも title / description が `<![CDATA[...]]>` で包まれ、`pubDate` は `+0900` 表記である。The Hindu と同様に CDATA を外してから値を読むこと（`+0900` は JST と同じため換算は不要）。
+The Japan Times はスポーツ・文化・経済を含む総合フィードのため、安全保障・外交・地政学に関連する記事のみ拾うこと。
 
 ## description が空・実質空のソースの補完取得
 
@@ -190,6 +197,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - アラブ側のソースは Al Jazeera Arabic（カタール）と The National / Sky News Arabia / Saudi Gazette（UAE・サウジ）を含む。湾岸域内でも対イラン・対カタールの立場が異なるため、同じ出来事について差異があれば「アラブ内でも報じ方が分かれている」対比材料として扱い、どちらか一方をアラブ全体の見解として扱わないこと。
 - 中国側のソースは国営メディア（中国新聞網・CGTN）と海外向けの BBC Chinese を含む。CGTN Opinion は論説であり報道記事ではないため、中国政府に近い立場の**主張・論調**として扱い、事実報道と混同しないこと。
 - アフリカ側のソースは AllAfrica（紛争・安全保障）と Africanews を含む。AllAfrica はアフリカ各国紙の記事を集約したフィードのため、description 冒頭の `[媒体名]`（例: `[Capital FM]`、`[Shabelle]`）で原典を確認し、出典は「AllAfrica 経由の〇〇紙」のように原典媒体名を明記すること。スーダン・サヘル・ソマリア・コンゴ東部などアフリカの紛争について、Al Jazeera・TASS/RIA・ウクライナ側報道など域外メディアの報じ方と対比する材料として使ってよい。
+- 朝鮮半島・東アジアの事象では、聯合ニュース（韓国）と The Japan Times（日本）を当事国側の報道として扱い、中国国営メディア（中国新聞網・CGTN）や The Diplomat の報じ方と対比すること。
 
 ## レポート形式
 
