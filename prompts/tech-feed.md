@@ -52,7 +52,7 @@ def unwrap(s):
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:20]:
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
-    print('TITLE:', g('title')); print('URL:', g('link')); print('DESC:', g('description')[:300]); print('---')
+    print('TITLE:', g('title')); print('URL:', re.sub(r'\s+', '-', g('link'))); print('DESC:', g('description')[:300]); print('---')
 "
 ```
 
@@ -117,11 +117,13 @@ def unwrap(s):
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda t: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (t, t), it, re.S))
-    print('TITLE:', g('title')); print('URL:', g('link').strip()); print('DATE:', g('pubDate')); print('DESC:', g('description')[:200]); print('---')
+    print('TITLE:', g('title')); print('URL:', re.sub(r'\s+', '-', g('link').strip())); print('DATE:', g('pubDate')); print('DESC:', g('description')[:200]); print('---')
 " > /tmp/aws-whatsnew.txt
 ```
 
 各エントリの title, link, pubDate, description を取得。
+
+フィードの `<link>` には URL slug のハイフンが空白に化けて混入することがあるため、上記を含む各 RSS のパーススニペットでは URL 中の空白をハイフンに正規化している。レポートの Markdown リンクには空白を含む URL を書かないこと（空白が入るとリンクが壊れる）。
 
 - 出力は全件で 40KB 前後になり、標準出力にそのまま流すと Bash の出力上限に達して先頭が切り詰められる（persisted-output truncation）。上記のように必ず `/tmp/aws-whatsnew.txt` へリダイレクトすること。
 - リダイレクト後、**中身は Read ツールで `/tmp/aws-whatsnew.txt` を直接読む**。`cat` でファイル全体を標準出力に出し直すと同じ truncation が起きる。
@@ -249,7 +251,7 @@ now = datetime.now(timezone.utc)
 seen = set()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
-    url = g('link')
+    url = re.sub(r'\s+', '-', g('link'))
     if not url or url in seen: continue
     seen.add(url)
     date = g('pubDate')
@@ -294,7 +296,7 @@ def unwrap(s):
 seen = set()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
-    url = g('link')
+    url = re.sub(r'\s+', '-', g('link'))
     if not url or url in seen: continue
     seen.add(url)
     cat = re.sub(r'^https?://[^/]+/', '', url).split('/')[0]
