@@ -25,7 +25,7 @@ tags: ["news", "tech", "culture", "gaming", "japan"]
 - **ボーダーズ** (1000+) - 関連ニュース: [＜1話見どころ＞本格派警察サスペンス開幕！](https://tver.jp/episodes/epfc04kfmd) / 16日21時に新ドラマが初回放送。主演の沢村一樹の会見や、負傷降板した眞島秀和の後任にも注目が集まった。
 - **eストアー** (1000+) - 関連ニュース: [ECサイトシステム運営会社の情報漏えい 2335万件を確認](https://news.web.nhk/newsweb/na/nd-20261016de60742) / 通販サイトの運営支援ショップサーブなどの利用客計2335万人分の個人情報が漏洩したと判明した。
 - **新庄監督** (200+) - 関連ニュース: [【日本ハム】新庄監督、崖っぷち歓迎「ドジャースが４連敗するからね」](https://topics.smt.docomo.ne.jp/article/nikkansports/sports/f-bb-tp0-261016-202610160001358) / CSファイナルで日本ハムが連敗中で、崖っぷちでの采配に注目。関連キーワード: 藤森海斗 / ファイナルステージ（いずれも同じCSファイナルに起因）
-- **百条委員会** (200+) - 関連ニュース: [「動議！」本会議が中断 福岡県議会](https://news.yahoo.co.jp/articles/5ee47dad94b0cbda26d7cfee17d8f4fb448debaa) / 福岡県議会で百条委員会の設置案をめぐり動議が相次ぎ、本会議が中断した。
+- **百条委員会** (200+) - 関連ニュース: [「動議！」本会議が中断 福岡県議会](https://news.yahoo.co.jp/articles/92f6ab633644e7adb8b09bf4cc91d04bb5a2c7b5) / 福岡県議会で百条委員会の設置案をめぐり動議が相次ぎ、本会議が中断した。
 
 ## YouTube Trending (US)
 - **[Olivia Rodrigo - expectations (feat. Chappell Roan) (Official Music Video)](https://www.youtube.com/watch?v=gsZauX8gwxo)** (3,889,261回, OliviaRodrigoVEVO) - オリヴィア・ロドリゴとチャペル・ローンのコラボ曲のMV。
