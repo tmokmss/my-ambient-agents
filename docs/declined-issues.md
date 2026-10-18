@@ -15,7 +15,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #15 | news-briefing | Reuters RSS の description が空なので記事本文取得の代替手段を追加する | 重複 | 2026-08-20 |
 | #23 | tech-feed | Lobsters のスコアが RSS から取れず全件 `?` になるので JSON API 等で補完する | 重複 | 2026-08-20 |
 | #359 | news-briefing | NHK 記事本文が利用意向確認ゲート（NHK ONE）でブロックされるため、本文取得の代替手段（NEWS WEB EASY の JSON API 等）を追加する | 外部要因 / 重複 | 2026-08-21 |
-| #42, #356 | hackernews-top10 | Hacker News の上位10件に最低スコア閾値を設けて低スコアの直近投稿を除外する（上位N件を取得してスコア順に再選出する案を含む） | 効果不確実（オーナー判断: 色々なスコア帯の記事を見たいため導入しない） | 2026-08-23 |
+| #42, #356, #197 | hackernews-top10 | Hacker News の上位10件に最低スコア閾値を設けて低スコアの直近投稿を除外する（上位N件を取得してスコア順に再選出する案を含む） | 効果不確実（オーナー判断: 色々なスコア帯の記事を見たいため導入しない） | 2026-08-23 |
 | #12 | ai-watch | DeepMind ブログの記事 URL / 公開日が取得できないため URL 抽出やフォールバックを強化する | 重複（情報源を `deepmind.google/blog/rss.xml` に切替済みで解消。`discover/blog` の HTML パース禁止も明記済み） | 2026-08-23 |
 | #501 | ai-watch | DeepMind ブログ記事の公開日が月単位でしか取れず日付フィルタが不正確なため、公開日の取得方法を改善する | 重複（`deepmind.google/blog/rss.xml` への切替済みで `pubDate` から日次精度の公開日が取得可能。HTML スクレイピングへの回帰案は採用しない） | 2026-08-26 |
 | #38 | geopolitics-dual-view | Kyiv Independent が RSS ではなく HTML（Next.js SPA）を返し取得不能なため、取得方法の変更や代替ウクライナ系ソースを追加する | 重複（PR #658 で Kyiv Independent はプロンプトから削除済み。代替として Ukrinform EN `ukrinform.net/rss/block-lastnews` を採用済みで、Ukrainska Pravda RSS ともども疎通確認済み） | 2026-08-28 |
@@ -72,6 +72,7 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #190 | tech-feed | はてブ RSS から増田（anond.hatelabo.jp）記事を URL ドメインで一律除外するフィルタを追加する | 重複・効果不確実（内容ベースの除外基準は既にはてブ節にあり、再発報告では技術的に有意義な増田記事も掲載されている。一律除外は網羅性を損なう） | 2026-10-16 |
 | #205 | hackernews-top10 | HN API コメント `text` の HTML エンティティ（`&#x27;`, `&#x2F;`, `<p>` 等）を読解・要約時に明示デコードするようプロンプトに指示を追加する | 効果不確実（レポート履歴にエンティティ混入の実例なし。日本語要約時に自然に解釈されており、代替 URL 抽出のデコード指示は既存） | 2026-10-17 |
 | #209 | ai-watch | HF トレンドで公開4日超のモデルも DL 数・likes の閾値（例: 500k DL / 500 likes）を条件に掲載対象とする | 重複（`createdAt` 基準の age 判定: 7日以内最優先・8〜30日補充枠の選定ルールが PR #767 で導入済み） | 2026-10-17 |
+| #248 | news-briefing | 戦争・制裁など長期進行中の地政学ニュースの背景を補足する仕組み（「継続中の主要動向」セクション新設、各記事への背景1文追記、geopolitics-dual-view レポート参照など） | 一過性・効果不確実（2026年4〜6月のイラン／ホルムズ情勢起因で6月以降再発なし。取得データ外の背景補完はプロンプトの「推測で補完しない」方針（#788）と衝突し、要約が冗長化する。#419 と同系統） | 2026-10-19 |
 
 ## 該当基準
 
