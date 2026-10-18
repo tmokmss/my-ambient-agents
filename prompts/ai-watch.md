@@ -337,24 +337,28 @@ print(t[:1000] if t else "SKIP: description なし")'
 `pipeline_tag` / `likes` / `downloads` / `numParameters` だけから用途を推測して断定的に書いてはならない。
 
 ### 6. LLM リーダーボード（LMArena）
-- https://lmarena.ai/leaderboard (Chatbot Arena の現行公式サイト。Elo レーティングの変動を確認)
+- 主ソース: LMArena 公式の Hugging Face データセット `lmarena-ai/leaderboard-dataset`（`text` config の `latest` split）を datasets-server の rows API で取得する
+- **https://lmarena.ai/leaderboard は Cloudflare のチャレンジで HTTP 403 を返し常に失敗するため使わないこと**（UA を変えても `/leaderboard/text` でも同様）
 - **https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard は使用しないこと。** LMArena への移管後に更新が止まった静的スナップショットで、HTML は iframe/JS シェルのみのため curl では実データが一切取得できない
-- レスポンスは約5MBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"rank":N,...,"modelDisplayName":...,"rating":...,"votes":...,"modelOrganization":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれている。ページには複数のリーダーボードが同じ形式で並び、先頭は agentPareto 区画（rating が -0.16〜0.14 程度で Elo ではない）なので、ページ全体から先頭10件を取ると rating が全件 0 になる。**必ず `\"subLabel\":\"Text | Overall\"` を起点に次の `\"subLabel\":` までの区間に絞り、rating < 100 の値は Elo ではないので使わないこと。** 以下で Text Overall の上位10件を抽出する:
+- 以下で Text Overall の上位10件と公開日を抽出する:
 
 ```bash
-curl -sL --max-time 90 https://lmarena.ai/leaderboard | python3 -c 'import sys,re
-s=sys.stdin.read()
-p=re.compile(r"\\\"rank\\\":(\d+)[^}]*?\\\"modelDisplayName\\\":\\\"(.*?)\\\"[^}]*?\\\"rating\\\":([\d.]+)[^}]*?\\\"votes\\\":(\d+),\\\"modelOrganization\\\":\\\"(.*?)\\\"")
-a=r"\"subLabel\":\"Text | Overall\""
-i=s.find(a)
-if i<0: sys.exit("Text | Overall anchor not found")
-j=s.find(r"\"subLabel\":", i+len(a))
-seg=s[i:j if j>0 else None]
-for m in [m for m in p.finditer(seg) if float(m.group(3))>=100][:10]:
-    print(f"{m.group(1):>3} {m.group(2):<32} rating={float(m.group(3)):.0f} votes={m.group(4)} org={m.group(5)}")'
+curl -sSfL --max-time 60 'https://datasets-server.huggingface.co/rows?dataset=lmarena-ai/leaderboard-dataset&config=text&split=latest&offset=0&length=100' | python3 -c 'import sys,json
+d=json.load(sys.stdin)
+rows=[r["row"] for r in d.get("rows",[]) if r["row"].get("category")=="overall" and r["row"].get("rank") is not None]
+if not rows: sys.exit("no overall rows")
+rows.sort(key=lambda x:(x["rank"],-x["rating"]))
+print("publish_date:",rows[0].get("leaderboard_publish_date"))
+for x in rows[:10]:
+    print(int(x["rank"]),x["model_name"],"rating=%.0f"%x["rating"],"votes=%d"%x["vote_count"],"org=%s"%x["organization"],sep=" | ")'
 ```
 
-- 補助ソース: https://artificialanalysis.ai/leaderboards/models （Intelligence Index / Coding Index。同様に約4.4MBあるので要パイプ絞り込み）
+- 先頭行が overall の rank 順に並んでいるように見えても、**`category=="overall"` のフィルタと rank によるソートは必ずかけること**（データセットには他カテゴリの行も含まれる）
+- `/filter` エンドポイントは不安定なので使わず、上記の `/rows` を使うこと
+- 抽出が0件（非ゼロ終了）や HTTP エラーの場合は「取得失敗時の対応」に従いスキップする
+- レポートには `leaderboard_publish_date` を明記する。直近レポートと同じ公開日なら変動なしとみなし、LMArena の記載は省略してよい
+
+- 補助ソース: https://artificialanalysis.ai/leaderboards/models （Intelligence Index / Coding Index。約4.4MBあるので要パイプ絞り込み）
 
 ```bash
 curl -sL --max-time 90 https://artificialanalysis.ai/leaderboards/models | timeout 60 python3 -c 'import sys,re
