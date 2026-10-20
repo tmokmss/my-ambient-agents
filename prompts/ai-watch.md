@@ -42,7 +42,21 @@ for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]
 - 稀に `<description>` を持たない item があるので、その場合は `<title>` と `<category>` から書ける範囲に留め、推測で内容を断定しないこと
 
 ### 3. Google DeepMind ブログ (RSS)
-- https://deepmind.google/blog/rss.xml (curl -sL で取得し、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` を取得)
+- https://deepmind.google/blog/rss.xml を**必ず `curl -sL --compressed` で取得し**、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` を取得する（サーバーが Accept-Encoding の有無に関係なく gzip で返すことがあるため、`--compressed` が無いと gzip バイナリのままになり item が 0 件になる）。以下のコマンドを使うこと:
+
+```bash
+curl -sL --compressed --max-time 60 https://deepmind.google/blog/rss.xml | python3 -c 'import sys,re,html
+s=sys.stdin.read()
+def g(it,k):
+    m=re.search(r"<"+k+r">(.*?)</"+k+r">",it,re.S)
+    return html.unescape(re.sub(r"<!\[CDATA\[|\]\]>","",m.group(1)).strip()) if m else ""
+items=re.findall(r"<item>(.*?)</item>", s, re.S)
+print("items:",len(items))
+for it in items[:10]:
+    print(g(it,"pubDate")[:16], " ", g(it,"link"), " ", g(it,"title"))'
+```
+
+- `items: 0` や空出力の場合は即「取得失敗」「新着なし」と判断せず、`--compressed` の有無・HTTP ステータス（`curl -sL --compressed -o /dev/null -w '%{http_code}'`）・レスポンス先頭（`| head -c 200`）を確認して再試行する。`items:` が1以上で日付ルール上の該当記事がない場合のみ「新着なし」とする
 - `<pubDate>` は RFC 2822 形式（例: `Thu, 13 Aug 2026 17:04:18 +0000`）。これを確認し、上記の日付ルールに従って選別する
 - https://deepmind.google/discover/blog/ は JS レンダリング依存で静的 HTML から記事一覧・公開日を取得できないため、フォールバック先として使わないこと
 
