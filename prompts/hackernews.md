@@ -37,7 +37,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
    - 取得したリプライにも手順3と同じ除外条件を適用し、該当するものはレポートに含めない。除外した結果リプライが0件になったコメントは、kids が空の場合と同様に「リプライなし」として扱う
 5. 各ストーリーの `url` フィールドが存在する場合、以下の優先順で記事コンテンツを取得する（`url` がない Ask HN などはスキップ）:
    1. **元URL**: 下記の既知ペイウォール・アクセスブロックドメインに該当する場合はスキップして 3.（Wayback Machine フォールバック）に進む。それ以外は WebFetch を試行し、ページが長い場合は冒頭約3000文字のみ使用
-      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）, science.org（サブドメイン含む）, reuters.com（サブドメイン含む）, economist.com（サブドメイン含む）, youtube.com（サブドメイン含む。www / m も対象）, youtu.be, apnews.com（サブドメイン含む）, digitalfoundry.net（サブドメイン含む。www も対象）, theguardian.com（サブドメイン含む。www も対象）, qwen.ai（サブドメイン含む。www も対象）, thereader.mitpress.mit.edu（MIT Press Reader）
+      - 既知スキップドメイン: sciencedirect.com, businessinsider.com, nytimes.com, wsj.com, ft.com, bloomberg.com, technologyreview.com, latimes.com, substack.com（サブドメイン含む）, bbc.com, axios.com, arstechnica.com, medium.com, twitter.com, x.com, openai.com（サブドメイン含む）, science.org（サブドメイン含む）, reuters.com（サブドメイン含む）, economist.com（サブドメイン含む）, youtube.com（サブドメイン含む。www / m も対象）, youtu.be, apnews.com（サブドメイン含む）, digitalfoundry.net（サブドメイン含む。www も対象）, theguardian.com（サブドメイン含む。www も対象）, qwen.ai（サブドメイン含む。www も対象）, thereader.mitpress.mit.edu（MIT Press Reader）, code.videolan.org（Anubis ボット対策でアクセス不可。Wayback スナップショットも Anubis チャレンジページであることを実測済み）
         - 既知スキップドメインでスキップした場合も、3. の Wayback Machine フォールバックは必ず一度試すこと。ただしペイウォール記事やボット保護のかかったサイトはスナップショットが存在しない（arstechnica.com / reuters.com の記事 URL などで実測済み）か、スナップショット自体がペイウォール状態のことがあるため**ベストエフォート**扱いとし、取得できなければ 4. に進む
         - **例外: youtube.com / youtu.be はこの Wayback フォールバックも行わない。** 他の既知スキップドメインと異なり**2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行せず**、直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。動画ページはそもそも要約に使える本文テキストを持たず（`<title>` が空で定型の meta description しか返らない）、Wayback のスナップショットは status 200 で存在するもののタグ除去後の本文が約270文字（動画タイトルとフッターナビのみ）しかなく、上記「本文相当のテキストが 500 文字未満」の失敗判定に必ず該当するためである（実測済み）
         - **例外: qwen.ai も youtube.com / youtu.be と同様に、2.（JS レンダリング後の再取得）も 3.（Wayback Machine フォールバック）も実行せず**、直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。`qwen.ai/blog?id=...` 等のページはクライアントサイド描画で WebFetch はタイトル「Qwen」しか返さず、servo-fetch は `-t 20` でもタイムアウトし、Wayback のスナップショットも本文が「Qwen」のみであるためである（実測済み）
@@ -80,6 +80,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - レスポンスがページタイトルや meta description のみで本文が含まれない
         - 本文相当のテキストが 500 文字未満
         - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
+      - **HTTP 200 でも Anubis のボット検証ページ（タイトル「Making sure you're not a bot!」、「Protected by Anubis」や Anubis / Techaro の表記を含む）だった場合は「ボット検証」による取得失敗として扱い、上記の 2. ではなく直ちに 3.（Wayback Machine フォールバック）に進む**（servo-fetch でも検証は突破できない）。Anubis はドメインではなくソフトウェア単位の対策のためこの判定は内容で行い、既知スキップドメインリストへの追加は繰り返し観測されたドメインに限る
    2. **JS レンダリング後の再取得**: 1. が上記の「HTTP 200 だが実質的なコンテンツなし」に該当した場合のみ、**servo-fetch skill** に従ってページを再取得する。本文が取得できたらそれを使い、失敗したら 3.（Wayback Machine フォールバック）に進む
       - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォール / SSL・TLS 接続エラーで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない（TLS 失敗は「HTTP 200 だが実質的なコンテンツなし」にも該当しないので、そもそも 2. の対象外である）。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
    3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合（**youtube.com / youtu.be / qwen.ai は 1. に記載の例外で、この手順は実行せず 4. に進む**）、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
@@ -97,7 +98,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         ```
         - 取得した HTML から `<script>` / `<style>` ブロックとタグを除去し、本文の冒頭約3000文字を要約の材料として使う
       - **`<timestamp>` 直後の `if_` サフィックスは必須**（Wayback のバナーや注入 JS を除いた、アーカイブ時点の原本 HTML が返る）。`https://web.archive.org/web/latest/<元URL>` は Wayback のトップページにリダイレクトされ、`https://web.archive.org/web/2/<元URL>` は Cloudflare のブロックページのスナップショットに解決されることがあるため、**どちらの形式も使ってはならない**
-      - 取得結果が Cloudflare の「Attention Required」「Just a moment...」「Enable JavaScript and cookies to continue」などのブロックページを保存したものだった場合、または 1. と同じ基準（本文相当のテキストが 500 文字未満、タイトルのみ 等）で実質的なコンテンツがないと判断される場合は、**失敗扱いとして 4. に進む**
+      - 取得結果が Cloudflare の「Attention Required」「Just a moment...」「Enable JavaScript and cookies to continue」や Anubis のチャレンジページ（「Making sure you're not a bot!」等）などのブロックページを保存したものだった場合、または 1. と同じ基準（本文相当のテキストが 500 文字未満、タイトルのみ 等）で実質的なコンテンツがないと判断される場合は、**失敗扱いとして 4. に進む**
       - 本文が取得できた場合は、それが**アーカイブ時点のスナップショット**であり最新の内容と異なる可能性がある点に注意して要約する
    4. **代替URLフォールバック**: **ストーリー自身の `text` フィールド**と取得済みコメント（トップレベル＋リプライ）の `text` フィールドから、記事本文を読める代替URL（一次情報、著者の公式ブログ、論文のアブストラクトページ、プレスリリース、GitHub リポジトリなど）を抽出して WebFetch を試みる。HN ではペイウォール記事に有志が一次ソースをコメントすることが多いため有効
       - **試行順は「ストーリーの `text` に含まれる URL」→「コメント由来の候補」とする。** HN で `url` と `text` が併用されている場合、投稿者自身が元記事のブロックを回避できる一次情報（公式ブログ、`xunroll.com` などのスレッド展開サービス、`web.archive.org` スナップショット等）を `text` に添えていることが多く、コメント由来の候補より確度が高いため
