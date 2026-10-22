@@ -72,6 +72,35 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ `og:description` または Abstract が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**ニュース記事は無料部分が短いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
         - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`og:description` と Abstract がともに空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する
         - nature.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため）
+      - **元URL が theverge.com の記事の場合は、WebFetch を試行せず curl で取得する。** 対象はホストが `theverge.com` またはそのサブドメイン（`www.` を含む）の URL。theverge.com は WebFetch がツールレベルでブロックしている（`Claude Code is unable to fetch from ...`）が、curl なら HTTP 200 で記事 HTML が返り、JSON-LD（`<script type="application/ld+json">`）の `articleBody` に記事全文が含まれる（実測済み）
+        ```
+        curl -sSL --max-time 30 -w "%{http_code}\n" "<元URL>" -o /tmp/verge.html
+        ```
+        - 本文は JSON-LD の `articleBody` を JSON としてデコードして取り出し、冒頭約3000文字を要約の材料にする。`articleBody` が空のときは `og:description` を補助的に使う。抽出は次のコマンドで行う（1行目に文字数、2行目以降に本文を出力する）
+        ```
+        python3 -I -c '
+        import json, re, html
+        s = open("/tmp/verge.html", encoding="utf-8", errors="replace").read()
+        body = ""
+        def walk(o):
+            global body
+            if isinstance(o, dict):
+                if not body and isinstance(o.get("articleBody"), str): body = o["articleBody"]
+                for v in o.values(): walk(v)
+            elif isinstance(o, list):
+                for v in o: walk(v)
+        for m in re.finditer(r"<script[^>]*type=\"application/ld\+json\"[^>]*>(.*?)</script>", s, re.S):
+            try: walk(json.loads(m.group(1)))
+            except Exception: pass
+        if not body:
+            m = re.search(r"<meta[^>]+property=\"og:description\"[^>]+content=\"([^\"]*)\"", s)
+            body = "(og:description) " + html.unescape(m.group(1)) if m else ""
+        print(len(body)); print(body[:3000])
+        '
+        ```
+        - HTTP 200 かつ `articleBody` が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む
+        - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`articleBody` が空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する。`og:description` しか得られなかった場合は、Wayback 等でも本文が得られなかったときの補助材料として使ってよい
+        - theverge.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため。スキップして Wayback に回すと見出しとリード程度しか得られない）
       - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
@@ -111,6 +140,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
       - **パスが `.pdf` で終わる代替URL も 1. と同じ理由（WebFetch がテキストを抽出できない）で対象外とする。** ただし `arxiv.org/pdf/<id>` は 1. と同様に `arxiv.org/abs/<id>` に書き換えれば試行してよい
       - **代替URL のパスが `/@<ユーザー名>/<数字のみのID>` 形式（Mastodon/fediverse の投稿）だった場合は、WebFetch ではなく 1. と同じ `https://<ホスト名>/api/v1/statuses/<数字ID>` の curl 手順で本文を取得する**
       - **代替URL が GitHub リポジトリのトップページ相当の URL だった場合も、WebFetch ではなく 1. と同じ README 取得手順（GitHub API → raw.githubusercontent.com の curl）で本文を取得する**
+      - **代替URL が theverge.com（サブドメイン含む）だった場合も、WebFetch ではなく 1. と同じ curl ＋ JSON-LD `articleBody` 抽出手順で本文を取得する**
       - URL抽出時は HTML エンティティをデコードする（例: `&#x2F;` → `/`、`&amp;` → `&`）
       - 複数ヒットした場合は最初に成功したものを採用する
       - 代替URL が SSL/TLS 証明書エラーで失敗した場合も、証明書検証を無効化して再試行することはせず、次の候補 URL に進む（候補が尽きたら 5. に進む）
