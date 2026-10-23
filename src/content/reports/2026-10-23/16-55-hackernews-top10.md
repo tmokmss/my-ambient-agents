@@ -1,5 +1,5 @@
 ---
-title: "Hacker News トップ10 ダイジェスト（2026年10月24日）"
+title: "Hacker News トップ10 ダイジェスト（2026年10月23日）"
 date: "2026-10-23T16:55"
 category: "summary"
 summary: "Local Wikipedia、Docker の仕組み、電力の民営 vs 公営、Dijkstra の自然言語プログラミング批判など"
