@@ -29,7 +29,7 @@ tags: ["geopolitics", "ukraine", "russia", "ceasefire", "iran", "hormuz", "israe
 - **[ゼレンスキー氏、乌美俄三者会談は11月前半と確認](https://www.chinanews.com.cn/gj/2026/10-24/10720158.shtml)**（中国新聞網 🇨🇳, 10/23）— ウィトコフ、クシュナー両氏と電話したと述べた。Africanews 🌍 も「11月に和平協議」と報じている（[リンク](http://www.africanews.com/2026/10/23/russia-ukraine-and-the-us-set-for-november-peace-talks/)）。
 - **[スターリンクの速度制限は続いている（ゼレンスキー氏）／ルビオ氏が48〜72時間以内に再検討](https://www.ukrinform.net/rubric-polytics/4177645-zelensky-rubio-to-revisit-starlink-restrictions-in-ukraine-within-48-to-72-hours.html)**（Ukrinform 🇺🇦, 10/23）— トランプ氏が制限解除を述べたが、ウクライナでは制限が続いていると伝えている（BBC Persian 🇬🇧 も[同旨](https://www.bbc.com/persian/articles/cx24067gdgglo?at_medium=RSS&at_campaign=rss)）。
 - **[トランプ氏「マスク氏は何も悪くない」](https://tass.com/world/2207125)**（TASS 🇷🇺, 10/23）— スターリンクをめぐりマスク氏を擁護したと伝えている。
-- **[ロシア産ディーゼル第一陣が米東海岸へ向かう（ノヴァク副首相）](https://tass.com/economy/2207175)**（TASS 🇷🇺, 10/23）— 米露が供給契約の締結手続きを完了しつつあると述べた。The Hindu 🇮🇳 も、ウクライナの抗議にもかかわらず出航したと伝えている（[リンク](https://www.thehindu.com/news/international/kremlin-says-a-first-tanker-of-russian-diesel-sets-sail-for-us-despite-ukraines-protests/article71617208.ece]]>)）。
+- **[ロシア産ディーゼル第一陣が米東海岸へ向かう（ノヴァク副首相）](https://tass.com/economy/2207175)**（TASS 🇷🇺, 10/23）— 米露が供給契約の締結手続きを完了しつつあると述べた。The Hindu 🇮🇳 も、ウクライナの抗議にもかかわらず出航したと伝えている（[リンク](https://www.thehindu.com/news/international/kremlin-says-a-first-tanker-of-russian-diesel-sets-sail-for-us-despite-ukraines-protests/article71617208.ece)）。
 
 **視点の対比**: 11月前半の三者協議という枠組みは中国・アフリカ・ウクライナ側の報道で一致している。争点は、ウクライナ側が「領土を渡さない」と強調するのに対し、米側は「ドンバスが本質」という位置付けを示している点にある。スターリンクについては、トランプ氏の「解除」発言とウクライナ側の「制限は継続」という認識が食い違ったまま報じられている。
 
