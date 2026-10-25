@@ -19,14 +19,17 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 - https://www.anthropic.com/news (一覧ページを1回取得するだけで全記事の公開日・URL・タイトルが取れる)
 - **https://www.anthropic.com/rss.xml は存在しない（HTTP 404）ので探しに行かないこと。**
 - **個別記事ページ（https://www.anthropic.com/news/<slug>）は取得しないこと。** JS レンダリング依存で公開日が取れず、時間の無駄になる。必要な情報はすべて一覧ページから得られる
-- レスポンスは約470KBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に `{"publishedOn":...,"slug":{"current":...},"title":...}` の形式（HTML 内では `\"` にエスケープされている）で埋め込まれているので、`\"` を `"` に戻してから以下で最新15件を抽出する:
+- レスポンスは約400-500KBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に記事オブジェクト（`publishedOn` / `slug` (`{"_type":"slug","current":...}` 形式のことがある) / `title` などを含む `{...}`）として埋め込まれている（HTML 内では `\"` にエスケープされている）。**キーの並び順は一定しない**（`title→slug→articleType→publishedOn` の順のことも多い）ため、キー順を仮定した1本の正規表現で `.*?` を使うと別記事のオブジェクトをまたいで slug とタイトルが食い違う。必ず `\"` を `"` に戻したうえで、記事オブジェクト単位に切り出してから各キーを個別に検索する以下のコマンドで最新15件を抽出すること:
 
 ```bash
 curl -sL --max-time 90 https://www.anthropic.com/news | python3 -c 'import sys,re
 s=sys.stdin.read().replace("\\\"", "\"")
-p=re.compile(r"\"publishedOn\":\"(\d{4}-\d{2}-\d{2})[^\"]*\".*?\"current\":\"([a-z0-9\-]+)\".*?\"title\":\"(.*?)\"\}", re.S)
 seen={}
-for m in p.finditer(s): seen.setdefault(m.group(2), (m.group(1), m.group(3)))
+for o in re.findall(r"\{(?:[^{}]|\{[^{}]*\})*\}", s):
+    d=re.search(r"\"publishedOn\":\"(\d{4}-\d{2}-\d{2})", o)
+    sl=re.search(r"\"slug\":\{[^{}]*\"current\":\"([A-Za-z0-9_\-]+)\"", o)
+    t=re.search(r"\"title\":\"([^\"]*)\"", o)
+    if d and sl and t: seen.setdefault(sl.group(1), (d.group(1), t.group(1).strip()))
 for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]:
     print(f"{d}  https://www.anthropic.com/news/{slug}  {t}")'
 ```
