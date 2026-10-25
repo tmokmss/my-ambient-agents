@@ -27,19 +27,36 @@ curl -s --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" \
   "https://b.hatena.ne.jp/hotentry/general.rss" -o /tmp/hb.rss
 python3 -c "
 import xml.etree.ElementTree as ET
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+TRACK = {'display', 'fbclid', 'gclid'}
+def norm(u):
+    s = urlsplit(u)
+    kept = [(k, v) for k, v in parse_qsl(s.query, keep_blank_values=True) if not k.startswith('utm_') and k not in TRACK]
+    q = s.query if len(kept) == len(parse_qsl(s.query, keep_blank_values=True)) else urlencode(kept)
+    return urlunsplit((s.scheme, s.netloc, s.path, q, ''))
 ns = {'rss': 'http://purl.org/rss/1.0/', 'hatena': 'http://www.hatena.ne.jp/info/xmlns#'}
 root = ET.parse('/tmp/hb.rss').getroot()   # ルートは rdf:RDF
 items = root.findall('rss:item', ns)       # channel の子ではなく RDF 直下
 print('COUNT:', len(items))
+agg = {}
 for it in items:
-    print('[%s]' % it.findtext('hatena:bookmarkcount', '', ns), it.findtext('rss:title', '', ns))
-    print('  URL:', it.findtext('rss:link', '', ns))
-    print('  DESC:', (it.findtext('rss:description', '', ns) or '').strip()[:200])
+    url = norm(it.findtext('rss:link', '', ns))
+    c = it.findtext('hatena:bookmarkcount', '', ns)
+    e = agg.setdefault(url, {'title': it.findtext('rss:title', '', ns), 'count': 0,
+        'desc': (it.findtext('rss:description', '', ns) or '').strip()[:200]})
+    e['count'] += int(c) if c.isdigit() else 0
+print('MERGED:', len(items) - len(agg))
+for url, e in agg.items():
+    print('[%s]' % e['count'], e['title'])
+    print('  URL:', url)
+    print('  DESC:', e['desc'])
 "
 ```
 
 各エントリの title, link, description, bookmarkcount を**全件**取得すること。
 `COUNT:` は 40 前後になるはずで、これを大きく下回る場合はパースに失敗している。
+同一記事が `?utm_source=...` や `?display=b` などの追跡パラメータ違いで別エントリとして出現しブックマーク数が分散するため、上記では追跡パラメータ（`utm_*` / `display` / `fbclid` / `gclid`）のみを除去した URL で集約・合算している（`COUNT:` は集約前の生件数、`MERGED:` は集約で減った件数）。
+元記事リンクとはてブページ URL には正規化後の `URL:` を使うこと。`youtube.com/watch?v=...` のように記事の特定にクエリが必要な URL があるため、クエリ全体を削除してはならない。
 
 正規表現でパースする場合、実タグは `<item rdf:about="...">` なので `<item>` ではなく `<item [^>]*>` にマッチさせること。
 パース結果が0件だった場合は「取得失敗」と判断する前に名前空間指定の誤りを疑い、上記の方法で取り直すこと。

@@ -15,16 +15,33 @@ RSSを取得し、Python で RDF 全体をパースする（`head` 等で出力�
 ```bash
 curl -s --max-time 15 'https://b.hatena.ne.jp/hotentry/it.rss' | python3 -c "
 import sys, re, html
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+TRACK = {'display', 'fbclid', 'gclid'}
+def norm(u):
+    s = urlsplit(u)
+    kept = [(k, v) for k, v in parse_qsl(s.query, keep_blank_values=True) if not k.startswith('utm_') and k not in TRACK]
+    q = s.query if len(kept) == len(parse_qsl(s.query, keep_blank_values=True)) else urlencode(kept)
+    return urlunsplit((s.scheme, s.netloc, s.path, q, ''))
 data = sys.stdin.read()
+agg = {}
 for m in re.finditer(r'<item rdf:about=\"([^\"]+)\">(.*?)</item>', data, re.DOTALL):
-    url = m.group(1)
+    url = norm(html.unescape(m.group(1)))
     content = m.group(2)
     title = re.search(r'<title>(.*?)</title>', content)
     count = re.search(r'<hatena:bookmarkcount>(.*?)</hatena:bookmarkcount>', content)
-    if title:
-        print(count.group(1) if count else '?', html.unescape(title.group(1)), url)
+    if not title:
+        continue
+    c = int(count.group(1)) if count and count.group(1).isdigit() else 0
+    e = agg.setdefault(url, {'title': html.unescape(title.group(1)), 'count': 0, 'n': 0})
+    e['count'] += c
+    e['n'] += 1
+for url, e in agg.items():
+    print(e['count'], e['title'], url, '(merged %d)' % e['n'] if e['n'] > 1 else '')
 "
 ```
+
+はてブ RSS では同一記事が `?utm_source=...` や `?display=b` などの追跡パラメータ違いで別エントリとして出現し、ブックマーク数が分散するため、上記のとおり追跡パラメータ（`utm_*` / `display` / `fbclid` / `gclid`）のみを除去した URL で集約し、ブックマーク数を合算する（`(merged N)` は N 件を1件にまとめたことを示す）。
+レポートの元記事リンクとはてブページ URL の組み立てには正規化後の URL を使うこと。`youtube.com/watch?v=...` や `?no=...` のように記事の特定にクエリが必要な URL があるため、クエリ全体を削除してはならない。
 
 各エントリの title, link, bookmarkcount を全件取得すること。
 
