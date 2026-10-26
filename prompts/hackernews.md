@@ -105,14 +105,19 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
           - **証明書検証を無効化する回避策（`curl -k` / `--insecure` / `NODE_TLS_REJECT_UNAUTHORIZED=0` 等）は使用禁止。** 検証を切って取得を試みてはならない。証明書が壊れているサイトの本文は 3. 以降のフォールバックで代替する
-      - **HTTP 200 で返っても、以下に該当する場合は「取得失敗」として扱い 2. に進む**（SPA がクライアントサイドで本文を描画するため、サーバーが返す HTML が空のシェルのみというケース。取得が「成功」扱いになるので見落としやすい）
+      - **HTTP 200 で返っても、以下に該当する場合は「取得失敗」として扱い 2. に進む**（SPA がクライアントサイドで本文を描画するため、サーバーが返す HTML が空のシェルのみというケース。取得が「成功」扱いになるので見落としやすい。ただし直後の「ボット検証ページ」に該当する場合はそちらが優先され、2. には進まない）
         - レスポンスがページタイトルや meta description のみで本文が含まれない
         - 本文相当のテキストが 500 文字未満
         - 「Loading」「JavaScript required」「Enable JavaScript」等しか含まれない
-      - **HTTP 200 でも Anubis のボット検証ページ（タイトル「Making sure you're not a bot!」、「Protected by Anubis」や Anubis / Techaro の表記を含む）だった場合は「ボット検証」による取得失敗として扱い、上記の 2. ではなく直ちに 3.（Wayback Machine フォールバック）に進む**（servo-fetch でも検証は突破できない）。Anubis はドメインではなくソフトウェア単位の対策のためこの判定は内容で行い、既知スキップドメインリストへの追加は繰り返し観測されたドメインに限る
+      - **HTTP 200 でも以下のいずれかのボット検証ページだった場合は「ボット検証」による取得失敗として扱い、上記の 2. ではなく直ちに 3.（Wayback Machine フォールバック）に進む**（servo-fetch でも検証は突破できない。上記「実質的なコンテンツなし」の判定より優先する）
+        - Anubis: タイトル「Making sure you're not a bot!」、「Protected by Anubis」や Anubis / Techaro の表記を含む
+        - Cloudflare チャレンジ: 「Just a moment...」「Attention Required」「Checking your browser」「Enable JavaScript and cookies to continue」を含む
+        - 汎用の検証ページ: 「One moment, please...」「Please wait while your request is being verified」「Verifying you are human」を含む
+        - これらはドメインではなくボット対策ソフトウェア／サービス単位の対策のため、判定は内容で行う。既知スキップドメインリストへの追加は繰り返し観測されたドメインに限る
+      - **WebFetch がリダイレクト先として `https://www.google.com/sorry/...`（Google の CAPTCHA ページ。blogspot.com 等で発生）を返した場合も「ボット検証」による取得失敗として扱い、リダイレクト先は追わずに直ちに 3.（Wayback Machine フォールバック）に進む**
    2. **JS レンダリング後の再取得**: 1. が上記の「HTTP 200 だが実質的なコンテンツなし」に該当した場合のみ、**servo-fetch skill** に従ってページを再取得する。本文が取得できたらそれを使い、失敗したら 3.（Wayback Machine フォールバック）に進む
       - HTTP 4xx / 5xx（403, 404, 429, 451 等）/ ボット検証 / ペイウォール / SSL・TLS 接続エラーで失敗したケースは、そもそもサーバーが本文を返していないため JS レンダリングしても内容は得られない（TLS 失敗は「HTTP 200 だが実質的なコンテンツなし」にも該当しないので、そもそも 2. の対象外である）。**この場合 servo-fetch は実行せず、直ちに 3.（Wayback Machine フォールバック）に進む**
-   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合（**youtube.com / youtu.be / qwen.ai は 1. に記載の例外で、この手順は実行せず 4. に進む**）、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
+   3. **Wayback Machine フォールバック（curl 経由）**: 元URL が HTTP 4xx / 5xx / ボット検証 / ペイウォール / 認証必須 / タイムアウト / SSL・TLS 証明書エラーで失敗した場合、元URL が既知スキップドメインでスキップされた場合（**youtube.com / youtu.be / qwen.ai は 1. に記載の例外で、この手順は実行せず 4. に進む**）、および 2. の JS レンダリングでも本文が得られなかった場合に実行する
       - スナップショットの取得先は `web.archive.org` であり、その正規証明書で TLS 接続する。**元サイトの証明書エラーはここでは再現しないため、SSL/TLS エラーで失敗したときこそ 5.（コメントベース要約）に飛ばさず必ずこの手順を試すこと**
       - **WebFetch は使わず、必ず `curl` を使うこと。** `web.archive.org` / `archive.org` は WebFetch がツールレベルでブロックされている（`Claude Code is unable to fetch from ...`）が、curl からは正常にアクセスできる
       - a. スナップショットの有無を確認する
