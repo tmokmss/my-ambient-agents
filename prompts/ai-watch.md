@@ -45,7 +45,7 @@ for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]
 - 稀に `<description>` を持たない item があるので、その場合は `<title>` と `<category>` から書ける範囲に留め、推測で内容を断定しないこと
 
 ### 3. Google DeepMind ブログ (RSS)
-- https://deepmind.google/blog/rss.xml を**必ず `curl -sL --compressed` で取得し**、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` を取得する（サーバーが Accept-Encoding の有無に関係なく gzip で返すことがあるため、`--compressed` が無いと gzip バイナリのままになり item が 0 件になる）。以下のコマンドを使うこと:
+- https://deepmind.google/blog/rss.xml を**必ず `curl -sL --compressed` で取得し**、RSS をパースして `<item>` の `<title>` / `<link>` / `<pubDate>` に加えて **`<description>`** も取得する（サーバーが Accept-Encoding の有無に関係なく gzip で返すことがあるため、`--compressed` が無いと gzip バイナリのままになり item が 0 件になる）。以下のコマンドを使うこと:
 
 ```bash
 curl -sL --compressed --max-time 60 https://deepmind.google/blog/rss.xml | python3 -c 'import sys,re,html
@@ -56,12 +56,25 @@ def g(it,k):
 items=re.findall(r"<item>(.*?)</item>", s, re.S)
 print("items:",len(items))
 for it in items[:10]:
-    print(g(it,"pubDate")[:16], " ", g(it,"link"), " ", g(it,"title"))'
+    print(g(it,"pubDate")[:16], " ", g(it,"link"), " ", g(it,"title"))
+    print("    ", g(it,"description")[:300] or "(description なし)")'
 ```
 
+- description が「企業動向」セクションで DeepMind 記事を解説する際の一次情報源になる
 - `items: 0` や空出力の場合は即「取得失敗」「新着なし」と判断せず、`--compressed` の有無・HTTP ステータス（`curl -sL --compressed -o /dev/null -w '%{http_code}'`）・レスポンス先頭（`| head -c 200`）を確認して再試行する。`items:` が1以上で日付ルール上の該当記事がない場合のみ「新着なし」とする
 - `<pubDate>` は RFC 2822 形式（例: `Thu, 13 Aug 2026 17:04:18 +0000`）。これを確認し、上記の日付ルールに従って選別する
 - https://deepmind.google/discover/blog/ は JS レンダリング依存で静的 HTML から記事一覧・公開日を取得できないため、フォールバック先として使わないこと
+- `<description>` が無い・空・`<title>` とほぼ同じ記事のうち、**レポートに載せると決めた記事に限り**、個別記事ページ `https://deepmind.google/blog/<slug>/` を1回だけ取得し、`<meta name="description">`（無ければ `og:description`）の content で内容を補う:
+
+```bash
+curl -sL --compressed --max-time 30 "https://deepmind.google/blog/<slug>/" -o /tmp/dm_article.html
+grep -m1 -oE '<meta name="description" content="[^"]*"' /tmp/dm_article.html \
+  || grep -m1 -oE '<meta property="og:description" content="[^"]*"' /tmp/dm_article.html \
+  || echo "(meta description なし)"
+```
+
+- 個別記事ページは JS レンダリング依存の静的シェルで meta description も og:description も含まない記事がある。取れなければリトライや別手段（servo-fetch 等による本文取得）は試みず、タイトル・URL・公開日の範囲で簡潔に紹介し、推測で内容を断定しないこと
+- この補完は採用済み記事の meta タグ読み取りに限る。記事一覧・公開日の取得は上記 RSS のみで行い、個別ページや discover/blog の HTML パースには使わないこと
 
 ### 3-2. Tier 2 企業ソース（条件付き）
 
