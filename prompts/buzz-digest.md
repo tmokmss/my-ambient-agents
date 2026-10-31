@@ -254,23 +254,51 @@ video ID の一致に加えて、同一作品・同一イベントの別言語�
 各エントリの title, link, description, category（複数あり得る）, dc:creator を取得し、どちらのフィード由来かを保持しておく（レポートでソース名を併記するため）。
 
 `description` は両フィードとも **HTML 断片**（`<img>` や `<p>` を含む）なので、必ずタグを除去してからテキストとして扱うこと。
-どちらのフィードも RSS 2.0 の `./channel/item` なので、同じスクリプトで URL だけ差し替えてパースできる:
+どちらのフィードも RSS 2.0 の `./channel/item` なので同じパース処理を使い、URL と保存先ファイル名（`bb` / `ao`）だけを差し替える。
+ただし**フィードごとに別々の Bash 呼び出しで実行する**こと。まず Boing Boing:
 
 ```bash
-curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://boingboing.net/feed" | python3 -c "
+curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://boingboing.net/feed" -o /tmp/bb.xml
+python3 -c "
 import sys, re, html, xml.etree.ElementTree as ET
 ns = {'dc': 'http://purl.org/dc/elements/1.1/'}
 def clean(s):
     s = re.sub(r'<[^>]+>', ' ', s or '')
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
-for it in ET.fromstring(sys.stdin.read()).findall('./channel/item'):
+for it in ET.fromstring(open(sys.argv[1], encoding='utf-8').read()).findall('./channel/item'):
     cats = '/'.join(c.text or '' for c in it.findall('category'))
     print('TITLE:', clean(it.findtext('title', '')))
     print('URL:', it.findtext('link', ''))
     print('CATEGORY:', cats); print('CREATOR:', it.findtext('dc:creator', '', ns))
     print('DESC:', clean(it.findtext('description', ''))[:600]); print('---')
-"
+" /tmp/bb.xml > /tmp/bb-parsed.txt
+wc -l /tmp/bb-parsed.txt
 ```
+
+次に**別の Bash 呼び出しで** Atlas Obscura を取得・パースする（Python 処理は上と同一で、URL とファイル名だけが異なる）:
+
+```bash
+curl -sL --max-time 30 -A "Mozilla/5.0 (compatible; ambient-agent/1.0)" "https://www.atlasobscura.com/feeds/latest" -o /tmp/ao.xml
+python3 -c "
+import sys, re, html, xml.etree.ElementTree as ET
+ns = {'dc': 'http://purl.org/dc/elements/1.1/'}
+def clean(s):
+    s = re.sub(r'<[^>]+>', ' ', s or '')
+    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+for it in ET.fromstring(open(sys.argv[1], encoding='utf-8').read()).findall('./channel/item'):
+    cats = '/'.join(c.text or '' for c in it.findall('category'))
+    print('TITLE:', clean(it.findtext('title', '')))
+    print('URL:', it.findtext('link', ''))
+    print('CATEGORY:', cats); print('CREATOR:', it.findtext('dc:creator', '', ns))
+    print('DESC:', clean(it.findtext('description', ''))[:600]); print('---')
+" /tmp/ao.xml > /tmp/ao-parsed.txt
+wc -l /tmp/ao-parsed.txt
+```
+
+- 2フィードを1回の Bash 呼び出しにまとめてはならない。パース結果は2フィード合計で約 40KB になり、標準出力に流すと Bash の出力上限に達して先頭のプレビューに切り詰められ（persisted-output truncation）、後半の Atlas Obscura の候補が丸ごと欠落する。
+- 上記のように raw XML は `-o` でファイルに保存し、パース結果も必ず `/tmp/bb-parsed.txt` / `/tmp/ao-parsed.txt` へリダイレクトすること。標準出力には `wc -l` の行数だけを出す。
+- リダイレクト後、**中身は Read ツールで `/tmp/bb-parsed.txt` と `/tmp/ao-parsed.txt` を直接読む**。`cat` でファイル全体を標準出力に出し直すと同じ truncation が起きる。
+- Read が上限に達して途中までしか読めなかった場合は `offset` を指定して残りを読み切り、**両フィードの全エントリを必ず参照すること**（`wc -l` の行数と読めた行数を突き合わせる）。
 
 タグ除去の前提について、以下を守ること:
 
