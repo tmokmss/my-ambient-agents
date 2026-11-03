@@ -84,6 +84,8 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #567 | hackernews-top10 | 1回だけ HTTP 403・アクセス不可になったドメイン（the-independent.com・californiasciencecenter.org・cbc.ca・tidal.com 等、Elsevier 系学術出版社の一括追加案を含む）を既知スキップドメインリストに追加する | 効果不確実（各ドメイン1回ずつで同一ドメインの再発なし、2026-10-28 時点で一部は HTTP 200。4xx 時のフォールバックと「繰り返し観測されたドメインに限る」方針が手順5-1に既存。#168 と同系統） | 2026-10-29 |
 | #620 | hackernews-top10 | スキップドメイン記事のフォールバック先を広げ、ストーリー本文・コメント内のアーカイブ系以外の一次情報リンク（公式ブログ・著者サイト・プレスリリース等）も取得対象にする（archive 限定リストの拡張） | 重複（#678 / コミット f4ddcd9a で `prompts/hackernews.md` 手順5-4「代替URLフォールバック」として実装済み。アーカイブ系に限らず一次情報 URL を抽出して取得を試み、全失敗時のみ手順5-5のコメントベース要約に進む。再発報告4件はすべて修正前の 2026-08-01〜08-23 で以降再発なし） | 2026-10-30 |
 | #63 | tech-feed | はてブ等で特定トピック（Claude Code・AIエージェント等）が1ソース内や複数ソースにまたがって枠を独占する問題に、トピッククラスタ／大カテゴリ単位の上限（同一クラスタ最大2件など）を設ける | 重複・効果不確実（ソース横断の同一ニュースイベントは「同一レポート内の重複」節で1件、セクション内の同一ツール／プロダクトは「同一セクション内のツール集中」節（PR #782）で最大3件に制限済み。「最大2件」は上限3件とした #436 の判断と矛盾し、大カテゴリ単位の上限は境界が曖昧で主要関心領域の記事を落とす） | 2026-11-01 |
+| #96 | geopolitics-dual-view | Al Arabiya のアクセス拒否（403）の代替として Middle East Eye / Arab News / The National 等の RSS を追加し、アラブ・湾岸視点の Al Jazeera Arabic 単一依存を解消する | 重複（PR #688 で The National・Sky News Arabia・Saudi Gazette を導入済みで Al Arabiya はソース一覧から削除済み。2026-11-03 時点で3フィードとも HTTP 200 で稼働し直近レポートでも引用。Arab News は Saudi Gazette と役割重複。#275 と同系統） | 2026-11-03 |
+| #136 | buzz-digest | 過去レポート重複チェックで Glob 結果が100件超で打ち切られ直近3件を特定できないため、find / ls + sort 等で直近レポートを特定する方式に変える | 重複（#654 で `scripts/report-index.mjs` による日付ディレクトリ直接走査の「直近3日分」索引に置き換え済みで、`prompts/buzz-digest.md` は Glob を使わずレポート本文の Read も禁止。2026-11-03 実測で 242 日付ディレクトリ下でも files=6 / entries=205 を正しく取得） | 2026-11-03 |
 
 ## 該当基準
 
@@ -91,5 +93,3 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 - **一過性** — 一過性イベント起因（期間限定の現象に対して恒久ルールを足すと平常時に悪影響）
 - **重複** — 既存プロンプトの指示と実質重複
 - **効果不確実** — 改善効果が測れない、または他の品質とのトレードオフが大きい
-| #96 | geopolitics-dual-view | Al Arabiya のアクセス拒否（403）の代替として Middle East Eye / Arab News / The National 等の RSS を追加し、アラブ・湾岸視点の Al Jazeera Arabic 単一依存を解消する | 重複（PR #688 で The National・Sky News Arabia・Saudi Gazette を導入済みで Al Arabiya はソース一覧から削除済み。2026-11-03 時点で3フィードとも HTTP 200 で稼働し直近レポートでも引用。Arab News は Saudi Gazette と役割重複。#275 と同系統） | 2026-11-03 |
-| #136 | buzz-digest | 過去レポート重複チェックで Glob 結果が100件超で打ち切られ直近3件を特定できないため、find / ls + sort 等で直近レポートを特定する方式に変える | 重複（#654 で `scripts/report-index.mjs` による日付ディレクトリ直接走査の「直近3日分」索引に置き換え済みで、`prompts/buzz-digest.md` は Glob を使わずレポート本文の Read も禁止。2026-11-03 実測で 242 日付ディレクトリ下でも files=6 / entries=205 を正しく取得） | 2026-11-03 |
