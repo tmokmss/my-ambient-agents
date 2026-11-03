@@ -91,3 +91,5 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 - **一過性** — 一過性イベント起因（期間限定の現象に対して恒久ルールを足すと平常時に悪影響）
 - **重複** — 既存プロンプトの指示と実質重複
 - **効果不確実** — 改善効果が測れない、または他の品質とのトレードオフが大きい
+| #96 | geopolitics-dual-view | Al Arabiya のアクセス拒否（403）の代替として Middle East Eye / Arab News / The National 等の RSS を追加し、アラブ・湾岸視点の Al Jazeera Arabic 単一依存を解消する | 重複（PR #688 で The National・Sky News Arabia・Saudi Gazette を導入済みで Al Arabiya はソース一覧から削除済み。2026-11-03 時点で3フィードとも HTTP 200 で稼働し直近レポートでも引用。Arab News は Saudi Gazette と役割重複。#275 と同系統） | 2026-11-03 |
+| #136 | buzz-digest | 過去レポート重複チェックで Glob 結果が100件超で打ち切られ直近3件を特定できないため、find / ls + sort 等で直近レポートを特定する方式に変える | 重複（#654 で `scripts/report-index.mjs` による日付ディレクトリ直接走査の「直近3日分」索引に置き換え済みで、`prompts/buzz-digest.md` は Glob を使わずレポート本文の Read も禁止。2026-11-03 実測で 242 日付ディレクトリ下でも files=6 / entries=205 を正しく取得） | 2026-11-03 |
