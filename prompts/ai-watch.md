@@ -126,6 +126,34 @@ for it in re.findall(r"<item>(.*?)</item>", s, re.S)[:20]:
 - https://rss.arxiv.org/rss/cs.CL (RSS をパース)
 - タイトル・著者・abstract から注目論文を選出
 
+**RSS は平日だと数百KB・数百件と巨大（cs.AI で約650KB / 約300件）。** そのまま読んだり、ファイルに退避して head / grep で切り詰めてからパースしたりしないこと
+（切り詰めると `<item>` が途中で切れて 0 件と誤判定し、コンテキストも浪費する）。curl の出力を直接以下の抽出にパイプする:
+
+```bash
+curl -sL --max-time 90 https://rss.arxiv.org/rss/cs.AI | python3 -c 'import sys,re,html
+s=sys.stdin.read()
+items=re.findall(r"<item>(.*?)</item>", s, re.S)
+d=re.search(r"<channel>.*?<pubDate>(.*?)</pubDate>", s, re.S)
+print("items:", len(items), "| channel pubDate:", d.group(1) if d else "unknown")
+def g(tag, e):
+    m=re.search(r"<"+tag+r">(.*?)</"+tag+r">", e, re.S)
+    return html.unescape(re.sub(r"\s+"," ",m.group(1)).strip()) if m else ""
+n=0
+for e in items:
+    m=re.search(r"arXiv:(\d{4}\.\d{4,5})v\d+ Announce Type: (\S+)", e)
+    if not m or m.group(2) not in ("new","cross"): continue
+    ab=g("description",e).split("Abstract:",1)[-1].strip()
+    print(m.group(1), "["+m.group(2)+"]", g("title",e), " | ", g("dc:creator",e)[:60])
+    print("    "+ab[:200])
+    n+=1
+    if n>=40: break'
+```
+
+- cs.CL は URL を `https://rss.arxiv.org/rss/cs.CL` に差し替えて別途実行する（出力は1回あたり約15KB）
+- 出力は announce type が `new`（新規投稿）/ `cross`（クロスリスト）のものだけで最大40件。`replace` / `replace-cross` は既存論文の改訂版なので対象外
+- `items: 0` なら下記「空フィード」のルールに従いフォールバック (a)(b) へ進む
+- 出力された ID は下記「既出 arXiv ID の除外」に、`channel pubDate` は古いバッチかどうかの判断に使う
+
 **既出 arXiv ID の除外（必須・候補を選ぶ前に行う）** — arxiv の RSS は更新タイミングによって前日と同じバッチ（同じ arXiv ID 群）を翌日も返すことがあり、
 タイトル・内容の類似度による判断では取りこぼす。直近5件のレポートから既出 ID 一覧を作り、機械的に除外すること:
 
