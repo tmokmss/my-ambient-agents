@@ -87,6 +87,8 @@ Triage Issues エージェント（`.github/workflows/triage-issues.yml`）が�
 | #96 | geopolitics-dual-view | Al Arabiya のアクセス拒否（403）の代替として Middle East Eye / Arab News / The National 等の RSS を追加し、アラブ・湾岸視点の Al Jazeera Arabic 単一依存を解消する | 重複（PR #688 で The National・Sky News Arabia・Saudi Gazette を導入済みで Al Arabiya はソース一覧から削除済み。2026-11-03 時点で3フィードとも HTTP 200 で稼働し直近レポートでも引用。Arab News は Saudi Gazette と役割重複。#275 と同系統） | 2026-11-03 |
 | #136 | buzz-digest | 過去レポート重複チェックで Glob 結果が100件超で打ち切られ直近3件を特定できないため、find / ls + sort 等で直近レポートを特定する方式に変える | 重複（#654 で `scripts/report-index.mjs` による日付ディレクトリ直接走査の「直近3日分」索引に置き換え済みで、`prompts/buzz-digest.md` は Glob を使わずレポート本文の Read も禁止。2026-11-03 実測で 242 日付ディレクトリ下でも files=6 / entries=205 を正しく取得） | 2026-11-03 |
 | #256 | buzz-digest | 同一レポート内の別ソース間（YouTube US ↔ Boing Boing、YouTube JP ↔ はてなブックマーク等）で同じ作品・話題が出た場合に一方を省略または「→〇〇セクション参照」にするクロスソース重複排除 | 効果不確実（低頻度。各ソースのトレンドスナップショットとしての正確性を損ない、ソース間の取り上げ方の対比も失われる。セクション横断の扱いは #323 / #73 でオーナーが「臨機応変に判断」と決定済み） | 2026-11-05 |
+| #261 | buzz-digest | はてなブックマークに最低ブックマーク数の閾値（50 users 未満を除外、75/100 への引き上げや独自性による例外の案を含む）を設けて低ブクマ記事を除外する | 効果不確実（直近20本の実測で50 users 未満は約4%と稀。独自性の高い低ブクマ記事を意図的に採用するケースがあり、HN/Google Trends の閾値案もオーナー方針「色々なスコア帯を見たい」で見送り済み） | 2026-11-06 |
+| #279 | tech-feed | dev.to / Qiita で同一著者の連載記事（Part N / #n / Day N / Week N など）を1件にまとめるフィルタ | 重複（#719 / #775 で「同一著者は最大1件」「連載は同一シリーズから最新1話のみ」を `prompts/tech-feed.md` に追加済み） | 2026-11-06 |
 
 ## 該当基準
 
