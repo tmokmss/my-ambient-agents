@@ -1,7 +1,7 @@
 現在の日本時間: ${JST_TIME}
 
 世界の紛争・地政学ニュースを**複数の国・立場のメディア**から収集し、異なる視点を対比する日本語レポートを生成せよ。
-ソースは7言語（英語、ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語）にまたがる。各言語のRSSを直接読み取り、日本語で要約すること。
+ソースは8言語（英語、ウクライナ語、ロシア語、ヘブライ語、アラビア語、ペルシャ語、中国語、フランス語）にまたがる。各言語のRSSを直接読み取り、日本語で要約すること。
 
 ## 日付の扱い（重要）
 
@@ -19,7 +19,7 @@
 
 ## データソース
 
-以下の28ソースからRSSを取得する。
+以下の30ソースからRSSを取得する。
 注意: WebFetch ツールでブロックされるサイトがあるため、データ取得には curl コマンドを使うこと。
 各ソースごとに以下のコマンドで取得し、XML/RSSをパースする。
 
@@ -59,7 +59,7 @@ curl -sL --connect-timeout 10 --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Wi
 ```bash
 mkdir -p /tmp/rss
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の28ソースを列挙する）
+# 「<ソース名> <RSS URL>」を1行1ソースで並べる（下表の30ソースを列挙する）
 while read -r name url; do
   [ -z "$name" ] && continue
   code=$(curl -sL --connect-timeout 10 --max-time 30 -A "$UA" \
@@ -106,6 +106,8 @@ ls -la /tmp/rss/
 | 26 | 聯合ニュース（北朝鮮セクション） | 韓国（通信社） | 英語 | https://en.yna.co.kr/RSS/nk.xml |
 | 27 | The Japan Times | 日本（主要英字紙） | 英語 | https://www.japantimes.co.jp/feed/ |
 | 28 | LBCI English | レバノン（民放TV） | 英語 | https://www.lbcgroup.tv/Rss/news/en |
+| 29 | Deutsche Welle（World） | ドイツ（連邦政府出資の国際放送） | 英語 | https://rss.dw.com/rdf/rss-en-world |
+| 30 | RFI（Radio France Internationale） | フランス（公共国際放送） | フランス語 | https://www.rfi.fr/fr/rss |
 
 ## 引用リンクの扱い
 
@@ -154,6 +156,12 @@ The Japan Times はスポーツ・文化・経済を含む総合フィードの�
 LBCI のフィードは title / description の一部が `&amp;#39;` のように二重エスケープされている。1回デコードしただけでは `&#39;` が残るため、**HTML エンティティのデコードを2回行ってから**読むこと（`&amp;#39;` → `&#39;` → `'`）。
 `link` には `?src=rss&amp;utm_campaign=...` のクエリ文字列が付くが、引用時は RSS の link をそのまま（`&amp;` は `&` にデコードして）使ってよい。
 `description` 冒頭は `Report by ..., English adaptation by ...` のような署名行のことがあるため、要約では署名部分を読み飛ばすこと。
+
+## Deutsche Welle（ドイツ）・RFI（フランス）フィードの扱い
+
+DW のフィードは RSS 1.0（RDF）形式で、`<item rdf:about="...">` のように属性付きの item を持ち、**`pubDate` が無い**。日付は `<dc:date>`（例: `2026-11-06T20:23:00Z`、ISO8601・UTC）を使い、「日付の扱い」の全体ルールどおり JST に換算してからフィルタ・M/D 表記を行うこと（例: `TZ=Asia/Tokyo date -d "2026-11-06T20:23:00Z" '+%-m/%-d %H:%M'` → `11/7 05:23`）。
+DW の `link` には計測用クエリ `?maca=en-rss-en-world-...` が付くが、引用時は RSS の link をそのまま使ってよい（`scripts/check-report-links.mjs` は RDF の item とクエリ差を許容して照合する）。チャンネル `<link>`（`https://www.dw.com/english/?maca=...`）は媒体トップなので引用しない。
+RFI はフランス語の総合フィードで政治・文化・スポーツを含むため、安全保障・外交・地政学に関連する記事のみ拾うこと。`pubDate` は `GMT` 表記なので JST 換算する。`link` はパーセントエンコードされた URL（例: `/fr/am%C3%A9riques/...`）のため、デコードや書き換えをせずそのまま引用する。
 
 ## description が空・実質空のソースの補完取得
 
@@ -248,6 +256,7 @@ src/content/reports/ ディレクトリ以下を再帰的に検索し、ファ�
 - アフリカ側のソースは AllAfrica（紛争・安全保障）と Africanews を含む。AllAfrica はアフリカ各国紙の記事を集約したフィードのため、description 冒頭の `[媒体名]`（例: `[Capital FM]`、`[Shabelle]`）で原典を確認し、出典は「AllAfrica 経由の〇〇紙」のように原典媒体名を明記すること。スーダン・サヘル・ソマリア・コンゴ東部などアフリカの紛争について、Al Jazeera・TASS/RIA・ウクライナ側報道など域外メディアの報じ方と対比する材料として使ってよい。
 - イスラエル・ヒズボラ間の戦闘やレバノン情勢では、LBCI English（レバノン）を当事国側の報道として扱い、イスラエル側（Ynet・Haaretz・Jerusalem Post）やアラブ・イラン側の報じ方と対比すること。
 - 朝鮮半島・東アジアの事象では、聯合ニュース（韓国）と The Japan Times（日本）を当事国側の報道として扱い、中国国営メディア（中国新聞網・CGTN）や The Diplomat の報じ方と対比すること。
+- NATO・EU の対応（欧州首脳の発言、対米・対ロ・対イラン政策の違いなど）では、Deutsche Welle（ドイツ）と RFI（フランス）を欧州当事国側の一次報道として扱い、TASS/RIA・ウクライナ側・イラン側・中国国営メディアなど他陣営や第三国の報じ方と対比すること。
 - **原因・主体が未確認の事象**: 爆発・攻撃・船舶被害・GPS妨害などの軍事・安全保障事象のうち、次のいずれかに該当するものは「原因・主体未確認」として扱う。
   - (a) 報じたソースがいずれも原因・攻撃主体を「不明」「未確認」としている
   - (b) 当事者間（例: IRGC と CENTCOM）で具体的かつ相反する原因・主体の主張がある
