@@ -104,6 +104,28 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ `articleBody` が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む
         - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`articleBody` が空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する。`og:description` しか得られなかった場合は、Wayback 等でも本文が得られなかったときの補助材料として使ってよい
         - theverge.com / newyorker.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため。スキップして Wayback に回すと見出しとリード程度しか得られない）
+      - **元URL が cnbc.com の記事の場合は、WebFetch を試行せずブラウザの User-Agent を付けた curl で取得する。** 対象はホストが `cnbc.com` またはそのサブドメイン（`www.` を含む）の URL。cnbc.com は WebFetch や User-Agent なしの curl には HTTP 403 を返すが、ブラウザの User-Agent を付けた curl なら HTTP 200 で記事 HTML が返る（実測済み）
+        ```
+        UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        curl -sSL --max-time 30 -A "$UA" -w "%{http_code}\n" "<元URL>" -o /tmp/cnbc_article.html
+        ```
+        - cnbc.com の JSON-LD には `articleBody` が含まれないため、上記 theverge.com / newyorker.com 用の抽出スクリプトは使えない。本文は `data-module="ArticleBody"` 以降の `<p>` 要素から取り出し、冒頭約3000文字を要約の材料にする。段落が得られないときは `og:description` を補助的に使う。抽出は次のコマンドで行う（1行目に文字数、2行目以降に本文を出力する）
+        ```
+        python3 -I -c '
+        import re, html
+        s = open("/tmp/cnbc_article.html", encoding="utf-8", errors="replace").read()
+        i = s.find("data-module=\"ArticleBody\""); seg = s[i:] if i >= 0 else ""
+        ps = [html.unescape(re.sub(r"<[^>]+>", "", p)).strip() for p in re.findall(r"<p[^>]*>(.*?)</p>", seg, re.S)]
+        body = "\n".join(p for p in ps if len(p) > 40)
+        if not body:
+            m = re.search(r"<meta[^>]+property=\"og:description\"[^>]+content=\"([^\"]*)\"", s)
+            body = "(og:description) " + html.unescape(m.group(1)) if m else ""
+        print(len(body)); print(body[:3000])
+        '
+        ```
+        - HTTP 200 かつ本文（`og:description` ではなく段落から得たもの）が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む
+        - 上記を満たさない場合（HTTP 200 以外、タイムアウト、本文が空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する。`og:description` しか得られなかった場合は、Wayback 等でも本文が得られなかったときの補助材料として使ってよい
+        - cnbc.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため）
       - **HTTP 4xx / 5xx（402, 403, 404, 406, 429, 451 等すべて）/ paywall / 認証必須 / タイムアウト / SSL・TLS 接続エラー等で明示的に失敗した場合**は 3.（Wayback Machine フォールバック）に進む
         - ステータスコードが明示的に返った時点で「取得失敗」と確定させ、同じ URL へのリトライや別ツール（curl / servo-fetch）での再取得は行わず、直ちに 3. に進むこと（429 のようなレートリミットも、待機・リトライせずフォールバックする）
         - **SSL/TLS 接続エラーも同様に「取得失敗」として直ちに 3. に進む。** 具体的には `self signed certificate` / `unable to verify the first certificate` / `ERR_TLS_CERT_ALTNAME_INVALID` / `Hostname/IP does not match certificate's altnames` / `certificate has expired` / `WRONG_VERSION_NUMBER` / `unknown certificate verification error` などのメッセージで現れる。TLS ハンドシェイクの段階で接続が終了しておりサーバー本文は一切得られないため、同じ URL へのリトライや curl / servo-fetch での再取得をしても結果は変わらない
