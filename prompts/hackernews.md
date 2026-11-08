@@ -75,7 +75,7 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ `og:description` または Abstract が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**ニュース記事は無料部分が短いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
         - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`og:description` と Abstract がともに空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する
         - nature.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため）
-      - **元URL が theverge.com / newyorker.com の記事の場合は、WebFetch を試行せず curl で取得する。** 対象はホストが `theverge.com` / `newyorker.com` またはそれらのサブドメイン（`www.` を含む）の URL。どちらも WebFetch がツールレベルでブロックしている（`Claude Code is unable to fetch from ...`）が、curl なら HTTP 200 で記事 HTML が返り、JSON-LD（`<script type="application/ld+json">`）の `articleBody` に記事全文が含まれる（両ドメインとも実測済み）
+      - **元URL が theverge.com / newyorker.com / wired.com の記事の場合は、WebFetch を試行せず curl で取得する。** 対象はホストが `theverge.com` / `newyorker.com` / `wired.com` またはそれらのサブドメイン（`www.` を含む）の URL。いずれも WebFetch がツールレベルでブロックしている（`Claude Code is unable to fetch from ...`）が、curl なら HTTP 200 で記事 HTML が返り、JSON-LD（`<script type="application/ld+json">`）の `articleBody` に記事全文が含まれる（3ドメインとも実測済み）
         ```
         curl -sSL --max-time 30 -w "%{http_code}\n" "<元URL>" -o /tmp/jsonld_article.html
         ```
@@ -103,13 +103,13 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         ```
         - HTTP 200 かつ `articleBody` が空でなければ**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む
         - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`articleBody` が空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する。`og:description` しか得られなかった場合は、Wayback 等でも本文が得られなかったときの補助材料として使ってよい
-        - theverge.com / newyorker.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため。スキップして Wayback に回すと見出しとリード程度しか得られない）
+        - theverge.com / newyorker.com / wired.com は既知スキップドメインリストには追加しない（上記 curl で取得できるため。スキップして Wayback に回すと見出しとリード程度しか得られない）
       - **元URL が cnbc.com の記事の場合は、WebFetch を試行せずブラウザの User-Agent を付けた curl で取得する。** 対象はホストが `cnbc.com` またはそのサブドメイン（`www.` を含む）の URL。cnbc.com は WebFetch や User-Agent なしの curl には HTTP 403 を返すが、ブラウザの User-Agent を付けた curl なら HTTP 200 で記事 HTML が返る（実測済み）
         ```
         UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         curl -sSL --max-time 30 -A "$UA" -w "%{http_code}\n" "<元URL>" -o /tmp/cnbc_article.html
         ```
-        - cnbc.com の JSON-LD には `articleBody` が含まれないため、上記 theverge.com / newyorker.com 用の抽出スクリプトは使えない。本文は `data-module="ArticleBody"` 以降の `<p>` 要素から取り出し、冒頭約3000文字を要約の材料にする。段落が得られないときは `og:description` を補助的に使う。抽出は次のコマンドで行う（1行目に文字数、2行目以降に本文を出力する）
+        - cnbc.com の JSON-LD には `articleBody` が含まれないため、上記 theverge.com / newyorker.com / wired.com 用の抽出スクリプトは使えない。本文は `data-module="ArticleBody"` 以降の `<p>` 要素から取り出し、冒頭約3000文字を要約の材料にする。段落が得られないときは `og:description` を補助的に使う。抽出は次のコマンドで行う（1行目に文字数、2行目以降に本文を出力する）
         ```
         python3 -I -c '
         import re, html
