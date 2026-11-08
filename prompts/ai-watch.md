@@ -18,8 +18,8 @@ AI・LLM の最新動向を1次ソースから収集し、日本語のデイリ�
 ### 1. Anthropic ブログ / ニュース
 - https://www.anthropic.com/news (一覧ページを1回取得するだけで全記事の公開日・URL・タイトルが取れる)
 - **https://www.anthropic.com/rss.xml は存在しない（HTTP 404）ので探しに行かないこと。**
-- **個別記事ページ（https://www.anthropic.com/news/<slug>）は取得しないこと。** JS レンダリング依存で公開日が取れず、時間の無駄になる。必要な情報はすべて一覧ページから得られる
-- レスポンスは約400-500KBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に記事オブジェクト（`publishedOn` / `slug` (`{"_type":"slug","current":...}` 形式のことがある) / `title` などを含む `{...}`）として埋め込まれている（HTML 内では `\"` にエスケープされている）。**キーの並び順は一定しない**（`title→slug→articleType→publishedOn` の順のことも多い）ため、キー順を仮定した1本の正規表現で `.*?` を使うと別記事のオブジェクトをまたいで slug とタイトルが食い違う。必ず `\"` を `"` に戻したうえで、記事オブジェクト単位に切り出してから各キーを個別に検索する以下のコマンドで最新15件を抽出すること:
+- **記事一覧と公開日の判定は一覧ページのみで行い、個別記事ページ（https://www.anthropic.com/news/<slug>）を一覧取得・公開日確認のために巡回しないこと。** 個別ページからは公開日が取れず、時間の無駄になる。唯一の例外は後述の「summary が無い採用記事の meta description 補完」
+- レスポンスは約400-500KBあるため、**そのまま読み込まず必ずパイプで絞り込むこと**。データは Next.js の RSC ペイロード内に記事オブジェクト（`publishedOn` / `slug` (`{"_type":"slug","current":...}` 形式のことがある) / `title` などを含む `{...}`）として埋め込まれている（HTML 内では `\"` にエスケープされている）。**キーの並び順は一定しない**（`title→slug→articleType→publishedOn` の順のことも多い）ため、キー順を仮定した1本の正規表現で `.*?` を使うと別記事のオブジェクトをまたいで slug とタイトルが食い違う。必ず `\"` を `"` に戻したうえで、記事オブジェクト単位に切り出してから各キーを個別に検索する以下のコマンドで最新15件を抽出すること（記事の概要文 `summary` も併せて取得する）:
 
 ```bash
 curl -sL --max-time 90 https://www.anthropic.com/news | python3 -c 'import sys,re
@@ -29,12 +29,28 @@ for o in re.findall(r"\{(?:[^{}]|\{[^{}]*\})*\}", s):
     d=re.search(r"\"publishedOn\":\"(\d{4}-\d{2}-\d{2})", o)
     sl=re.search(r"\"slug\":\{[^{}]*\"current\":\"([A-Za-z0-9_\-]+)\"", o)
     t=re.search(r"\"title\":\"([^\"]*)\"", o)
-    if d and sl and t: seen.setdefault(sl.group(1), (d.group(1), t.group(1).strip()))
-for slug,(d,t) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]:
-    print(f"{d}  https://www.anthropic.com/news/{slug}  {t}")'
+    sm=re.search(r"\"summary\":\"((?:[^\"\\\\]|\\\\.)*)\"", o)
+    if d and sl and t:
+        k=sl.group(1)
+        if k not in seen or (sm and not seen[k][2]): seen[k]=(d.group(1), t.group(1).strip(), sm.group(1).strip() if sm else "")
+for slug,(d,t,sm) in sorted(seen.items(), key=lambda x: x[1][0], reverse=True)[:15]:
+    print(f"{d}  https://www.anthropic.com/news/{slug}  {t}")
+    print("    "+(sm[:300] or "(summary なし)"))'
 ```
 
-- 出力は `公開日  URL  タイトル` の日付降順（200件超の記事から最新15件）なので、上位から順に上記の日付ルールに従って選別する
+- 出力は `公開日  URL  タイトル` の行と、その下にインデントされた `summary`（先頭300字、無ければ `(summary なし)`）の組の日付降順（200件超の記事から最新15件）なので、上位から順に上記の日付ルールに従って選別する
+- 同じ slug の記事オブジェクトがページ内に複数回現れるため、コマンドは summary を持つものを優先して残している。summary は「企業動向」セクションで Anthropic 記事を解説する際の一次情報源になる
+- `(summary なし)` の記事のうち、**レポートに載せると決めた記事に限り**、個別記事ページを1回だけ取得し、`<meta name="description">`（無ければ `og:description`）の content で内容を補う:
+
+```bash
+curl -sL --max-time 30 "https://www.anthropic.com/news/<slug>" -o /tmp/an_article.html
+grep -m1 -oE '<meta name="description" content="[^"]*"' /tmp/an_article.html \
+  || grep -m1 -oE '<meta property="og:description" content="[^"]*"' /tmp/an_article.html \
+  || echo "(meta description なし)"
+```
+
+- この補完は上記 grep による meta タグ読み取りに限り、個別ページをインライン Python 等でパースしないこと。content 内の `&#x27;` `&quot;` `&amp;` などの HTML エンティティは元の文字に読み替える
+- 取れなければリトライや別手段（servo-fetch 等による本文取得）は試みず、タイトル・URL・公開日の範囲で簡潔に紹介し、推測で内容を断定しないこと
 - 上記の抽出が空になる場合はサイト構成が変わった可能性があるため、深追いせずこのソースはスキップしてよい
 
 ### 2. OpenAI ブログ (RSS)
