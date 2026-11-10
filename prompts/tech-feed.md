@@ -9,8 +9,15 @@
 XML/Atom のパースには Python（`re.DOTALL` を有効にした正規表現）を使うこと。
 `<description>` などが複数行の CDATA で出力されるフィードがあり、単一行前提の grep/sed では中身が空になる。
 
+全ソース共通の取得ルール（タイトルと URL の対応ずれ・取りこぼしを防ぐため）:
+
+- **1ソースにつき1回の Bash 呼び出しに分ける**こと。複数ソースの取得・パースを1回の呼び出しに連結すると出力が数十 KB になり、Bash の出力上限で先頭数 KB のプレビューだけが表示される（persisted-output truncation）。
+- パース出力に `head` / `tail` / `[:N]` などの切り詰めを**付け足してはならない**。行数で切ると末尾エントリの TITLE だけが残って URL 行が落ち、別記事の URL を誤って紐付ける事故が起きる。件数・出力量の調整は各スニペットに書かれている範囲（DESC の文字数制限など）に留める。
+- persisted-output truncation が起きた場合は、表示された先頭プレビューだけで判断せず、保存先として示されたファイルを Read ツールで最後まで読み直してから選別すること。
+- レポートに載せる記事は、TITLE と URL が**同じエントリ（同じ行または同じ `---` 区切りブロック）の中で揃って確認できるものだけ**に限る。URL が空、または対応する URL を出力内で確認できないエントリは掲載しない。別エントリの URL や記憶・推測で補ってはならない。
+
 ### 1. はてなブックマーク テクノロジー
-RSSを取得し、Python で RDF 全体をパースする（`head` 等で出力を制限してはならない）:
+RSSを取得し、Python で RDF 全体をパースする:
 
 ```bash
 curl -s --max-time 15 'https://b.hatena.ne.jp/hotentry/it.rss' | python3 -c "
@@ -67,13 +74,14 @@ def unwrap(s):
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
-for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S)[:20]:
+for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
-    print('TITLE:', g('title')); print('URL:', re.sub(r'\s+', '-', g('link'))); print('DESC:', g('description')[:300]); print('---')
+    print(g('title'), re.sub(r'\s+', '-', g('link')), g('description')[:300], sep='\t')
 "
 ```
 
-各エントリの title, link, description を全件取得すること。
+各エントリの title, link, description を全件取得すること（フィードは20件前後）。
+出力は **1エントリ1行の `TITLE<TAB>URL<TAB>DESC`** 形式で、タイトルと URL が必ず同じ行に並ぶ。記事を採用するときは、その行の2列目の URL をそのまま使うこと。
 
 ### 3. Qiita 人気記事
 Atom フィードを取得し、Python でパースする（このフィードに `<summary>` は存在せず、概要は `<content>` に入っている。また `<link>` は `href` 属性を持つ自己終端タグでテキストノードに URL がないため、属性から取り出す必要がある）:
@@ -280,7 +288,7 @@ for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
 "
 ```
 
-各エントリの title, link, pubDate, category, description を全件取得する。URL で重複排除しており、3フィード合計で40-50件前後の候補が得られる（`head` や `[:N]` で出力を制限してはならない）。
+各エントリの title, link, pubDate, category, description を全件取得する。URL で重複排除しており、3フィード合計で40-50件前後の候補が得られる。
 `AGE_H` は pubDate から実行時点までの経過時間（時間単位）。`security` フィードは数日〜数週間前の古い記事を含むため、**`AGE_H` が72以下（pubDate が実行時点から72時間以内）の記事のみ候補とする**（`AGE_H` が `?` の場合は DATE を見て判断する）。
 なお **RSS のフィードとして有効なのは `category/artificial-intelligence/feed/` / `category/security/feed/` / 本体 `feed/` の3本のみ**で、`cloud-computing` や `developer` などの他のカテゴリスラッグはフィード URL に使うと 404 になる。上記3本以外を試してはならない。
 
@@ -322,7 +330,7 @@ for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
 "
 ```
 
-各エントリの title, link, pubDate, description を取得する。URL で重複排除しており、3フィード合計で50件前後の候補が得られる（`head` 等で出力を制限してはならない）。
+各エントリの title, link, pubDate, description を取得する。URL で重複排除しており、3フィード合計で50件前後の候補が得られる。
 `CATEGORY` は記事 URL の第1パスセグメント（`security` / `ai` / `gadgets` / `health` など）で、選別のシグナルとして使う。
 なお **RSS のフィードスラッグとして有効なのは `technology-lab` / `gadgets` / `index` のみ**で、`security` や `ai` は記事 URL のパスとしては現れるがフィード URL に使うと 404 になる。上記3本以外を試してはならない。
 
