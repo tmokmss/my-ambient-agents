@@ -57,6 +57,16 @@ curl -sS --max-time 20 "https://hacker-news.firebaseio.com/v0/item/<id>.json"
         - HTTP 200 かつ `content` が非空なら**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**Mastodon の投稿は短文であることが多いため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
         - HTTP 404 / `{"error": ...}` 形式の JSON（削除済み投稿など）/ `content` が空、のいずれかの場合は、`.pdf` と同様に **2. も 3. も実行せず**直ちに 4.（代替URLフォールバック）に進み、そこでも本文が得られなければ 5.（コメントベース要約）で要約する。Mastodon の投稿ページはクライアントサイド描画のため、servo-fetch で JS レンダリングしてもインスタンスの About ページしか得られず、Wayback のスナップショットも "To use the Mastodon web application, please enable JavaScript" しか含まないことを実測済みだからである
         - インスタンスは多数存在し列挙では追随できないため、**この判定は既知スキップドメインリストではなく上記の URL パターンで行う**（リスト自体には追加しない）
+      - **元URL が discuss.grapheneos.org のスレッドの場合は、WebFetch を試行せず Flarum の公開 API を curl で叩く。** 対象はホストが `discuss.grapheneos.org` で、パス（クエリ文字列・フラグメントを除く）が `/d/<数字ID>`、`/d/<数字ID>-<slug>`、またはその後ろに `/<投稿番号>` が付く形の URL。Flarum 製フォーラムのため HTML は `<noscript>` 内にしか本文がなく、WebFetch は冒頭の「Something went wrong while trying to load the full version of this site」で失敗扱いになる（繰り返し観測済み）
+        ```
+        curl -sS -g --max-time 20 -H 'Accept: application/json' -w "%{http_code}\n" -o /tmp/flarum_post.json "https://discuss.grapheneos.org/api/posts?filter[discussion]=<数字ID>&filter[number]=<投稿番号>"
+        ```
+        - `<投稿番号>` は URL 末尾の投稿番号、なければ `1`（スレッドの最初の投稿）。`[` `]` を curl の glob として解釈させないため **`-g` は必須**。認証は不要
+        - 本文は `.data[0].attributes.contentHtml` からタグを除去したテキストの冒頭約3000文字を使い、スレッドタイトルは `included` 内の `type` が `discussions` の要素の `attributes.title` で確認できる。`/api/discussions/<数字ID>` の `included` に含まれる posts は先頭が最初の投稿とは限らないため使わないこと
+        - 指定した投稿が「スレッド固定」などのイベント投稿で `contentHtml` を持たない場合は、`<投稿番号>` を `1` にして一度だけ取り直す
+        - HTTP 200 かつ `contentHtml` が非空なら**取得成功**として扱い、2.（JS レンダリング後の再取得）と 3.（Wayback Machine フォールバック）はスキップして要約に進む。**フォーラム投稿は短いこともあるため、下記の「本文相当のテキストが 500 文字未満」という失敗判定はこの分岐には適用しない**
+        - 上記を満たさない場合（HTTP 200 以外、タイムアウト、`data` が空配列、`contentHtml` が空）は失敗として扱い、**2.（servo-fetch）は実行せず**直ちに 3.（Wayback Machine フォールバック）に進み、以降は通常どおり 4. → 5. の順で処理する
+        - discuss.grapheneos.org は既知スキップドメインリストには追加しない（上記 API で取得できるため）
       - **元URL が GitHub リポジトリのトップページ相当の場合は、WebFetch より先に README の原文を curl で取得する。** 対象はホストが `github.com`（`www.` を含む）で、パス（クエリ文字列・フラグメントを除く）が `/<owner>/<repo>`、またはその後ろに `/` や `/tree/<branch>` が付くだけの形（`#readme` 等のフラグメント付きも含む）。WebFetch はリポジトリページのナビゲーション・ファイル一覧などに埋もれて README 本文が十分に反映されないため
         - `/pull/`・`/issues/`・`/blob/`・`/releases/`・`/discussions/` 等のサブページや、`.pdf` で終わるパスは対象外とし、従来どおりのフローで処理する
         - まず GitHub API で README を取得する（ファイル名やデフォルトブランチは API 側が解決する）。失敗した場合（HTTP 200 以外、または本文が空）は raw.githubusercontent.com を試す
