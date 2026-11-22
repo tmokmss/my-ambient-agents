@@ -344,12 +344,15 @@ curl -s --max-time 15 \
   'https://feeds.arstechnica.com/arstechnica/gadgets' \
   'https://feeds.arstechnica.com/arstechnica/index' | python3 -c "
 import sys, re, html
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 d = sys.stdin.read()
 def unwrap(s):
     m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+now = datetime.now(timezone.utc)
 seen = set()
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
@@ -357,13 +360,18 @@ for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     if not url or url in seen: continue
     seen.add(url)
     cat = re.sub(r'^https?://[^/]+/', '', url).split('/')[0]
+    date = g('pubDate')
+    try: age = '%.0f' % ((now - parsedate_to_datetime(date)).total_seconds() / 3600)
+    except Exception: age = '?'
     desc = g('description') or g('content:encoded')[:300]
-    print('TITLE:', g('title')); print('URL:', url); print('CATEGORY:', cat); print('DATE:', g('pubDate')); print('DESC:', desc); print('---')
+    print('TITLE:', g('title')); print('URL:', url); print('CATEGORY:', cat); print('DATE:', date); print('AGE_H:', age); print('DESC:', desc); print('---')
 "
 ```
 
 各エントリの title, link, pubDate, description を取得する。URL で重複排除しており、3フィード合計で50件前後の候補が得られる。
 `CATEGORY` は記事 URL の第1パスセグメント（`security` / `ai` / `gadgets` / `health` など）で、選別のシグナルとして使う。
+`AGE_H` は pubDate から実行時点までの経過時間（時間単位）。`technology-lab` / `gadgets` フィードは更新が緩やかで、数週間〜1か月前の記事を含む。
+そのため**`AGE_H` が72以下（pubDate が実行時点から72時間以内）の記事のみ候補とする**。後述の選別基準を満たす記事が72時間以内に3件未満の場合に限り、`AGE_H` が168以下（7日以内）まで広げてよいが、**168を超える記事は候補にしない**（`AGE_H` が `?` の場合は DATE を見て判断する）。
 なお **RSS のフィードスラッグとして有効なのは `technology-lab` / `gadgets` / `index` のみ**で、`security` や `ai` は記事 URL のパスとしては現れるがフィード URL に使うと 404 になる。上記3本以外を試してはならない。
 
 `index` を含めている以上、非技術カテゴリの記事は必ず混入する。**取得順にそのまま採用せず、取得した全件から次の基準で選ぶ**こと。
