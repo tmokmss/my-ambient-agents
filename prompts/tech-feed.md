@@ -63,25 +63,57 @@ for url, e in agg.items():
 上記基準を満たす記事が3件に満たない場合は、無理に枠を埋めず件数を減らしてよい。
 
 ### 2. Zenn トレンド
-RSSを取得し、Python でパースする（このフィードは Atom ではなく RSS 2.0 で、`<title>` と `<description>` が複数行の CDATA で出力される。CDATA を展開する前にタグ除去すると `<![CDATA[` から `]]>` までが1つのタグとみなされて消え、タイトルも概要も全件空になる）:
+次の2本を取得して結合し、URL で重複を除去してから処理する:
+- https://zenn.dev/feed （RSS 2.0。常に20件固定で、ページング・件数指定は効かない）
+- https://zenn.dev/api/articles?order=weekly&count=30 （週間ランキングの JSON API）
+
+RSS だけでは1日複数回の実行で直近レポートとの重複によりほぼ枯渇する（実測で20件中12〜17件が既出）ため、週間ランキングを併用して候補を増やす。
+RSS は `<title>` と `<description>` が複数行の CDATA で出力される。CDATA を展開する前にタグ除去すると `<![CDATA[` から `]]>` までが1つのタグとみなされて消え、タイトルも概要も全件空になる:
 
 ```bash
-curl -s --max-time 15 'https://zenn.dev/feed' | python3 -c "
-import sys, re, html
-d = sys.stdin.read()
+TMP=$(mktemp -d)
+curl -s --max-time 15 'https://zenn.dev/feed' -o "$TMP/feed.xml"
+curl -s --max-time 15 'https://zenn.dev/api/articles?order=weekly&count=30' -o "$TMP/weekly.json"
+python3 - "$TMP/feed.xml" "$TMP/weekly.json" <<'PY2'
+import sys, re, html, json
 def unwrap(s):
     m = re.search(r'<!\[CDATA\[(.*?)\]\]>', s, re.S)
     s = m.group(1) if m else s
     s = re.sub(r'<[^>]+>', ' ', s)
     return re.sub(r'\s+', ' ', html.unescape(s)).strip()
+seen = set()
+try:
+    d = open(sys.argv[1], encoding='utf-8').read()
+except Exception:
+    d = ''
 for it in re.findall(r'<item[^>]*>(.*?)</item>', d, re.S):
     g = lambda tag: (lambda m: unwrap(m.group(1)) if m else '')(re.search(r'<%s[^>]*>(.*?)</%s>' % (tag, tag), it, re.S))
-    print(g('title'), re.sub(r'\s+', '-', g('link')), g('description')[:300], sep='\t')
-"
+    url = re.sub(r'\s+', '', g('link')).split('?')[0]
+    if not url or url in seen: continue
+    seen.add(url)
+    print(g('title'), url, g('description')[:300], 'rss', sep='\t')
+try:
+    items = json.load(open(sys.argv[2], encoding='utf-8')).get('articles') or []
+except Exception:
+    items = []
+for a in items:
+    path = a.get('path') or ''
+    if not path.startswith('/'): continue
+    url = 'https://zenn.dev' + path
+    if url in seen: continue
+    seen.add(url)
+    print(re.sub(r'\s+', ' ', a.get('title') or '').strip(), url, '-', 'weekly:%s' % a.get('bookmarked_count', 0), sep='\t')
+PY2
+rm -rf "$TMP"
 ```
 
-各エントリの title, link, description を全件取得すること（フィードは20件前後）。
-出力は **1エントリ1行の `TITLE<TAB>URL<TAB>DESC`** 形式で、タイトルと URL が必ず同じ行に並ぶ。記事を採用するときは、その行の2列目の URL をそのまま使うこと。
+出力は **1エントリ1行の `TITLE<TAB>URL<TAB>DESC<TAB>SRC`** 形式で、タイトルと URL が必ず同じ行に並ぶ。記事を採用するときは、その行の2列目の URL をそのまま使うこと。
+取得した全件（最大50件）から候補を選ぶ。RSS 由来（`SRC` が `rss`）の記事を優先し、直近レポートとの重複除外で候補が足りない場合に週間ランキング由来（`SRC` が `weekly:<ブックマーク数>`）の記事で補う。
+
+- 週間ランキングの記事一覧には概要（description）が含まれない（`DESC` が `-`）。週間ランキング由来の記事を採用する場合は、その記事のページを個別に取得して内容を確認してから解説を書くこと。タイトルだけから内容を推測して解説を書いてはならない。
+- 週間ランキング由来の記事を比べるときは、ブックマーク数（`weekly:` の後の数値）を品質のシグナルにする。
+- 週間ランキングは過去1週間の記事を含むため、数日前の記事が混ざる。直近レポートで既出の記事を除外した結果、新規記事が少ない日は無理に枠を埋めず件数を減らしてよい。
+- 週間ランキング API の取得に失敗した場合（空・JSON でない・`articles` がない）は、RSS の結果だけで続行する。
 
 ### 3. Qiita 人気記事
 Atom フィードを取得し、Python でパースする（このフィードに `<summary>` は存在せず、概要は `<content>` に入っている。また `<link>` は `href` 属性を持つ自己終端タグでテキストノードに URL がないため、属性から取り出す必要がある）:
