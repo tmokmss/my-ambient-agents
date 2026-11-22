@@ -5,20 +5,60 @@ on:
     - cron: "0 18 * * *" # JST 03:00
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
-
 concurrency:
   group: issue-maintenance
   cancel-in-progress: false
 
 jobs:
-  triage:
+  # 対象 Issue を最大3件選ぶ。app/claude と tmokmss が起票したもののうち、
+  # コメント数の多い順に、エージェントプレフィックス（[buzz-digest] など）が重複しないように取る。
+  select:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    permissions:
+      issues: read
+      pull-requests: read
+    outputs:
+      issues: ${{ steps.select.outputs.issues }}
+    steps:
+      - id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # triage が出した open PR で参照されている Issue は実装中とみなして外す
+          exclude=$(gh pr list --state open --author "app/claude" --json title,body \
+            --jq '[.[] | "\(.title) \(.body)" | scan("#([0-9]+)") | .[0] | tonumber]')
+          issues=$(gh issue list --state open --limit 1000 --json number,title,comments,labels,author \
+            | jq -c --argjson exclude "$exclude" '
+                [.[]
+                  | select(.author.login == "app/claude" or .author.login == "tmokmss")
+                  | select([.labels[].name] | any(. == "needs-human" or . == "wontfix" or . == "duplicate") | not)
+                  | select(.number as $n | $exclude | index($n) | not)
+                  | {number, comments: (.comments | length), prefix: ((.title | capture("^\\[(?<p>[^\\]]+)\\]").p) // .title)}]
+                | sort_by(-.comments, .number) | unique_by(.prefix)
+                | sort_by(-.comments, .number) | .[:3] | map(.number)')
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+
+  # Issue 1件につき1つのエージェントが判定から決着までを行う。
+  # 各 job は最新の main を checkout し直すので、1件ずつ順番に走らせる。
+  triage:
+    needs: select
+    if: needs.select.outputs.issues != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        issue: ${{ fromJSON(needs.select.outputs.issues) }}
+    env:
+      ISSUE_NUMBER: ${{ matrix.issue }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -41,5 +81,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Issue の実装判断とセルフレビューを伴うため Opus を指定する。
           # バージョン固定を避けるためエイリアスを使う（[1m] は 1M コンテキスト版）
-          claude_args: "--dangerously-skip-permissions --model opus[1m]"
+          # 非対話環境では、サブエージェントの完了を待たずに応答を終えるとセッションごと終了するため、
+          # サブエージェントを起動するツールを無効にする。
+          claude_args: "--dangerously-skip-permissions --model opus[1m] --disallowedTools Agent"
           show_full_output: true
