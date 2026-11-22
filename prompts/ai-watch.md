@@ -134,8 +134,64 @@ for it in re.findall(r"<item>(.*?)</item>", s, re.S)[:20]:
 - `https://x.ai/news` — curl では HTTP 403
 - `https://ai.meta.com/blog/rss/` / `https://ai.meta.com/feed/` — HTTP 404（Meta AI ブログに RSS は無い）
 - `https://mistral.ai/news/rss.xml` — HTTP 404（正しくは上記の `https://mistral.ai/rss.xml`）
-- DeepSeek — 公式サイトは静的 HTML から記事一覧を取得できず RSS も無い。新モデルは「5. Hugging Face トレンド」で拾える
+- `https://www.deepseek.com/` / `https://www.deepseek.com/news` — 静的 HTML から記事一覧を取得できず RSS も無い（DeepSeek は下記 3-3 の API ドキュメント sitemap を使う）
 - `https://qwenlm.github.io/blog/index.xml` — 2025-09 で更新が停止している
+- `https://qwen.ai/research` / `https://qwen.ai/blog` — JS レンダリング依存の SPA で、どのパス（`sitemap.xml`・`rss.xml` を含む）も同じシェル HTML を返す
+
+### 3-3. 中国フロンティアラボ（Qwen / DeepSeek / Kimi）
+
+Tier 2 と異なり**毎回取得する**（3本とも軽量）。いずれも補助ソースなので、取得失敗しても「取得失敗」明記は不要（黙ってスキップしてよい）。
+得られた記事・モデルには上記の日付ルールと「重複排除」節のルールをそのまま適用し、掲載するものは「企業動向」セクションに載せる。
+
+**(a) DeepSeek（API ドキュメントの News）** — 一覧ページは無いが、sitemap のニュース URL のスラッグが公開日を表す
+（`newsYYMMDD`。2024 年分のみ `newsMMDD`）。以下で最新5件を出す:
+
+```bash
+curl -sL --max-time 60 https://api-docs.deepseek.com/sitemap.xml | python3 -c 'import sys,re
+rows=set()
+for u,d in re.findall(r"<loc>(https://api-docs\.deepseek\.com/news/news(\d{6}|\d{4}))</loc>", sys.stdin.read()):
+    d=d if len(d)==6 else "24"+d
+    rows.add(("20"+d[:2]+"-"+d[2:4]+"-"+d[4:], u))
+rows=sorted(rows, reverse=True)
+print("items:",len(rows))
+for d,u in rows[:5]: print(d, " ", u)'
+```
+
+- 日付ルール上の掲載対象になった記事に限り、`<URL>.md`（例: `https://api-docs.deepseek.com/news/news261113.md`）を `| head -40` で取得し、
+  先頭の `# ` 行をタイトル、続く本文を解説の一次情報とする。レポートのリンクは `.md` を付けない URL にする
+
+**(b) Kimi / Moonshot AI ブログ** — https://www.kimi.com/blog/ の HTML に記事一覧（`title` / `href` / `date`）が JSON で埋め込まれている。
+キー順を仮定せずオブジェクト単位で切り出す以下のコマンドを使う（`https://www.moonshot.cn/blog` は同じ記事の一部しか載らないので使わない）:
+
+```bash
+curl -sL --max-time 60 https://www.kimi.com/blog/ | python3 -c 'import sys,re
+s=sys.stdin.read().replace("\\\"", "\"")
+seen={}
+for o in re.findall(r"\{[^{}]*\}", s):
+    h=re.search(r"\"href\":\"([^\"]+)\"", o); d=re.search(r"\"date\":\"(\d{4}-\d{2}-\d{2})\"", o); t=re.search(r"\"title\":\"([^\"]*)\"", o)
+    if h and d and t:
+        u=h.group(1) if h.group(1).startswith("http") else "https://www.kimi.com"+h.group(1)
+        seen[u]=(d.group(1), t.group(1))
+print("items:",len(seen))
+for u,(d,t) in sorted(seen.items(), key=lambda x:x[1][0], reverse=True)[:8]: print(d, " ", u, " ", t)'
+```
+
+- 一覧の `description` は空のことが多い。掲載対象の記事に限り、記事ページを1回取得して `<meta name="description">`（無ければ `og:description`）で内容を補う。
+  取れなければタイトル・URL・日付の範囲で簡潔に紹介し、推測で内容を断定しないこと
+
+**(c) Qwen（Hugging Face の公式 org）** — Qwen の公式ブログは静的取得できないため、`Qwen` org の新規モデルリポジトリで新リリースを検知する:
+
+```bash
+curl -sL --max-time 60 "https://huggingface.co/api/models?author=Qwen&sort=createdAt&direction=-1&limit=10" | python3 -c 'import sys,json
+for m in json.load(sys.stdin): print(m.get("createdAt","")[:10], " https://huggingface.co/"+m["id"], " ", m.get("pipeline_tag") or "-", " likes="+str(m.get("likes",0)))'
+```
+
+- `createdAt` は**リポジトリ作成日で、非公開で作られて後日公開されると公開日より前になる**。そのため日付ルールの代わりに
+  「`createdAt` が過去14日以内」かつ「`grep -rlF "huggingface.co/<id>)" src/content/reports/ | grep "${AGENT_SLUG}"` が空（過去の ai-watch で未掲載。末尾の `)` まで含めて照合し、`Qwen-Image-2.1` が `Qwen-Image-2.1-Turbo` に誤一致しないようにする）」を掲載候補の条件とする。
+  レポートに書く日付は `createdAt` ではなく「HF 公開」と明記する（例: `(Qwen, HF 公開)`）
+- `-FP8` / `-GGUF` / `-AWQ` / `-Int4` などの量子化版はベースモデルと同じリリースとしてまとめ、ベースモデルの1件として扱う
+- 解説は「5. Hugging Face トレンド」節の「説明文の補完」の README 取得スニペットで得た記述に基づいて書く。
+  同じモデルが HF トレンドにも出ている場合は「企業動向」側に1回だけ載せ、「オープンソース・モデル」には重複させない
 
 ### 4. arxiv (AI/ML 新着論文)
 - https://rss.arxiv.org/rss/cs.AI (RSS をパース)
@@ -497,7 +553,7 @@ output-report skill に従い src/content/reports/ にファイルを作成す�
 次にソース別セクション:
 
 ## 企業動向
-Anthropic, OpenAI, Google DeepMind（新着が少ない日は Tier 2 の Mistral AI・Hugging Face Blog）のブログから新着があればまとめる。
+Anthropic, OpenAI, Google DeepMind（新着が少ない日は Tier 2 の Mistral AI・Hugging Face Blog）と、3-3 の中国フロンティアラボ（Qwen / DeepSeek / Kimi）から新着があればまとめる。
 新着がない場合はこのセクションを省略する。
 - **[タイトル](url)** ({企業名}, {M/D}) - 日本語で内容の解説・意義
 - OpenAI 記事の解説は RSS の `<description>` を要約・翻訳して書く（記事ページは取得できないため）
